@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Odd Word Out - แกะดำคำศัพท์</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* High Saturation Pastel Palette */
+            --bg-cream: #FDFBF7;
+            --text-dark: #3D3D3D;
+            --color-peach: #FFB38A;
+            --color-mint: #98E2C6;
+            --color-sky: #95C8F3;
+            --color-yellow: #FFE180;
+            --color-pink: #FF9EAB;
+            --stroke-color: #C2B6A6;
+            --shadow-color: rgba(194, 182, 166, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #E5E0D8; /* Background outside the phone screen */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Mali', sans-serif;
+            color: var(--text-dark);
+            overflow: hidden;
+        }
+
+        /* Phone Screen Container (9:18 Aspect Ratio) */
+        #app-container {
+            width: 100%;
+            height: 100%;
+            max-width: 450px; /* Max width for desktop viewing */
+            max-height: 900px;
+            aspect-ratio: 9/18;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            /* Only round corners on desktop to simulate phone, flat on actual mobile */
+            border-radius: 0; 
+            box-shadow: none;
+        }
+
+        @media (min-width: 450px) and (min-height: 900px) {
+            #app-container {
+                border-radius: 32px;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+                border: 8px solid white;
+                height: 90vh;
+            }
+        }
+
+        /* Screens */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            padding: 24px;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 179, 138, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(152, 226, 198, 0.1) 0%, transparent 20%);
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* UI Elements (Paper Cut Style) */
+        .panel {
+            background-color: white;
+            border: 3px solid var(--stroke-color);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 4px 6px 0px 0px var(--shadow-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin: 0 0 10px 0;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        p {
+            font-size: 18px;
+            line-height: 1.6;
+            margin: 0 0 16px 0;
+        }
+
+        .btn {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 16px;
+            margin-bottom: 16px;
+            font-family: 'Mali', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            border: 3px solid var(--stroke-color);
+            border-radius: 16px;
+            background-color: white;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.1s ease;
+            box-shadow: 4px 6px 0px 0px var(--shadow-color);
+            position: relative;
+        }
+
+        .btn:active {
+            transform: translate(4px, 6px);
+            box-shadow: 0px 0px 0px 0px var(--shadow-color);
+        }
+
+        .btn span {
+            font-size: 14px;
+            font-weight: 400;
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+
+        /* Button Colors */
+        .btn-easy { background-color: var(--color-mint); }
+        .btn-medium { background-color: var(--color-yellow); }
+        .btn-hard { background-color: var(--color-peach); }
+        .btn-start { background-color: var(--color-sky); font-size: 28px; margin-top: auto; margin-bottom: 0;}
+        .btn-icon { width: 50px; height: 50px; padding: 0; border-radius: 12px; font-size: 24px; }
+
+        /* Game Header */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background-color: white;
+            border: 3px solid var(--stroke-color);
+            border-radius: 12px;
+            padding: 8px 16px;
+            font-size: 20px;
+            font-weight: 700;
+            box-shadow: 2px 4px 0px 0px var(--shadow-color);
+        }
+
+        /* Bookshelf */
+        .bookshelf-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+            position: relative;
+            padding: 20px 10px;
+        }
+
+        /* Wood shelves background */
+        .bookshelf-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -24px; right: -24px; bottom: 0;
+            background-image: repeating-linear-gradient(
+                transparent,
+                transparent 100px,
+                rgba(194, 182, 166, 0.2) 100px,
+                rgba(194, 182, 166, 0.2) 110px
+            );
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .book {
+            position: relative;
+            width: 100%;
+            height: 85px;
+            border: 3px solid var(--stroke-color);
+            border-radius: 8px 20px 20px 8px; /* Spine look */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 4px 6px 0px 0px var(--shadow-color);
+            z-index: 1;
+            transition: transform 0.1s ease;
+            /* Book gradient to look like cover */
+            background: linear-gradient(90deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 15%, rgba(255,255,255,0) 85%, rgba(255,255,255,0.4) 100%);
+        }
+
+        .book:active {
+            transform: scale(0.98);
+        }
+
+        /* Page lines on the right side */
+        .book::after {
+            content: '';
+            position: absolute;
+            right: 4px;
+            top: 10%;
+            height: 80%;
+            width: 6px;
+            border-left: 2px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+        }
+
+        /* Animations */
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-4px); }
+            80% { transform: translateX(4px); }
+        }
+        .anim-wiggle { animation: wiggle 0.4s ease-in-out; }
+
+        /* Floating Score Animation */
+        .float-score {
+            position: absolute;
+            font-size: 32px;
+            font-weight: 700;
+            pointer-events: none;
+            animation: floatUp 1s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+            z-index: 10;
+            text-shadow: 2px 2px 0px white, -2px -2px 0px white, 2px -2px 0px white, -2px 2px 0px white;
+        }
+        .score-plus { color: #4CAF50; }
+        .score-minus { color: #F44336; }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+            80% { transform: translateY(-60px) scale(1); opacity: 1; }
+            100% { transform: translateY(-80px) scale(1); opacity: 0; }
+        }
+
+        /* Confetti */
+        .confetti {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            pointer-events: none;
+            z-index: 5;
+            animation: fall 1s ease-out forwards;
+            border-radius: 2px;
+        }
+        @keyframes fall {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0) rotate(720deg); opacity: 0; }
+        }
+
+        /* Utility */
+        .text-highlight { color: #E76F51; font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    
+    <!-- Main Menu Screen -->
+    <div id="screen-menu" class="screen active">
+        <div class="panel">
+            <h1>แกะดำคำศัพท์</h1>
+            <p>หาคำศัพท์ที่ <b>ไม่อยู่</b> ในหมวดหมู่เดียวกับเพื่อนให้เจอ!</p>
+        </div>
+
+        <h3 style="margin-top: 10px; margin-bottom: 10px; font-size: 20px;">เลือกระดับความยาก</h3>
+        
+        <button class="btn btn-easy" onclick="selectDifficulty('easy')">
+            ระดับง่าย
+            <span>หมวดหมู่ชัดเจน (เช่น ของกิน / ของใช้)</span>
+        </button>
+        <button class="btn btn-medium" onclick="selectDifficulty('medium')">
+            ระดับปานกลาง
+            <span>หมวดหมู่ย่อย (เช่น สัตว์บก / สัตว์น้ำ)</span>
+        </button>
+        <button class="btn btn-hard" onclick="selectDifficulty('hard')">
+            ระดับยาก
+            <span>หมวดหมู่นามธรรม (เช่น อารมณ์ดี / อารมณ์เศร้า)</span>
+        </button>
+
+        <button class="btn btn-start" onclick="startGame()" id="btn-start" style="opacity: 0.5; pointer-events: none;">
+            เริ่มเกม
+        </button>
+    </div>
+
+    <!-- Gameplay Screen -->
+    <div id="screen-game" class="screen">
+        <div class="game-header">
+            <button class="btn btn-icon" style="margin-bottom: 0;" onclick="goToMenu()">🔙</button>
+            <div class="stat-box">⏱ <span id="time-display">3:00</span></div>
+            <div class="stat-box">⭐ <span id="score-display">0</span></div>
+        </div>
+
+        <div style="text-align: center; font-size: 20px; font-weight: 600; margin-bottom: 10px; background: white; padding: 10px; border-radius: 12px; border: 2px solid var(--stroke-color);">
+            เล่มไหนคือ <span class="text-highlight">แกะดำ</span> ?
+        </div>
+
+        <div class="bookshelf-container" id="bookshelf">
+            <!-- Books will be generated here -->
+        </div>
+    </div>
+
+    <!-- End Game Screen -->
+    <div id="screen-end" class="screen">
+        <div class="panel" style="margin-top: auto; margin-bottom: auto; padding: 40px 20px;">
+            <h1>หมดเวลา!</h1>
+            <p>คะแนนที่คุณทำได้</p>
+            <div style="font-size: 64px; font-weight: 700; color: var(--color-peach); text-shadow: 2px 2px 0px var(--stroke-color); margin: 20px 0;">
+                <span id="final-score">0</span>
+            </div>
+            <p id="end-message">เยี่ยมมากเลย!</p>
+        </div>
+
+        <button class="btn btn-start" onclick="goToMenu()">
+            เล่นอีกครั้ง
+        </button>
+    </div>
+
+</div>
+
+<script>
+    // --- Data & State ---
+    const gameData = {
+        easy: [
+            { words: ["แอปเปิล", "ส้ม", "กล้วย", "เก้าอี้"], answer: "เก้าอี้" },
+            { words: ["จาน", "ชาม", "ช้อน", "ขนมปัง"], answer: "ขนมปัง" },
+            { words: ["เสื้อ", "กางเกง", "กระโปรง", "ตู้เย็น"], answer: "ตู้เย็น" },
+            { words: ["หมา", "แมว", "กระต่าย", "รถยนต์"], answer: "รถยนต์" },
+            { words: ["ดินสอ", "ปากกา", "ยางลบ", "น้ำเปล่า"], answer: "น้ำเปล่า" },
+            { words: ["พัดลม", "แอร์", "ทีวี", "แตงโม"], answer: "แตงโม" },
+            { words: ["ตา", "หู", "จมูก", "รองเท้า"], answer: "รองเท้า" },
+            { words: ["หมอ", "ครู", "ตำรวจ", "โรงเรียน"], answer: "โรงเรียน" }
+        ],
+        medium: [
+            { words: ["มะนาว", "มะขาม", "เสาวรส", "แตงโม"], answer: "แตงโม" },
+            { words: ["ช้าง", "ม้า", "วัว", "ปลาโลมา"], answer: "ปลาโลมา" },
+            { words: ["กุหลาบ", "มะลิ", "ทานตะวัน", "ผักบุ้ง"], answer: "ผักบุ้ง" },
+            { words: ["รถเก๋ง", "รถกระบะ", "รถตู้", "เรือใบ"], answer: "เรือใบ" },
+            { words: ["กระรอก", "หนู", "กระต่าย", "นกอินทรี"], answer: "นกอินทรี" },
+            { words: ["กีตาร์", "เปียโน", "ไวโอลิน", "วิทยุ"], answer: "วิทยุ" },
+            { words: ["แม่น้ำ", "ลำธาร", "น้ำตก", "มหาสมุทร"], answer: "มหาสมุทร" },
+            { words: ["เชียงใหม่", "เชียงราย", "ลำปาง", "ภูเก็ต"], answer: "ภูเก็ต" } // ภาคเหนือ vs ใต้
+        ],
+        hard: [
+            { words: ["ดีใจ", "สุขใจ", "ภูมิใจ", "เศร้าใจ"], answer: "เศร้าใจ" },
+            { words: ["ซื่อสัตย์", "เมตตา", "เสียสละ", "อิจฉา"], answer: "อิจฉา" },
+            { words: ["ความหวัง", "ความฝัน", "จินตนาการ", "ความจริง"], answer: "ความจริง" },
+            { words: ["วิ่ง", "เดิน", "กระโดด", "นั่งสมาธิ"], answer: "นั่งสมาธิ" },
+            { words: ["อดีต", "ปัจจุบัน", "อนาคต", "สถานที่"], answer: "สถานที่" },
+            { words: ["กลม", "เหลี่ยม", "แบน", "นุ่ม"], answer: "นุ่ม" },
+            { words: ["แดง", "เหลือง", "น้ำเงิน", "สว่าง"], answer: "สว่าง" },
+            { words: ["วินาที", "นาที", "ชั่วโมง", "ระยะทาง"], answer: "ระยะทาง" }
+        ]
+    };
+
+    const bookColors = ['#FFB38A', '#98E2C6', '#95C8F3', '#FFE180'];
+    let currentDifficulty = null;
+    let score = 0;
+    let timeLeft = 180; // 3 minutes
+    let timerInterval = null;
+    let currentQuestionSet = [];
+    let isProcessingAnswer = false;
+
+    // --- Audio Context setup for Web Audio API (No external files needed) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+        }
+        if(audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'correct') {
+            // Soft chime
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(800, now);
+            oscillator.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+            oscillator.start(now);
+            oscillator.stop(now + 0.5);
+        } else if (type === 'wrong') {
+            // Soft dull sound
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(250, now);
+            oscillator.frequency.exponentialRampToValueAtTime(200, now + 0.2);
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.2, now + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            oscillator.start(now);
+            oscillator.stop(now + 0.3);
+        }
+    }
+
+    // --- Core Logic ---
+
+    function switchScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function selectDifficulty(diff) {
+        initAudio(); // Init audio on first user interaction
+        currentDifficulty = diff;
+        
+        // Visual feedback for selection
+        document.querySelectorAll('#screen-menu .btn').forEach(btn => {
+            if(btn.id !== 'btn-start') {
+                btn.style.boxShadow = '4px 6px 0px 0px var(--shadow-color)';
+                btn.style.transform = 'none';
+                btn.style.opacity = '0.5';
+            }
+        });
+        const selectedBtn = document.querySelector(`.btn-${diff}`);
+        selectedBtn.style.opacity = '1';
+        selectedBtn.style.boxShadow = '0px 0px 0px 0px var(--shadow-color)';
+        selectedBtn.style.transform = 'translate(4px, 6px)';
+
+        // Enable start button
+        const startBtn = document.getElementById('btn-start');
+        startBtn.style.opacity = '1';
+        startBtn.style.pointerEvents = 'auto';
+    }
+
+    function goToMenu() {
+        clearInterval(timerInterval);
+        switchScreen('screen-menu');
+    }
+
+    function startGame() {
+        initAudio();
+        score = 0;
+        timeLeft = 180;
+        isProcessingAnswer = false;
+        
+        // Clone and shuffle questions for this difficulty
+        currentQuestionSet = [...gameData[currentDifficulty]];
+        shuffleArray(currentQuestionSet);
+
+        updateScoreDisplay();
+        updateTimeDisplay();
+        switchScreen('screen-game');
+        
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimeDisplay();
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        const bookshelf = document.getElementById('bookshelf');
+        bookshelf.innerHTML = '';
+        
+        // If out of questions, reshuffle
+        if (currentQuestionSet.length === 0) {
+            currentQuestionSet = [...gameData[currentDifficulty]];
+            shuffleArray(currentQuestionSet);
+        }
+
+        const q = currentQuestionSet.pop(); // Take one question
+        let words = [...q.words];
+        shuffleArray(words); // Shuffle words position
+        let colors = [...bookColors];
+        shuffleArray(colors); // Shuffle colors
+
+        words.forEach((word, index) => {
+            const book = document.createElement('div');
+            book.className = 'book';
+            book.style.backgroundColor = colors[index];
+            book.innerText = word;
+            
+            book.onclick = (e) => handleAnswer(word, q.answer, book, e);
+            
+            bookshelf.appendChild(book);
+        });
+        
+        isProcessingAnswer = false;
+    }
+
+    function handleAnswer(selectedWord, correctWord, element, event) {
+        if (isProcessingAnswer) return;
+        isProcessingAnswer = true;
+
+        const isCorrect = selectedWord === correctWord;
+
+        if (isCorrect) {
+            playSound('correct');
+            score += 10;
+            showFloatingScore(element, '+10', true);
+            createConfetti(event.clientX, event.clientY);
+            element.style.transform = 'scale(1.05)';
+            element.style.boxShadow = '0 0 20px rgba(255,255,255,0.8)';
+            
+            setTimeout(() => {
+                renderQuestion();
+            }, 600); // Wait a bit before next question
+        } else {
+            playSound('wrong');
+            score -= 5;
+            // Prevent score from going below 0 if desired, or let it go negative. Let's let it go negative for challenge.
+            showFloatingScore(element, '-5', false);
+            
+            // Wiggle animation
+            element.classList.add('anim-wiggle');
+            element.style.backgroundColor = '#EAEAEA'; // Gray out slightly
+            element.style.color = '#999';
+            
+            setTimeout(() => {
+                element.classList.remove('anim-wiggle');
+                isProcessingAnswer = false; // Let them try again
+            }, 400);
+        }
+
+        updateScoreDisplay();
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        switchScreen('screen-end');
+        document.getElementById('final-score').innerText = score;
+        
+        let msg = "เยี่ยมมากเลย!";
+        if(score > 150) msg = "อัจฉริยะคำศัพท์!";
+        else if (score < 0) msg = "ลองใหม่อีกครั้งนะ!";
+        document.getElementById('end-message').innerText = msg;
+    }
+
+    // --- Helpers ---
+
+    function updateTimeDisplay() {
+        const m = Math.floor(timeLeft / 60);
+        const s = timeLeft % 60;
+        document.getElementById('time-display').innerText = `${m}:${s.toString().padStart(2, '0')}`;
+        
+        if(timeLeft <= 10) {
+            document.getElementById('time-display').style.color = '#F44336';
+            document.getElementById('time-display').parentElement.style.borderColor = '#F44336';
+        } else {
+            document.getElementById('time-display').style.color = 'var(--text-dark)';
+            document.getElementById('time-display').parentElement.style.borderColor = 'var(--stroke-color)';
+        }
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('score-display').innerText = score;
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function showFloatingScore(element, text, isPositive) {
+        const rect = element.getBoundingClientRect();
+        const floatEl = document.createElement('div');
+        floatEl.className = `float-score ${isPositive ? 'score-plus' : 'score-minus'}`;
+        floatEl.innerText = text;
+        
+        // Calculate position relative to the container
+        const container = document.getElementById('screen-game');
+        const containerRect = container.getBoundingClientRect();
+        
+        floatEl.style.left = `${rect.left - containerRect.left + rect.width / 2 - 20}px`;
+        floatEl.style.top = `${rect.top - containerRect.top}px`;
+        
+        container.appendChild(floatEl);
+        
+        setTimeout(() => floatEl.remove(), 1000);
+    }
+
+    function createConfetti(x, y) {
+        const container = document.getElementById('screen-game');
+        const containerRect = container.getBoundingClientRect();
+        
+        // Adjust x,y to be relative to the game container
+        const relX = x - containerRect.left;
+        const relY = y - containerRect.top;
+
+        for (let i = 0; i < 20; i++) {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.backgroundColor = bookColors[Math.floor(Math.random() * bookColors.length)];
+            
+            confetti.style.left = `${relX}px`;
+            confetti.style.top = `${relY}px`;
+            
+            const tx = (Math.random() - 0.5) * 150;
+            const ty = (Math.random() - 0.5) * 150 - 50;
+            
+            confetti.style.setProperty('--tx', `${tx}px`);
+            confetti.style.setProperty('--ty', `${ty}px`);
+            
+            container.appendChild(confetti);
+            
+            setTimeout(() => confetti.remove(), 1000);
+        }
+    }
+
+</script>
+</body>
+</html>

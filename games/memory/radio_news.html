@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Radio News - วิทยุแจ้งข่าว</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #FDFBF7;
+            --text-color: #5D4E41;
+            --stroke-color: #D4C4B7;
+            --btn-peach: #FFB385;
+            --btn-mint: #A7E8D0;
+            --btn-sky: #A7D8E8;
+            --btn-yellow: #FCE38A;
+            --panel-bg: #FFFFFF;
+        }
+
+        body {
+            font-family: 'Mali', cursive;
+            background-color: #333; /* Dark bg outside mobile view */
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* 9:18 Aspect Ratio Container */
+        #game-container {
+            width: 100%;
+            height: 100vh;
+            max-width: 400px;
+            max-height: 800px;
+            background-color: var(--bg-color);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-aspect-ratio: 9/18) {
+            #game-container {
+                height: 100vh;
+                width: calc(100vh * (9 / 18));
+                border-radius: 24px;
+            }
+        }
+
+        /* Paper Cut Style Utilities */
+        .paper-panel {
+            background-color: var(--panel-bg);
+            border: 3px solid var(--stroke-color);
+            border-radius: 20px;
+            box-shadow: 0 6px 0 var(--stroke-color);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .paper-btn {
+            border: 3px solid var(--stroke-color);
+            border-radius: 16px;
+            box-shadow: 0 4px 0 var(--stroke-color);
+            font-weight: 600;
+            font-size: 1.25rem; /* ~20sp minimum */
+            transition: all 0.1s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .paper-btn:active, .paper-btn.active-press {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 var(--stroke-color);
+        }
+
+        .btn-peach { background-color: var(--btn-peach); }
+        .btn-mint { background-color: var(--btn-mint); }
+        .btn-sky { background-color: var(--btn-sky); }
+        .btn-yellow { background-color: var(--btn-yellow); }
+        .btn-white { background-color: white; }
+
+        .btn-disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .btn-correct {
+            background-color: var(--btn-mint) !important;
+            border-color: #7BB9A1;
+            box-shadow: 0 4px 0 #7BB9A1;
+            color: #2C5242;
+        }
+
+        /* Animations */
+        @keyframes wiggle {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-3deg); }
+            50% { transform: translateX(5px) rotate(3deg); }
+            75% { transform: translateX(-5px) rotate(-3deg); }
+            100% { transform: translateX(0); }
+        }
+        .wiggle { animation: wiggle 0.4s ease-in-out; }
+
+        @keyframes pulse-radio {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .speaking .radio-icon {
+            animation: pulse-radio 1s infinite;
+            filter: drop-shadow(0 0 10px var(--btn-yellow));
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            padding: 24px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .screen.active { display: flex; }
+
+        /* Typography spacing */
+        p { line-height: 1.6; }
+        
+        .hide { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <!-- Home Screen -->
+    <div id="screen-home" class="screen active justify-center">
+        <div class="paper-panel text-center bg-white mb-6">
+            <h1 class="text-4xl font-bold mb-2 text-[var(--btn-peach)]" style="-webkit-text-stroke: 1px var(--stroke-color);">Radio News</h1>
+            <h2 class="text-xl font-bold mb-4">วิทยุแจ้งข่าว</h2>
+            <p class="text-lg">ทดสอบความจำระยะสั้น<br>ฟังข่าวจากวิทยุ แล้วเลือกคำศัพท์ที่คุณได้ยินให้ครบถ้วน!</p>
+        </div>
+
+        <h3 class="text-xl font-bold mb-3 text-center">เลือกระดับความยาก</h3>
+        
+        <div class="flex flex-col gap-4 mb-6">
+            <button class="paper-btn btn-mint flex-col py-3" onclick="startGame('easy')">
+                <span>EASY (ง่าย)</span>
+                <span class="text-sm font-normal mt-1">ข่าวสั้น / จำ 2 คำ</span>
+            </button>
+            <button class="paper-btn btn-yellow flex-col py-3" onclick="startGame('medium')">
+                <span>MEDIUM (ปานกลาง)</span>
+                <span class="text-sm font-normal mt-1">ข่าวมีรายละเอียด / จำ 3 คำ</span>
+            </button>
+            <button class="paper-btn btn-peach flex-col py-3" onclick="startGame('hard')">
+                <span>HARD (ยาก)</span>
+                <span class="text-sm font-normal mt-1">ข่าวหลอกชวนสับสน / จำ 3 คำ</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="screen-game" class="screen flex-col">
+        <!-- Top Bar -->
+        <div class="flex justify-between items-center mb-6">
+            <button class="paper-btn btn-white !p-2 !rounded-xl" onclick="goHome()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </button>
+            <div class="paper-panel !mb-0 !p-2 !px-4 text-xl font-bold flex items-center gap-2">
+                ⏱️ <span id="ui-time">60</span>s
+            </div>
+            <div class="paper-panel !mb-0 !p-2 !px-4 text-xl font-bold text-[var(--btn-peach)]">
+                ⭐ <span id="ui-score">0</span>
+            </div>
+        </div>
+
+        <!-- Radio Area -->
+        <div id="radio-area" class="flex-1 flex flex-col items-center justify-center mb-4 transition-all duration-300">
+            <!-- SVG Radio Vector -->
+            <svg class="radio-icon w-48 h-48 mb-6" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Antenna -->
+                <path d="M160 70 L180 20" stroke="#D4C4B7" stroke-width="6" stroke-linecap="round"/>
+                <circle cx="180" cy="20" r="6" fill="#A7D8E8" stroke="#D4C4B7" stroke-width="3"/>
+                <!-- Body -->
+                <rect x="20" y="70" width="160" height="110" rx="20" fill="#FFB385" stroke="#D4C4B7" stroke-width="6"/>
+                <!-- Speaker Grill -->
+                <rect x="35" y="90" width="70" height="70" rx="35" fill="#FFFFFF" stroke="#D4C4B7" stroke-width="4"/>
+                <circle cx="70" cy="125" r="20" fill="#FCE38A"/>
+                <!-- Dial/Knobs -->
+                <rect x="120" y="90" width="45" height="25" rx="8" fill="#FFFFFF" stroke="#D4C4B7" stroke-width="4"/>
+                <circle cx="142" cy="140" r="12" fill="#A7E8D0" stroke="#D4C4B7" stroke-width="4"/>
+                <path d="M142 140 L142 130" stroke="#D4C4B7" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+
+            <button id="btn-play-audio" class="paper-btn btn-sky w-full max-w-[250px] mb-2" onclick="playCurrentNews()">
+                🔊 กดเพื่อฟังข่าว
+            </button>
+            <p id="audio-status" class="text-center text-sm font-bold text-gray-500 h-6">รอการเล่นเสียง...</p>
+        </div>
+
+        <!-- Choices Area -->
+        <div id="choices-area" class="hide flex-1 flex flex-col">
+            <p class="text-center font-bold text-xl mb-4">เลือกคำศัพท์ที่คุณได้ยิน (<span id="words-left">0</span> คำ)</p>
+            <div id="choices-grid" class="grid grid-cols-2 gap-4">
+                <!-- Buttons injected here by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="screen-result" class="screen justify-center items-center">
+        <div class="paper-panel text-center bg-white w-full">
+            <h2 class="text-3xl font-bold mb-4">หมดเวลา!</h2>
+            <p class="text-xl mb-2">คะแนนของคุณ</p>
+            <div class="text-6xl font-bold text-[var(--btn-peach)] mb-6" style="-webkit-text-stroke: 2px var(--stroke-color);" id="final-score">0</div>
+            
+            <button class="paper-btn btn-mint w-full mb-4" onclick="goHome()">
+                🏠 กลับหน้าหลัก
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Data Bank ---
+    const newsData = {
+        easy: [
+            { text: "ประกาศ วันนี้ พายุเข้า ขอให้ทุกคนระวัง ต้นไม้ล้ม", correct: ["พายุ", "ต้นไม้ล้ม"], wrong: ["แดดออก", "น้ำท่วม"] },
+            { text: "ข่าวสั้น คืนนี้จะมี ดาวตก ให้มองไปที่ ทิศเหนือ", correct: ["ดาวตก", "ทิศเหนือ"], wrong: ["พระจันทร์", "ทิศใต้"] },
+            { text: "ประกาศด่วน ถนนปิด โปรดใช้ ทางเลี่ยง", correct: ["ถนนปิด", "ทางเลี่ยง"], wrong: ["รถติด", "ทางด่วน"] }
+        ],
+        medium: [
+            { text: "รายงานจราจร มี รถติดหนัก ที่สี่แยก เนื่องจาก อุบัติเหตุชนท้าย", correct: ["รถติด", "สี่แยก", "อุบัติเหตุ"], wrong: ["ถนนโล่ง", "ไฟดับ", "ซ่อมถนน"] },
+            { text: "พยากรณ์อากาศ พรุ่งนี้จะมี หมอกหนา ในตอนเช้า และมี อากาศเย็น", correct: ["หมอกหนา", "ตอนเช้า", "อากาศเย็น"], wrong: ["ฝนตก", "ตอนบ่าย", "อากาศร้อน"] },
+            { text: "ประกาศจากโรงเรียน พรุ่งนี้ งดการเรียนการสอน ให้นักเรียน เรียนออนไลน์ ที่บ้าน", correct: ["งดการเรียน", "เรียนออนไลน์", "ที่บ้าน"], wrong: ["เปิดเทอม", "มาโรงเรียน", "สอบไล่"] }
+        ],
+        hard: [
+            { text: "พยากรณ์อากาศวันนี้ แม้ว่าเมื่อวานฝนตก แต่พรุ่งนี้ ฝนไม่ตก อากาศจะ ร้อนจัด แนะนำให้สวม เสื้อแขนสั้น", correct: ["ฝนไม่ตก", "ร้อนจัด", "เสื้อแขนสั้น"], wrong: ["ฝนตก", "อากาศหนาว", "เสื้อกันหนาว"] },
+            { text: "ข่าวจราจร ถนนเส้นหลักไม่ได้ปิด แต่มี ด่านตรวจ โปรดเตรียม ใบขับขี่ และ ขับช้าๆ", correct: ["ด่านตรวจ", "ใบขับขี่", "ขับช้าๆ"], wrong: ["ถนนปิด", "บัตรประชาชน", "ขับเร็ว"] },
+            { text: "ประกาศร้านค้า วันนี้ไม่มีโปรโมชั่นลดราคา แต่แจก ของแถม ฟรี สำหรับลูกค้าที่ ซื้อเงินสด เท่านั้น", correct: ["ของแถม", "ฟรี", "ซื้อเงินสด"], wrong: ["ลดราคา", "จ่ายบัตรเครดิต", "เสียเงิน"] }
+        ]
+    };
+
+    // --- Game State ---
+    let currentDifficulty = 'easy';
+    let score = 0;
+    let timeLeft = 60;
+    let timerInterval = null;
+    let currentQuestion = null;
+    let wordsToFind = 0;
+    let wordsFound = 0;
+
+    // --- Audio Context for Soft Chimes ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+
+    function playTone(frequency, type, duration, vol) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + duration);
+    }
+
+    function playCorrectSound() { playTone(600, 'sine', 0.5, 0.1); setTimeout(() => playTone(800, 'sine', 0.5, 0.1), 100); }
+    function playWrongSound() { playTone(200, 'triangle', 0.3, 0.1); }
+    function playPopSound() { playTone(400, 'sine', 0.1, 0.05); }
+
+    // --- Core Functions ---
+
+    function switchScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function goHome() {
+        clearInterval(timerInterval);
+        window.speechSynthesis.cancel();
+        switchScreen('screen-home');
+    }
+
+    function startGame(difficulty) {
+        currentDifficulty = difficulty;
+        score = 0;
+        timeLeft = 60; // 1 minute per round for prototype
+        updateScore(0);
+        updateTime();
+        switchScreen('screen-game');
+        
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTime();
+            if(timeLeft <= 0) endGame();
+        }, 1000);
+
+        setupNextRound();
+    }
+
+    function setupNextRound() {
+        // Hide choices, show radio area
+        document.getElementById('choices-area').classList.add('hide');
+        document.getElementById('radio-area').classList.remove('hide');
+        document.getElementById('audio-status').innerText = "รอการกดฟังข่าว...";
+        document.getElementById('btn-play-audio').classList.remove('hide');
+        document.getElementById('radio-area').classList.remove('speaking');
+
+        // Pick random question
+        const list = newsData[currentDifficulty];
+        currentQuestion = list[Math.floor(Math.random() * list.length)];
+        wordsToFind = currentQuestion.correct.length;
+        wordsFound = 0;
+        document.getElementById('words-left').innerText = wordsToFind;
+    }
+
+    function playCurrentNews() {
+        if (!currentQuestion) return;
+
+        window.speechSynthesis.cancel(); // Stop current speech
+        
+        document.getElementById('btn-play-audio').classList.add('hide');
+        document.getElementById('audio-status').innerText = "กำลังกระจายเสียง... (ตั้งใจฟังนะ)";
+        document.getElementById('radio-area').classList.add('speaking');
+
+        const utterance = new SpeechSynthesisUtterance(currentQuestion.text);
+        utterance.lang = 'th-TH';
+        utterance.rate = 0.9; // Slightly slower for clarity
+        
+        utterance.onend = () => {
+            document.getElementById('radio-area').classList.remove('speaking');
+            document.getElementById('audio-status').innerText = "";
+            showChoices();
+        };
+
+        // Fallback in case onend doesn't fire (browser bugs)
+        setTimeout(() => {
+            if(document.getElementById('radio-area').classList.contains('speaking')){
+                 document.getElementById('radio-area').classList.remove('speaking');
+                 showChoices();
+            }
+        }, (currentQuestion.text.length * 150)); // Rough estimate
+
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function showChoices() {
+        document.getElementById('radio-area').classList.add('hide');
+        const choicesArea = document.getElementById('choices-area');
+        const grid = document.getElementById('choices-grid');
+        choicesArea.classList.remove('hide');
+        grid.innerHTML = '';
+
+        // Prepare choices
+        let allChoices = [...currentQuestion.correct, ...currentQuestion.wrong];
+        // Shuffle array
+        allChoices = allChoices.sort(() => Math.random() - 0.5);
+
+        allChoices.forEach(word => {
+            const btn = document.createElement('button');
+            btn.className = 'paper-btn btn-white text-lg h-20 break-words';
+            btn.innerText = word;
+            btn.onclick = () => handleChoice(btn, word);
+            grid.appendChild(btn);
+        });
+    }
+
+    function handleChoice(btn, word) {
+        if (btn.classList.contains('btn-correct') || btn.classList.contains('btn-disabled')) return;
+
+        if (currentQuestion.correct.includes(word)) {
+            // Correct
+            playCorrectSound();
+            btn.classList.add('btn-correct');
+            wordsFound++;
+            updateScore(10);
+            document.getElementById('words-left').innerText = wordsToFind - wordsFound;
+
+            if (wordsFound >= wordsToFind) {
+                // Round Win
+                fireConfetti();
+                disableAllChoices();
+                setTimeout(setupNextRound, 2000);
+            }
+        } else {
+            // Wrong
+            playWrongSound();
+            btn.classList.add('wiggle');
+            btn.style.backgroundColor = '#FFD1D1'; // Soft red
+            updateScore(-5);
+            
+            setTimeout(() => {
+                btn.classList.remove('wiggle');
+                btn.style.backgroundColor = 'white';
+            }, 400);
+        }
+    }
+
+    function disableAllChoices() {
+        const btns = document.getElementById('choices-grid').querySelectorAll('button');
+        btns.forEach(b => b.classList.add('btn-disabled'));
+    }
+
+    function updateScore(points) {
+        score += points;
+        document.getElementById('ui-score').innerText = score;
+    }
+
+    function updateTime() {
+        document.getElementById('ui-time').innerText = timeLeft;
+    }
+
+    function fireConfetti() {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#FFB385', '#A7E8D0', '#FCE38A', '#A7D8E8']
+        });
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        document.getElementById('final-score').innerText = score;
+        switchScreen('screen-result');
+    }
+
+</script>
+</body>
+</html>

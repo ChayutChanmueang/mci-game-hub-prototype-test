@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Proverb Painter - เกมทายสำนวนไทย</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --bg-cream: #FFFDF5;
+            --peach: #FFB085;
+            --mint: #B5EAD7;
+            --sky: #A2D2FF;
+            --yellow: #FFDAC1;
+            --dark-text: #4A3F35;
+            --panel-stroke: #6D5D50;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Mitr', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 9:18 Aspect Ratio Container */
+        #game-container {
+            width: 100vw;
+            height: calc(100vw * 2);
+            max-width: 450px;
+            max-height: 900px;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            border: 4px solid var(--panel-stroke);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            padding: 30px;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* UI Elements */
+        .panel {
+            background: white;
+            border: 3px solid var(--panel-stroke);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 4px 4px 0px var(--panel-stroke);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: var(--dark-text);
+            margin: 0 0 15px 0;
+            line-height: 1.2;
+        }
+
+        p {
+            font-size: 20px;
+            color: var(--dark-text);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 18px;
+            margin-bottom: 15px;
+            border: 3px solid var(--panel-stroke);
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 6px 0 var(--panel-stroke);
+            position: relative;
+            top: 0;
+            background-color: white;
+            color: var(--dark-text);
+        }
+
+        .btn:active {
+            top: 4px;
+            box-shadow: 0 2px 0 var(--panel-stroke);
+        }
+
+        .btn-start { background-color: var(--mint); }
+        .btn-option { background-color: var(--sky); text-align: left; padding-left: 25px; }
+        .btn-diff { background-color: var(--yellow); font-size: 20px; }
+        
+        .btn-back {
+            width: auto;
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 18px;
+            background: var(--peach);
+            margin-bottom: 10px;
+        }
+
+        /* Game Area */
+        #visual-panel {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff;
+            position: relative;
+            margin-bottom: 25px;
+            overflow: hidden;
+            /* Paper Cut Effect */
+            background-image: radial-gradient(circle at 50% 50%, #ffffff 0%, #f0f0f0 100%);
+        }
+
+        #visual-panel svg {
+            width: 90%;
+            height: 90%;
+            filter: drop-shadow(4px 4px 2px rgba(0,0,0,0.1));
+        }
+
+        .score-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--dark-text);
+            background: var(--yellow);
+            padding: 5px 15px;
+            border-radius: 12px;
+            border: 2px solid var(--panel-stroke);
+        }
+
+        /* Feedback Animations */
+        .wiggle {
+            animation: wiggle 0.4s ease-in-out;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .color-up {
+            animation: colorUp 0.8s forwards;
+        }
+
+        @keyframes colorUp {
+            from { filter: grayscale(1); }
+            to { filter: grayscale(0); transform: scale(1.05); }
+        }
+
+        /* Difficulty badge info */
+        .diff-info {
+            display: block;
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <!-- หน้าเริ่มเกม -->
+    <div id="home-screen" class="screen active">
+        <div class="panel">
+            <h1>Proverb Painter</h1>
+            <p>ตีความหมายของภาพวาด<br>ให้เป็นสำนวนไทยแสนสนุก</p>
+        </div>
+
+        <div class="panel">
+            <p style="margin-bottom: 10px; font-weight: bold;">เลือกความยาก</p>
+            <button class="btn btn-diff" onclick="setDifficulty('easy')">
+                ง่าย
+                <span class="diff-info">ภาพตรงตัว สำนวนคุ้นหู</span>
+            </button>
+            <button class="btn btn-diff" onclick="setDifficulty('medium')">
+                ปานกลาง
+                <span class="diff-info">ต้องตีความลึกซึ้งขึ้น</span>
+            </button>
+            <button class="btn btn-diff" onclick="setDifficulty('hard')">
+                ยาก
+                <span class="diff-info">ตัวเลือกใกล้เคียงกันมาก</span>
+            </button>
+        </div>
+
+        <button class="btn btn-start" onclick="startGame()" id="start-btn" style="display:none;">เริ่มวาดภาพ!</button>
+    </div>
+
+    <!-- หน้าเล่นเกม -->
+    <div id="game-screen" class="screen">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+            <button class="btn btn-back" onclick="goHome()">⬅ ย้อนกลับ</button>
+            <div id="score-display" class="score-box">คะแนน: 0</div>
+        </div>
+
+        <div id="visual-panel" class="panel">
+            <!-- SVG content will be injected here -->
+        </div>
+
+        <div id="options-container">
+            <!-- Buttons will be injected here -->
+        </div>
+    </div>
+
+    <!-- หน้าจบเกม -->
+    <div id="result-screen" class="screen">
+        <div class="panel" style="margin-top: 50px;">
+            <h1>จบเกม!</h1>
+            <p id="final-score-text" style="font-size: 32px; font-weight: bold;"></p>
+            <p id="evaluation-text"></p>
+        </div>
+        <button class="btn btn-start" onclick="goHome()">เล่นอีกครั้ง</button>
+    </div>
+
+</div>
+
+<script>
+    // ข้อมูลสำนวนและภาพ SVG (Simplified Vector) จำนวน 5 ด่านต่อ 1 ระดับความยาก
+    const proverbs = {
+        easy: [
+            {
+                id: 1,
+                answer: "ขี่ช้างจับตั๊กแตน",
+                options: ["ขี่ช้างจับตั๊กแตน", "จับปลาสองมือ", "ขี่ม้าส่งเมือง"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <circle cx="100" cy="110" r="50" fill="#ddd" stroke="#6D5D50" stroke-width="3"/>
+                        <rect x="70" y="80" width="60" height="40" rx="10" fill="#ccc" stroke="#6D5D50" stroke-width="3"/>
+                        <path d="M50,110 Q40,140 60,150" fill="none" stroke="#6D5D50" stroke-width="5" />
+                        <text x="100" y="95" font-size="20" text-anchor="middle">🐘</text>
+                        <text x="110" y="65" font-size="20">🦗</text>
+                        <line x1="100" y1="80" x2="115" y2="65" stroke="#6D5D50" stroke-width="2" />
+                        <circle cx="120" cy="60" r="10" fill="none" stroke="#6D5D50" stroke-width="2" />
+                      </svg>`
+            },
+            {
+                id: 2,
+                answer: "กบในกะลาครอบ",
+                options: ["กบเลือกนาย", "กบในกะลาครอบ", "น้ำขึ้นให้รีบตัก"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <path d="M40,140 Q100,20 160,140" fill="#A0522D" stroke="#6D5D50" stroke-width="4" opacity="0.6"/>
+                        <text x="100" y="130" font-size="40" text-anchor="middle">🐸</text>
+                        <line x1="30" y1="145" x2="170" y2="145" stroke="#6D5D50" stroke-width="4" />
+                      </svg>`
+            },
+            {
+                id: 3,
+                answer: "หมูไปไก่มา",
+                options: ["ไก่ได้พลอย", "ยื่นหมูยื่นแมว", "หมูไปไก่มา"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <text x="50" y="110" font-size="40" text-anchor="middle">🐷</text>
+                        <text x="150" y="110" font-size="40" text-anchor="middle">🐔</text>
+                        <path d="M70,90 L130,90 M110,70 L130,90 L110,110" fill="none" stroke="#6D5D50" stroke-width="4"/>
+                        <path d="M130,120 L70,120 M90,100 L70,120 L90,140" fill="none" stroke="#6D5D50" stroke-width="4"/>
+                      </svg>`
+            },
+            {
+                id: 4,
+                answer: "จับปลาสองมือ",
+                options: ["จับปลาสองมือ", "ชี้บอกทางกระรอก", "ตีปลาหน้าไซ"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <text x="70" y="90" font-size="40" text-anchor="middle">🖐️</text>
+                        <text x="70" y="140" font-size="30" text-anchor="middle">🐟</text>
+                        <text x="130" y="90" font-size="40" text-anchor="middle">🖐️</text>
+                        <text x="130" y="140" font-size="30" text-anchor="middle">🐟</text>
+                      </svg>`
+            },
+            {
+                id: 5,
+                answer: "ชี้นกเป็นนก ชี้ไม้เป็นไม้",
+                options: ["ชี้โพรงให้กระรอก", "ชี้ไม้เป็นไม้", "ชี้นกเป็นนก ชี้ไม้เป็นไม้"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <text x="100" y="150" font-size="50" text-anchor="middle">👆</text>
+                        <text x="50" y="80" font-size="40" text-anchor="middle">🐦</text>
+                        <text x="150" y="80" font-size="40" text-anchor="middle">🪵</text>
+                        <path d="M90,100 L60,80" fill="none" stroke="#6D5D50" stroke-width="3" stroke-dasharray="5,5"/>
+                        <path d="M110,100 L140,80" fill="none" stroke="#6D5D50" stroke-width="3" stroke-dasharray="5,5"/>
+                      </svg>`
+            }
+        ],
+        medium: [
+            {
+                id: 6,
+                answer: "สีซอให้ควายฟัง",
+                options: ["วัวหายล้อมคอก", "สีซอให้ควายฟัง", "กระต่ายตื่นตูม"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <text x="140" y="140" font-size="60" text-anchor="middle">🐃</text>
+                        <path d="M50,80 L50,150 M40,90 L60,90" fill="none" stroke="#6D5D50" stroke-width="4" />
+                        <text x="60" y="120" font-size="30">🎻</text>
+                        <path d="M110,100 Q120,90 130,100" fill="none" stroke="#6D5D50" stroke-width="2" />
+                      </svg>`
+            },
+            {
+                id: 7,
+                answer: "เข็นครกขึ้นภูเขา",
+                options: ["ฝนทั่งให้เป็นเข็ม", "เข็นครกขึ้นภูเขา", "มือไม่พายเอาเท้าราน้ำ"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <path d="M20,160 L180,60 L180,160 Z" fill="#E0E0E0" stroke="#6D5D50" stroke-width="3" />
+                        <circle cx="80" cy="115" r="20" fill="#BBB" stroke="#6D5D50" stroke-width="3" />
+                        <text x="50" y="125" font-size="30">🏃</text>
+                      </svg>`
+            },
+            {
+                id: 8,
+                answer: "วัวหายล้อมคอก",
+                options: ["กระต่ายตื่นตูม", "วัวหายล้อมคอก", "ตำน้ำพริกละลายแม่น้ำ"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <rect x="50" y="70" width="100" height="80" fill="none" stroke="#A0522D" stroke-width="6" stroke-dasharray="10,5"/>
+                        <text x="160" y="60" font-size="40" text-anchor="middle">🐄</text>
+                        <path d="M100,110 L150,70" fill="none" stroke="#6D5D50" stroke-width="3" stroke-dasharray="5,5"/>
+                      </svg>`
+            },
+            {
+                id: 9,
+                answer: "หนีเสือปะจระเข้",
+                options: ["จับปลาสองมือ", "หนีเสือปะจระเข้", "หน้าไหว้หลังหลอก"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <text x="40" y="110" font-size="40" text-anchor="middle">🐯</text>
+                        <text x="100" y="110" font-size="40" text-anchor="middle">🏃</text>
+                        <text x="160" y="110" font-size="40" text-anchor="middle">🐊</text>
+                        <path d="M60,100 L80,100 M120,100 L140,100" fill="none" stroke="#6D5D50" stroke-width="3" stroke-dasharray="4,4"/>
+                      </svg>`
+            },
+            {
+                id: 10,
+                answer: "ปิดทองหลังพระ",
+                options: ["ผ้าขี้ริ้วห่อทอง", "ปิดทองหลังพระ", "มือทำรวย"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <path d="M60,160 Q100,60 140,160 Z" fill="#FFB085" stroke="#6D5D50" stroke-width="4"/>
+                        <circle cx="100" cy="80" r="25" fill="#FFB085" stroke="#6D5D50" stroke-width="4"/>
+                        <rect x="110" y="100" width="15" height="15" fill="#FFD700" stroke="#DAA520" stroke-width="2" transform="rotate(15 110 100)"/>
+                        <path d="M130,105 L150,90" fill="none" stroke="#FFD700" stroke-width="2"/>
+                        <text x="160" y="85" font-size="20">✨</text>
+                      </svg>`
+            }
+        ],
+        hard: [
+            {
+                id: 11,
+                answer: "เห็นกงจักรเป็นดอกบัว",
+                options: ["เห็นผิดเป็นชอบ", "เห็นกงจักรเป็นดอกบัว", "รำไม่ดีโทษปี่โทษกลอง"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <circle cx="70" cy="100" r="30" fill="none" stroke="#6D5D50" stroke-width="5" stroke-dasharray="10,5" />
+                        <path d="M120,80 Q135,50 150,80 Q180,80 150,110 Q150,140 120,110 Q90,110 120,80" fill="#FFB7CE" stroke="#6D5D50" stroke-width="2" />
+                        <text x="100" y="105" font-size="40" text-anchor="middle">👁️</text>
+                      </svg>`
+            },
+            {
+                id: 12,
+                answer: "ไก่เห็นตีนงู งูเห็นนมไก่",
+                options: ["งูกินหาง", "ไก่เห็นตีนงู งูเห็นนมไก่", "คางคกขึ้นวอ"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <text x="60" y="120" font-size="50" text-anchor="middle">🐔</text>
+                        <text x="140" y="120" font-size="50" text-anchor="middle">🐍</text>
+                        <path d="M80,100 L120,100" fill="none" stroke="#6D5D50" stroke-width="2" stroke-dasharray="3,3"/>
+                      </svg>`
+            },
+            {
+                id: 13,
+                answer: "กินบนเรือนขี้บนหลังคา",
+                options: ["สาวไส้ให้กากิน", "ช้างตายทั้งตัวเอาใบบัวมาปิด", "กินบนเรือนขี้บนหลังคา"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <path d="M30,90 L100,40 L170,90" fill="none" stroke="#8B4513" stroke-width="6"/>
+                        <rect x="50" y="90" width="100" height="70" fill="none" stroke="#8B4513" stroke-width="4"/>
+                        <text x="100" y="50" font-size="30" text-anchor="middle">💩</text>
+                        <text x="100" y="140" font-size="30" text-anchor="middle">🍚</text>
+                      </svg>`
+            },
+            {
+                id: 14,
+                answer: "รำไม่ดีโทษปี่โทษกลอง",
+                options: ["ช้างเท้าหลัง", "รำไม่ดีโทษปี่โทษกลอง", "ว่าแต่เขาอิเหนาเป็นเอง"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <text x="70" y="120" font-size="50" text-anchor="middle">💃</text>
+                        <text x="140" y="90" font-size="40" text-anchor="middle">🥁</text>
+                        <text x="140" y="150" font-size="40" text-anchor="middle">🪈</text>
+                        <path d="M90,100 L120,80 M90,110 L120,140" fill="none" stroke="#FF0000" stroke-width="3" stroke-dasharray="4,4"/>
+                      </svg>`
+            },
+            {
+                id: 15,
+                answer: "น้ำลดตอผุด",
+                options: ["น้ำขุ่นไว้ใน น้ำใสไว้นอก", "น้ำลดตอผุด", "น้ำเชี่ยวอย่าขวางเรือ"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <rect x="80" y="100" width="40" height="60" fill="#8B4513" stroke="#6D5D50" stroke-width="4"/>
+                        <path d="M10,140 Q50,160 100,140 T190,140" fill="none" stroke="#A2D2FF" stroke-width="8" opacity="0.8"/>
+                        <path d="M10,160 Q50,180 100,160 T190,160" fill="none" stroke="#A2D2FF" stroke-width="8" opacity="0.8"/>
+                        <line x1="80" y1="100" x2="120" y2="100" stroke="#6D5D50" stroke-width="4"/>
+                      </svg>`
+            }
+        ]
+    };
+
+    let currentDifficulty = 'easy';
+    let score = 0;
+    let currentQuestionIndex = 0;
+    let gameQuestions = [];
+
+    // Synthesize Soft Chime
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playChime(freq, type = 'sine') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+    }
+
+    function setDifficulty(diff) {
+        currentDifficulty = diff;
+        document.querySelectorAll('.btn-diff').forEach(btn => {
+            btn.style.backgroundColor = 'var(--yellow)';
+            btn.style.borderWidth = '3px';
+        });
+        event.currentTarget.style.backgroundColor = 'var(--mint)';
+        document.getElementById('start-btn').style.display = 'block';
+        playChime(440);
+    }
+
+    function startGame() {
+        score = 0;
+        currentQuestionIndex = 0;
+        gameQuestions = [...proverbs[currentDifficulty]];
+        // Shuffle questions
+        gameQuestions.sort(() => Math.random() - 0.5);
+        
+        updateScore();
+        showScreen('game-screen');
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if (currentQuestionIndex >= gameQuestions.length) {
+            endGame();
+            return;
+        }
+
+        const q = gameQuestions[currentQuestionIndex];
+        const visualPanel = document.getElementById('visual-panel');
+        visualPanel.innerHTML = q.svg;
+        visualPanel.classList.remove('color-up');
+
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+
+        // Shuffle options
+        const shuffledOptions = [...q.options].sort(() => Math.random() - 0.5);
+
+        shuffledOptions.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-option';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt, q.answer, btn);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, correct, btn) {
+        if (selected === correct) {
+            score += 15;
+            updateScore();
+            playChime(880);
+            
+            // Visual feedback: Confetti
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#FFB085', '#B5EAD7', '#A2D2FF', '#FFDAC1']
+            });
+
+            // Make visual colorful and move
+            const svg = document.querySelector('#visual-panel svg');
+            svg.classList.add('color-up');
+            btn.style.backgroundColor = 'var(--mint)';
+
+            setTimeout(() => {
+                currentQuestionIndex++;
+                loadQuestion();
+            }, 1500);
+        } else {
+            score = Math.max(0, score - 5);
+            updateScore();
+            playChime(220, 'square');
+            
+            // Wiggle effect
+            const visualPanel = document.getElementById('visual-panel');
+            visualPanel.classList.add('wiggle');
+            btn.style.backgroundColor = '#ffcccc';
+            
+            setTimeout(() => {
+                visualPanel.classList.remove('wiggle');
+            }, 400);
+        }
+    }
+
+    function updateScore() {
+        document.getElementById('score-display').innerText = `คะแนน: ${score}`;
+    }
+
+    function endGame() {
+        showScreen('result-screen');
+        document.getElementById('final-score-text').innerText = `${score} คะแนน`;
+        
+        let eval = "เก่งมาก! คุณคือจิตรกรเอกด้านสำนวน";
+        if (score < 15) eval = "พยายามอีกนิดนะ ลองใหม่ได้เสมอ!";
+        else if (score < 30) eval = "ทำได้ดีแล้ว! อีกนิดจะเทพแล้ว";
+        
+        document.getElementById('evaluation-text').innerText = eval;
+    }
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function goHome() {
+        showScreen('home-screen');
+    }
+
+    // Initialize with first user interaction to enable AudioContext
+    document.addEventListener('click', () => {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }, { once: true });
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Abbreviation Decoder - รหัสลับตัวย่อ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #FFF9F0;
+            --color-peach: #FFB5A7;
+            --color-mint: #A3E4D7;
+            --color-sky: #AED6F1;
+            --color-yellow: #F9E79F;
+            --text-dark: #2C3E50;
+            --border-color: #5D6D7E;
+        }
+
+        body {
+            font-family: 'Mali', sans-serif;
+            background-color: #e2e8f0; /* พื้นหลังข้างนอกมือถือ */
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Container สัดส่วนมือถือ 9:18 */
+        #game-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            max-height: 800px; /* 400x800 = 1:2 ซึ่งใกล้เคียง 9:18 */
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 450px) {
+            #game-container {
+                height: 90vh;
+                border-radius: 2rem;
+                border: 8px solid white;
+            }
+        }
+
+        /* Paper Cut Style UI */
+        .paper-panel {
+            background-color: white;
+            border: 3px solid var(--border-color);
+            border-radius: 1.5rem;
+            box-shadow: 0 6px 0 0 var(--border-color);
+        }
+
+        .signboard {
+            background-color: var(--color-yellow);
+            border: 4px solid var(--border-color);
+            border-radius: 1.5rem;
+            box-shadow: 0 8px 0 0 var(--border-color);
+            position: relative;
+        }
+        
+        /* เชือกห้อยป้าย */
+        .signboard::before, .signboard::after {
+            content: '';
+            position: absolute;
+            top: -20px;
+            width: 6px;
+            height: 20px;
+            background-color: var(--border-color);
+        }
+        .signboard::before { left: 20%; }
+        .signboard::after { right: 20%; }
+
+        .btn-game {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            border: 3px solid var(--border-color);
+            border-radius: 1.5rem;
+            box-shadow: 0 6px 0 0 var(--border-color);
+            transition: all 0.1s ease;
+            cursor: pointer;
+            text-align: center;
+            color: var(--text-dark);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-game:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 0 var(--border-color);
+        }
+
+        /* Colors for buttons */
+        .btn-mint { background-color: var(--color-mint); }
+        .btn-peach { background-color: var(--color-peach); }
+        .btn-sky { background-color: var(--color-sky); }
+
+        /* Animations */
+        @keyframes wiggle {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-8px) rotate(-2deg); }
+            50% { transform: translateX(8px) rotate(2deg); }
+            75% { transform: translateX(-8px) rotate(-2deg); }
+            100% { transform: translateX(0); }
+        }
+
+        .animate-wiggle {
+            animation: wiggle 0.4s ease-in-out;
+            background-color: #f1f5f9; /* สีเทาอ่อนตอนผิด */
+        }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            padding: 1.5rem;
+        }
+        .screen.active {
+            display: flex;
+        }
+        
+        .text-dark { color: var(--text-dark); }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Screen 1: Main Menu -->
+    <div id="screen-menu" class="screen active justify-between">
+        <div class="mt-8 text-center paper-panel p-6 bg-white">
+            <h1 class="text-3xl font-bold text-dark mb-2 leading-tight">รหัสลับ<br><span class="text-4xl text-orange-500">ตัวย่อ</span></h1>
+            <p class="text-slate-500 text-lg mt-4">ทายคำเต็มจากตัวย่อ<br>ให้ถูกต้องภายใน 3 นาที!</p>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center gap-4 mt-6">
+            <h2 class="text-xl font-bold text-dark text-center mb-2">เลือกระดับความยาก</h2>
+            
+            <button onclick="startGame('easy')" class="btn-game btn-mint flex flex-col items-center">
+                <span>🟢 ง่าย (Easy)</span>
+                <span class="text-sm font-normal opacity-80 mt-1">คำย่อเจอบ่อย (กทม., รพ.)</span>
+            </button>
+            
+            <button onclick="startGame('medium')" class="btn-game btn-sky flex flex-col items-center">
+                <span>🔵 ปานกลาง (Medium)</span>
+                <span class="text-sm font-normal opacity-80 mt-1">ยศ ตำแหน่ง เดือน (ผอ., พ.ย.)</span>
+            </button>
+            
+            <button onclick="startGame('hard')" class="btn-game btn-peach flex flex-col items-center">
+                <span>🟠 ยาก (Hard)</span>
+                <span class="text-sm font-normal opacity-80 mt-1">คำคล้ายกัน ชวนสับสน (ม.ค. / มี.ค.)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Screen 2: Game -->
+    <div id="screen-game" class="screen">
+        <!-- Header: Top Bar -->
+        <div class="flex justify-between items-center mb-8">
+            <button onclick="backToMenu()" class="p-2 border-2 border-slate-600 rounded-xl bg-white shadow-[0_4px_0_0_#5D6D7E] active:translate-y-1 active:shadow-none transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+            </button>
+            <div class="paper-panel px-4 py-2 bg-white flex items-center gap-2">
+                <span class="text-xl">⏱️</span>
+                <span id="timer-display" class="text-2xl font-bold text-dark">03:00</span>
+            </div>
+        </div>
+
+        <!-- Score Board -->
+        <div class="text-center mb-6">
+            <p class="text-lg font-bold text-slate-500">คะแนนของคุณ</p>
+            <p id="score-display" class="text-4xl font-bold text-dark">0</p>
+        </div>
+
+        <!-- Question Signboard -->
+        <div class="signboard flex justify-center items-center py-12 mb-10 mt-4">
+            <h2 id="question-display" class="text-6xl font-bold text-dark tracking-wide">รพ.</h2>
+        </div>
+
+        <!-- Options -->
+        <div id="options-container" class="flex flex-col gap-4 mt-auto mb-4">
+            <!-- Buttons generated by JS -->
+        </div>
+    </div>
+
+    <!-- Screen 3: Result -->
+    <div id="screen-result" class="screen justify-center items-center text-center">
+        <div class="paper-panel p-8 w-full">
+            <h1 class="text-4xl font-bold text-dark mb-2">หมดเวลา!</h1>
+            <p class="text-xl text-slate-500 mb-6">คะแนนที่ทำได้</p>
+            <div class="text-7xl font-bold text-orange-500 mb-8" id="final-score">120</div>
+            
+            <button onclick="backToMenu()" class="btn-game btn-mint">
+                เล่นอีกครั้ง 🔄
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Data: ชุดคำถาม ---
+    const questions = {
+        easy: [
+            { q: "กทม.", a: "กรุงเทพมหานคร", w1: "กรมทางหลวง", w2: "กระทรวงมหาดไทย" },
+            { q: "รพ.", a: "โรงพยาบาล", w1: "โรงเรียน", w2: "โรงแรม" },
+            { q: "ชม.", a: "ชั่วโมง", w1: "เชียงใหม่", w2: "ชมรม" },
+            { q: "จ.", a: "จังหวัด", w1: "จันทร์", w2: "จำนวน" },
+            { q: "รร.", a: "โรงเรียน", w1: "โรงแรม", w2: "เรือนจำ" },
+            { q: "นทท.", a: "นักท่องเที่ยว", w1: "นักเทศน์", w2: "นายท่าเรือ" },
+            { q: "โทร.", a: "โทรศัพท์", w1: "โทรทัศน์", w2: "โทรเลข" }
+        ],
+        medium: [
+            { q: "ผอ.", a: "ผู้อำนวยการ", w1: "ผู้บัญชาการ", w2: "ผู้ตรวจการ" },
+            { q: "ตร.", a: "ตำรวจ", w1: "ตรวจสอบ", w2: "ตราด" },
+            { q: "พ.ย.", a: "พฤศจิกายน", w1: "พฤษภาคม", w2: "พุธ" },
+            { q: "ก.ค.", a: "กรกฎาคม", w1: "กุมภาพันธ์", w2: "กันยายน" },
+            { q: "ศธ.", a: "กระทรวงศึกษาธิการ", w1: "ศาลากลาง", w2: "ศูนย์ตรวจสอบ" },
+            { q: "ครม.", a: "คณะรัฐมนตรี", w1: "ข้าราชการครู", w2: "เครื่องรับมือ" },
+            { q: "พ.ร.บ.", a: "พระราชบัญญัติ", w1: "พระราชกฤษฎีกา", w2: "พนักงานราชการ" }
+        ],
+        hard: [
+            { q: "ม.ค.", a: "มกราคม", w1: "มีนาคม", w2: "เมษายน" },
+            { q: "มี.ค.", a: "มีนาคม", w1: "มกราคม", w2: "เมษายน" },
+            { q: "พ.ค.", a: "พฤษภาคม", w1: "พฤศจิกายน", w2: "พันตำรวจ" },
+            { q: "สตช.", a: "สำนักงานตำรวจแห่งชาติ", w1: "ศาลากลางจังหวัด", w2: "สถาบันทดสอบ" },
+            { q: "กอ.รมน.", a: "กองอำนวยการรักษาความมั่นคงภายในฯ", w1: "กองทัพบกและรัฐมนตรี", w2: "กรมอนามัยและรักษาโรค" },
+            { q: "รฟท.", a: "การรถไฟแห่งประเทศไทย", w1: "รถไฟฟ้าขนส่งมวลชน", w2: "โรงไฟฟ้าราชบุรี" },
+            { q: "อ.ย.", a: "องค์การอาหารและยา", w1: "อำเภอเมือง", w2: "อายุรแพทย์" }
+        ]
+    };
+
+    // --- Game State ---
+    let score = 0;
+    let timeLeft = 180; // 3 minutes
+    let timerInterval;
+    let currentDifficulty = 'easy';
+    let currentQuestion = null;
+    let isClickable = true;
+    let availableQuestions = []; // กองคำถามที่พร้อมถูกดึงมาใช้
+
+    // --- Audio Context (Soft sounds) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+
+    function playSound(type) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        if (type === 'correct') {
+            // Soft chime (Sine wave)
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.5);
+        } else if (type === 'wrong') {
+            // Soft thud (Triangle wave)
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+    }
+
+    // --- Core Functions ---
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function startGame(difficulty) {
+        currentDifficulty = difficulty;
+        score = 0;
+        timeLeft = 180;
+        updateScore();
+        updateTimerDisplay();
+        
+        // Setup initial questions pool
+        availableQuestions = [...questions[difficulty]];
+        shuffleArray(availableQuestions);
+
+        showScreen('screen-game');
+        nextQuestion();
+        
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function backToMenu() {
+        clearInterval(timerInterval);
+        showScreen('screen-menu');
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        document.getElementById('final-score').innerText = score;
+        showScreen('screen-result');
+    }
+
+    function updateScore() {
+        document.getElementById('score-display').innerText = score;
+    }
+
+    function updateTimerDisplay() {
+        const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+        const s = (timeLeft % 60).toString().padStart(2, '0');
+        document.getElementById('timer-display').innerText = `${m}:${s}`;
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function nextQuestion() {
+        isClickable = true;
+        
+        // ถ้าคำถามในกองหมดแล้ว ให้เติมคำถามชุดเดิมลงไปใหม่แล้วสับใหม่
+        if (availableQuestions.length === 0) {
+            availableQuestions = [...questions[currentDifficulty]];
+            shuffleArray(availableQuestions);
+            
+            // ป้องกันไม่ให้คำถามแรกของกองใหม่ ซ้ำกับข้อล่าสุดที่เพิ่งตอบไป
+            if (currentQuestion && availableQuestions[availableQuestions.length - 1].q === currentQuestion.q) {
+                // สลับข้อสุดท้ายกับข้อแรกสุด
+                [availableQuestions[0], availableQuestions[availableQuestions.length - 1]] = 
+                [availableQuestions[availableQuestions.length - 1], availableQuestions[0]];
+            }
+        }
+
+        // ดึงคำถามจากตัวสุดท้ายใน Array เสมอ (เหมือนจั่วไพ่)
+        currentQuestion = availableQuestions.pop();
+        
+        document.getElementById('question-display').innerText = currentQuestion.q;
+
+        const options = [
+            { text: currentQuestion.a, isCorrect: true },
+            { text: currentQuestion.w1, isCorrect: false },
+            { text: currentQuestion.w2, isCorrect: false }
+        ];
+        shuffleArray(options);
+
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+
+        options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = `btn-game bg-white mb-2`;
+            btn.innerText = opt.text;
+            btn.onclick = () => handleAnswer(opt.isCorrect, btn);
+            container.appendChild(btn);
+        });
+    }
+
+    function handleAnswer(isCorrect, btnElement) {
+        if (!isClickable) return;
+        isClickable = false; // Prevent double clicking
+
+        if (isCorrect) {
+            score += 10;
+            playSound('correct');
+            fireConfetti();
+            btnElement.classList.add('bg-green-200'); // Highlight correct briefly
+            updateScore();
+            setTimeout(nextQuestion, 500);
+        } else {
+            score -= 5;
+            playSound('wrong');
+            btnElement.classList.add('animate-wiggle');
+            updateScore();
+            // Remove animation class after it finishes so it can play again if needed
+            setTimeout(() => {
+                btnElement.classList.remove('animate-wiggle');
+                nextQuestion();
+            }, 500);
+        }
+    }
+
+    // --- Simple Confetti System ---
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function fireConfetti() {
+        const colors = ['#FFB5A7', '#A3E4D7', '#AED6F1', '#F9E79F'];
+        for (let i = 0; i < 40; i++) {
+            particles.push({
+                x: canvas.width / 2,
+                y: canvas.height / 2 + 50, // Origin from middle
+                vx: (Math.random() - 0.5) * 15, // Velocity X
+                vy: (Math.random() - 1) * 15 - 5, // Velocity Y (Upwards)
+                size: Math.random() * 8 + 4,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                life: 1,
+                decay: Math.random() * 0.02 + 0.015,
+                rotation: Math.random() * 360,
+                rotSpeed: (Math.random() - 0.5) * 20
+            });
+        }
+    }
+
+    function animateConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.4; // Gravity
+            p.life -= p.decay;
+            p.rotation += p.rotSpeed;
+
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+                continue;
+            }
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation * Math.PI / 180);
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+            ctx.restore();
+        }
+        requestAnimationFrame(animateConfetti);
+    }
+    animateConfetti(); // Start render loop
+
+</script>
+</body>
+</html>

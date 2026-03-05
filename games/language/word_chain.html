@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Chain - คำต่อคำ สำราญใจ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #FFFBF0;
+            --color-peach: #FFB8A1;
+            --color-mint: #A7E4D3;
+            --color-sky: #A9DDF9;
+            --color-yellow: #FDE093;
+            --color-brown: #5A4A42;
+            --color-stroke: #D4C4A8;
+        }
+
+        body {
+            background-color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Mali', 'Nunito', sans-serif;
+            color: var(--color-brown);
+            user-select: none;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 9 / 18;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            /* Simulate mobile frame on desktop */
+            border-radius: 2rem;
+            border: 8px solid #E2D4B7;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Paper Cut UI Styles */
+        .paper-panel {
+            background-color: white;
+            border: 3px solid var(--color-stroke);
+            border-radius: 1.5rem;
+            box-shadow: 0 6px 0 var(--color-stroke);
+            padding: 1.5rem;
+        }
+
+        .paper-btn {
+            border: 3px solid var(--color-stroke);
+            border-radius: 1.2rem;
+            box-shadow: 0 6px 0 var(--color-stroke);
+            transition: all 0.1s ease;
+            font-weight: 600;
+            font-size: 1.25rem;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .paper-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 var(--color-stroke);
+        }
+
+        .paper-btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 100%);
+            border-radius: inherit;
+            pointer-events: none;
+        }
+
+        /* Colors for buttons */
+        .btn-mint { background-color: var(--color-mint); }
+        .btn-peach { background-color: var(--color-peach); }
+        .btn-sky { background-color: var(--color-sky); }
+        .btn-yellow { background-color: var(--color-yellow); }
+
+        /* Animations */
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+            75% { transform: rotate(-5deg); }
+        }
+        .animate-wiggle {
+            animation: wiggle 0.4s ease-in-out;
+        }
+
+        @keyframes jumpFrog {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(0, -60px) scale(1.2); }
+            100% { transform: translate(0, -120px) scale(1); }
+        }
+        .animate-jump {
+            animation: jumpFrog 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes floatPad {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(5px); }
+        }
+        .floating {
+            animation: floatPad 3s ease-in-out infinite;
+        }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* Custom Scrollbar hide */
+        ::-webkit-scrollbar { display: none; }
+        
+        .water-bg {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, var(--bg-cream) 0%, #E6F7F2 100%);
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="confetti-canvas"></canvas>
+    <div class="water-bg"></div>
+
+    <!-- MAIN MENU -->
+    <div id="screen-menu" class="absolute inset-0 flex flex-col items-center justify-center p-6 z-10">
+        <div class="paper-panel text-center w-full mb-6 relative bg-white">
+            <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 text-5xl">🐸</div>
+            <h1 class="text-3xl font-bold mt-4 mb-2 text-[#5A4A42]">คำต่อคำ สำราญใจ</h1>
+            <p class="text-lg leading-relaxed text-gray-600">ต่อพยางค์ท้าย สู่คำใหม่เบิกบานใจ<br><span class="text-sm">(Word Association)</span></p>
+            <div class="mt-4 inline-block bg-[#F3EFE6] px-4 py-2 rounded-full border-2 border-[#D4C4A8] text-sm">
+                ธีม: 🪷 ใบบัวข้ามแม่น้ำ
+            </div>
+        </div>
+
+        <div class="w-full space-y-4">
+            <button onclick="startGame('easy')" class="paper-btn btn-mint w-full text-left flex-row justify-start px-6">
+                <span class="text-2xl mr-3">🌱</span>
+                <div class="text-left leading-tight">
+                    <div class="text-xl">ระดับง่าย</div>
+                    <div class="text-sm font-normal text-gray-700">ต่อคำตรงตัว (ตัวเลือก 3 คำ)</div>
+                </div>
+            </button>
+            <button onclick="startGame('medium')" class="paper-btn btn-yellow w-full text-left flex-row justify-start px-6">
+                <span class="text-2xl mr-3">🌿</span>
+                <div class="text-left leading-tight">
+                    <div class="text-xl">ระดับปานกลาง</div>
+                    <div class="text-sm font-normal text-gray-700">ตัวหลอกเยอะขึ้น (ตัวเลือก 4 คำ)</div>
+                </div>
+            </button>
+            <button onclick="startGame('hard')" class="paper-btn btn-peach w-full text-left flex-row justify-start px-6">
+                <span class="text-2xl mr-3">🔥</span>
+                <div class="text-left leading-tight">
+                    <div class="text-xl">ระดับยาก</div>
+                    <div class="text-sm font-normal text-gray-700">ระวังคำพ้องเสียง! (เขียนต่างกัน)</div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="screen-game" class="absolute inset-0 flex flex-col hidden z-10">
+        <!-- Top Bar -->
+        <div class="flex justify-between items-center p-4">
+            <button onclick="showMenu()" class="paper-btn bg-white w-12 h-12 !p-0 flex items-center justify-center !rounded-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div class="paper-panel !py-2 !px-4 !rounded-xl !shadow-[0_4px_0_var(--color-stroke)] flex items-center gap-2">
+                <span class="text-xl">⭐</span>
+                <span id="score-display" class="text-2xl font-bold">0</span>
+            </div>
+            <div class="paper-panel !py-2 !px-4 !rounded-xl !shadow-[0_4px_0_var(--color-stroke)] flex items-center gap-2 bg-white">
+                <span class="text-xl">⏳</span>
+                <span id="time-display" class="text-2xl font-bold">3:00</span>
+            </div>
+        </div>
+
+        <!-- Play Area (River) -->
+        <div class="flex-grow relative flex flex-col items-center justify-center pb-8">
+            
+            <!-- Target Lily Pad (Top) -->
+            <div class="relative w-40 h-16 mb-16 floating" style="animation-delay: 0.5s;">
+                <svg viewBox="0 0 100 40" class="w-full h-full drop-shadow-md">
+                    <ellipse cx="50" cy="20" rx="45" ry="18" fill="#A7E4D3" stroke="#8AC4B5" stroke-width="2"/>
+                    <path d="M50 38 Q 45 20 60 5" stroke="#8AC4B5" stroke-width="1.5" fill="none"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center text-2xl font-bold text-white opacity-80" style="text-shadow: 1px 1px 0px rgba(0,0,0,0.2);">
+                    ?
+                </div>
+            </div>
+
+            <!-- Current Lily Pad (Bottom) -->
+            <div class="relative w-40 h-16 floating">
+                <svg viewBox="0 0 100 40" class="w-full h-full drop-shadow-md">
+                    <ellipse cx="50" cy="20" rx="45" ry="18" fill="#88D4B4" stroke="#6BB597" stroke-width="2"/>
+                    <path d="M50 38 Q 45 20 60 5" stroke="#6BB597" stroke-width="1.5" fill="none"/>
+                </svg>
+                <div id="current-word-display" class="absolute inset-0 flex items-center justify-center text-xl font-bold bg-white/90 rounded-full mx-4 my-2 border-2 border-[#6BB597] shadow-sm">
+                    ชาวนา
+                </div>
+
+                <!-- Frog -->
+                <div id="frog" class="absolute -top-10 left-1/2 transform -translate-x-1/2 w-16 h-16 z-20 transition-transform duration-300">
+                    <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-lg">
+                        <!-- Legs -->
+                        <path d="M15 70 Q 5 50 15 40 Q 25 30 35 60" fill="#69C26B" stroke="#4A914C" stroke-width="3"/>
+                        <path d="M85 70 Q 95 50 85 40 Q 75 30 65 60" fill="#69C26B" stroke="#4A914C" stroke-width="3"/>
+                        <!-- Body -->
+                        <ellipse cx="50" cy="60" rx="35" ry="30" fill="#84D885" stroke="#4A914C" stroke-width="3"/>
+                        <!-- Eyes -->
+                        <circle cx="35" cy="35" r="12" fill="#84D885" stroke="#4A914C" stroke-width="3"/>
+                        <circle cx="65" cy="35" r="12" fill="#84D885" stroke="#4A914C" stroke-width="3"/>
+                        <circle cx="35" cy="32" r="5" fill="white"/>
+                        <circle cx="65" cy="32" r="5" fill="white"/>
+                        <circle cx="35" cy="32" r="2" fill="black"/>
+                        <circle cx="65" cy="32" r="2" fill="black"/>
+                        <!-- Smile -->
+                        <path d="M 40 65 Q 50 75 60 65" stroke="#4A914C" stroke-width="3" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Choices Area -->
+        <div id="choices-container" class="p-6 pt-0 grid grid-cols-2 gap-4">
+            <!-- Buttons injected by JS -->
+        </div>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="screen-gameover" class="absolute inset-0 flex flex-col items-center justify-center p-6 hidden z-20 bg-black/40 backdrop-blur-sm">
+        <div class="paper-panel text-center w-full relative">
+            <h2 class="text-3xl font-bold mb-2 text-[#5A4A42]">หมดเวลา!</h2>
+            <div class="text-6xl my-6">🏆</div>
+            <p class="text-lg text-gray-600 mb-2">คะแนนรวมของคุณ</p>
+            <p id="final-score" class="text-5xl font-bold text-[#FFB8A1] mb-8" style="text-shadow: 2px 2px 0px var(--color-stroke);">0</p>
+            
+            <button onclick="showMenu()" class="paper-btn btn-sky w-full">
+                เล่นอีกครั้ง
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Data Dictionaries ---
+    const wordData = {
+        easy: [
+            { w: "ชาวนา", ans: "นาฬิกา", dist: ["ชาวบ้าน", "เวลา", "กะลา"] },
+            { w: "นาฬิกา", ans: "กาแฟ", dist: ["นาที", "แก้วน้ำ", "ตุ๊กตา"] },
+            { w: "กาแฟ", ans: "แฟนคลับ", dist: ["ร้านชา", "แฟ้มงาน", "คนรัก"] },
+            { w: "แฟนคลับ", ans: "ลับหลัง", dist: ["คลับบาร์", "นักร้อง", "ความลับ"] },
+            { w: "ทะเล", ans: "เวลา", dist: ["น้ำเค็ม", "เลนส์ตา", "หาดทราย"] },
+            { w: "สีฟ้า", ans: "ฟ้าผ่า", dist: ["ก้อนเมฆ", "ทาสี", "สีแดง"] },
+            { w: "ร้องเพลง", ans: "เพลงฮิต", dist: ["เสียงดัง", "นักร้อง", "บรรเลง"] },
+            { w: "ต้นไม้", ans: "ไม้กวาด", dist: ["ใบไม้", "ดอกไม้", "รดน้ำ"] },
+            { w: "น้ำใจ", ans: "ใจดี", dist: ["สายน้ำ", "ของขวัญ", "น้ำดื่ม"] },
+            { w: "รอยยิ้ม", ans: "ยิ้มแย้ม", dist: ["หัวเราะ", "ริมฝีปาก", "ความสุข"] }
+        ],
+        medium: [
+            { w: "โรงเรียน", ans: "เรียนรู้", dist: ["นักเรียน", "โรงรถ", "อ่านเขียน"] },
+            { w: "โทรศัพท์", ans: "ศัพท์สแลง", dist: ["โทรทัศน์", "พูดคุย", "มือถือ"] },
+            { w: "แว่นตา", ans: "ตากแดด", dist: ["มองเห็น", "กระจก", "แว่นขยาย"] },
+            { w: "ร่มรื่น", ans: "รื่นเริง", dist: ["ร่มเงา", "ต้นไม้", "ชื่นชม"] },
+            { w: "กางเกง", ans: "เกรงใจ", dist: ["เสื้อผ้า", "กางออก", "สวมใส่"] },
+            { w: "รองเท้า", ans: "เท่ากัน", dist: ["เดินวิ่ง", "รองรับ", "ถุงเท้า"] },
+            { w: "ความรัก", ans: "รักแท้", dist: ["ความหวัง", "ลักขโมย", "ภักดี"] },
+            { w: "ของเล่น", ans: "เล่นเกม", dist: ["ของกิน", "เลนส์กล้อง", "วิ่งแข่ง"] },
+            { w: "กระดาษ", ans: "ดาษดื่น", dist: ["สมุดโน้ต", "ดินสอ", "วาดรูป"] },
+            { w: "รถยนต์", ans: "มนตร์สะกด", dist: ["ถนนหนทาง", "เครื่องยนต์", "ขับรถ"] } // Tricky spelling but sounds ok
+        ],
+        hard: [
+            // Homophones / Tricky Sounds
+            { w: "คุณค่า", ans: "ข้าทาส", dist: ["ค้าขาย", "ค่าจ้าง", "คุณธรรม"] },
+            { w: "สุนัข", ans: "นักเรียน", dist: ["นัขทักษ์", "หนักหนา", "สัตว์เลี้ยง"] },
+            { w: "วันพุธ", ans: "พุดตาน", dist: ["พุทธองค์", "พูดคุย", "วันศุกร์"] },
+            { w: "ประมุข", ans: "มุกตลก", dist: ["มุขหน้า", "ความสุข", "ผู้นำ"] },
+            { w: "โอกาส", ans: "สาดน้ำ", dist: ["กาสร", "อากาศ", "เวลา"] },
+            { w: "ความสุข", ans: "สุกงอม", dist: ["สุขภาพ", "ซุกซน", "รื่นรมย์"] },
+            { w: "กฎหมาย", ans: "หมายเหตุ", dist: ["ทนายความ", "กฎเกณฑ์", "เป้าหมาย"] },
+            { w: "สัญญา", ans: "หญ้าแฝก", dist: ["สาบาน", "ปัญญา", "สนามหญ้า"] },
+            { w: "บรรทัด", ans: "ทัศนคติ", dist: ["ไม้บรรทัด", "บรรเทา", "ขีดเขียน"] },
+            { w: "เหตุผล", ans: "ผลไม้", dist: ["ปัญหา", "เหตุการณ์", "ต้นไม้"] } // ผ -> พ sound trick (ผล / พล)
+        ]
+    };
+
+    // --- Audio Synthesis (Soft Chimes) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+        }
+    }
+
+    function playTone(freq, type, duration, vol=0.1) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playSoundCorrect() {
+        initAudio();
+        // Soft ascending chime
+        playTone(523.25, 'sine', 0.4, 0.15); // C5
+        setTimeout(() => playTone(659.25, 'sine', 0.5, 0.15), 100); // E5
+        setTimeout(() => playTone(783.99, 'sine', 0.6, 0.15), 200); // G5
+    }
+
+    function playSoundWrong() {
+        initAudio();
+        // Muted low boop
+        playTone(200, 'triangle', 0.3, 0.2);
+        setTimeout(() => playTone(180, 'triangle', 0.4, 0.2), 100);
+    }
+
+    // --- Confetti System ---
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let isAnimating = false;
+
+    function resizeCanvas() {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function createConfetti(x, y) {
+        const colors = ['#FFB8A1', '#A7E4D3', '#A9DDF9', '#FDE093', '#FFF'];
+        for (let i = 0; i < 30; i++) {
+            particles.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 10,
+                vy: (Math.random() - 1) * 10 - 5,
+                size: Math.random() * 8 + 4,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rotation: Math.random() * 360,
+                rs: (Math.random() - 0.5) * 10,
+                life: 1
+            });
+        }
+        if (!isAnimating) {
+            isAnimating = true;
+            animateConfetti();
+        }
+    }
+
+    function animateConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let activeParticles = false;
+
+        particles.forEach(p => {
+            if (p.life > 0) {
+                activeParticles = true;
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.4; // gravity
+                p.rotation += p.rs;
+                p.life -= 0.02;
+
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation * Math.PI / 180);
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillStyle = p.color;
+                
+                // Draw star or square
+                if (Math.random() > 0.5) {
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, p.size/2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        });
+
+        particles = particles.filter(p => p.life > 0);
+
+        if (activeParticles) {
+            requestAnimationFrame(animateConfetti);
+        } else {
+            isAnimating = false;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+
+
+    // --- Game Logic ---
+    let currentDifficulty = 'easy';
+    let score = 0;
+    let timeLeft = 180; // 3 minutes
+    let timerInterval;
+    let currentQuestion;
+    let availableWords = [];
+
+    const screens = {
+        menu: document.getElementById('screen-menu'),
+        game: document.getElementById('screen-game'),
+        gameover: document.getElementById('screen-gameover')
+    };
+
+    function showScreen(screenId) {
+        Object.values(screens).forEach(s => s.classList.add('hidden'));
+        screens[screenId].classList.remove('hidden');
+    }
+
+    function showMenu() {
+        clearInterval(timerInterval);
+        showScreen('menu');
+    }
+
+    function startGame(difficulty) {
+        initAudio(); // Initialize audio context on first user interaction
+        currentDifficulty = difficulty;
+        score = 0;
+        timeLeft = 180;
+        availableWords = [...wordData[difficulty]];
+        
+        // Shuffle available words
+        availableWords.sort(() => Math.random() - 0.5);
+
+        updateScoreDisplay();
+        updateTimeDisplay();
+        showScreen('game');
+        
+        loadNextWord();
+
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimeDisplay();
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('score-display').innerText = score;
+    }
+
+    function updateTimeDisplay() {
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        document.getElementById('time-display').innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function loadNextWord() {
+        // Recycle list if empty
+        if (availableWords.length === 0) {
+            availableWords = [...wordData[currentDifficulty]].sort(() => Math.random() - 0.5);
+        }
+
+        currentQuestion = availableWords.pop();
+        
+        document.getElementById('current-word-display').innerText = currentQuestion.w;
+        
+        // Generate Choices
+        let choices = [currentQuestion.ans];
+        let numDistractors = currentDifficulty === 'easy' ? 2 : 3;
+        
+        // Shuffle and pick distractors
+        let dist = [...currentQuestion.dist].sort(() => Math.random() - 0.5);
+        choices = choices.concat(dist.slice(0, numDistractors));
+        
+        // Shuffle final choices
+        choices.sort(() => Math.random() - 0.5);
+
+        renderChoices(choices);
+        
+        // Reset frog position
+        const frog = document.getElementById('frog');
+        frog.classList.remove('animate-jump');
+        frog.style.transform = 'translate(-50%, 0)';
+    }
+
+    function renderChoices(choices) {
+        const container = document.getElementById('choices-container');
+        container.innerHTML = '';
+        
+        const btnColors = ['btn-peach', 'btn-mint', 'btn-sky', 'btn-yellow'];
+        
+        // Change grid columns based on number of choices
+        container.className = `p-6 pt-0 grid gap-4 ${choices.length === 3 ? 'grid-cols-1' : 'grid-cols-2'}`;
+
+        choices.forEach((choice, index) => {
+            const btn = document.createElement('button');
+            btn.className = `paper-btn ${btnColors[index % btnColors.length]} w-full text-xl`;
+            btn.innerText = choice;
+            btn.onclick = (e) => handleChoice(choice, btn, e);
+            container.appendChild(btn);
+        });
+    }
+
+    function handleChoice(selectedWord, btnElement, event) {
+        if (selectedWord === currentQuestion.ans) {
+            // Correct
+            score += 10;
+            updateScoreDisplay();
+            playSoundCorrect();
+            
+            // Confetti effect from button
+            const rect = btnElement.getBoundingClientRect();
+            createConfetti(rect.left + rect.width / 2, rect.top);
+
+            // Frog Jump Animation
+            const frog = document.getElementById('frog');
+            frog.style.transform = ''; // Clear inline transform
+            frog.classList.add('animate-jump');
+
+            // Disable buttons during animation
+            const buttons = document.querySelectorAll('#choices-container button');
+            buttons.forEach(b => b.disabled = true);
+
+            // Load next word after animation
+            setTimeout(() => {
+                loadNextWord();
+            }, 600);
+
+        } else {
+            // Incorrect
+            score = Math.max(0, score - 2); // Don't let score go negative visually if desired, but rules say -2. Let's allow negative or clamp to 0. Clamping to 0 is friendlier.
+            updateScoreDisplay();
+            playSoundWrong();
+
+            // Wiggle animation on button
+            btnElement.classList.add('animate-wiggle');
+            setTimeout(() => {
+                btnElement.classList.remove('animate-wiggle');
+            }, 400);
+            
+            // Show subtle visual feedback that it's wrong (dim the button slightly)
+            btnElement.style.opacity = '0.7';
+            setTimeout(() => btnElement.style.opacity = '1', 400);
+        }
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        document.getElementById('final-score').innerText = score;
+        showScreen('gameover');
+    }
+
+</script>
+</body>
+</html>

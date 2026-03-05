@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Train Memory 1-Back</title>
+    <!-- ใช้ฟอนต์หัวมนจาก Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #FFFDD0;
+            --pastel-peach: #FFCBA4;
+            --pastel-mint: #98FF98;
+            --pastel-sky: #87CEEB;
+            --pastel-yellow: #FFFACD;
+            --pastel-pink: #FFD1DC;
+            --stroke-color: #4A4A4A;
+            --text-color: #333333;
+            --shadow-color: rgba(74, 74, 74, 0.2);
+            --wrong-red: #FF6B6B;
+            --correct-green: #4ADE80;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Mitr', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* จำลองหน้าจอมือถือสัดส่วน 9:18 */
+        #app-container {
+            width: 100%;
+            height: 100%;
+            max-width: 400px;
+            aspect-ratio: 9 / 18;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* สไตล์ Paper Cut */
+        .paper-panel {
+            background-color: #ffffff;
+            border: 3px solid var(--stroke-color);
+            border-radius: 24px;
+            box-shadow: 4px 6px 0px var(--shadow-color);
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 32px;
+            color: var(--text-color);
+            margin-bottom: 8px;
+            line-height: 1.2;
+            font-weight: 600;
+        }
+        
+        p {
+            font-size: 18px;
+            line-height: 1.6;
+            color: var(--text-color);
+            margin-bottom: 12px;
+        }
+
+        /* ปุ่มกด (Big Hit Box) */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            margin-bottom: 16px;
+            font-size: 22px;
+            font-weight: 500;
+            color: var(--text-color);
+            background: #ffffff;
+            border: 3px solid var(--stroke-color);
+            border-radius: 20px;
+            box-shadow: 3px 5px 0px var(--shadow-color);
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .btn:active {
+            transform: translate(3px, 5px);
+            box-shadow: 0px 0px 0px var(--shadow-color);
+        }
+
+        /* สีปุ่มไล่เฉด (Soft Gradient) */
+        .btn-peach { background: linear-gradient(180deg, #FFFFFF 0%, var(--pastel-peach) 100%); }
+        .btn-mint { background: linear-gradient(180deg, #FFFFFF 0%, var(--pastel-mint) 100%); }
+        .btn-sky { background: linear-gradient(180deg, #FFFFFF 0%, var(--pastel-sky) 100%); }
+        .btn-yellow { background: linear-gradient(180deg, #FFFFFF 0%, var(--pastel-yellow) 100%); }
+        .btn-pink { background: linear-gradient(180deg, #FFFFFF 0%, var(--pastel-pink) 100%); }
+
+        .btn-desc {
+            display: block;
+            font-size: 14px;
+            font-weight: 400;
+            opacity: 0.8;
+            margin-top: 4px;
+            line-height: 1.2;
+        }
+
+        /* Screens */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            background-color: var(--bg-cream);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            z-index: 10;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.95);
+            z-index: -1;
+        }
+
+        /* --- Main Menu --- */
+        #menu-screen {
+            justify-content: center;
+        }
+
+        .scroll-area {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-bottom: 20px;
+        }
+        
+        /* ซ่อน Scrollbar */
+        .scroll-area::-webkit-scrollbar { display: none; }
+
+        /* --- Game Screen --- */
+        #game-screen {
+            padding: 20px 16px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .btn-back {
+            padding: 8px 16px;
+            font-size: 16px;
+            background: #fff;
+            border: 2px solid var(--stroke-color);
+            border-radius: 12px;
+            box-shadow: 2px 3px 0px var(--shadow-color);
+            cursor: pointer;
+        }
+        .btn-back:active { transform: translate(2px, 3px); box-shadow: 0 0 0 transparent; }
+
+        .stats-panel {
+            text-align: right;
+            background: #fff;
+            border: 2px solid var(--stroke-color);
+            border-radius: 12px;
+            padding: 8px 16px;
+            box-shadow: 2px 3px 0px var(--shadow-color);
+        }
+
+        .score-text { font-size: 20px; font-weight: 600; }
+        .time-text { font-size: 14px; color: var(--stroke-color); }
+
+        /* Train Window (พื้นที่แสดงภาพ) */
+        .train-window {
+            flex-grow: 1;
+            background: linear-gradient(180deg, var(--pastel-sky) 0%, #E0F7FA 100%);
+            border: 4px solid var(--stroke-color);
+            border-radius: 30px;
+            box-shadow: inset 0px 10px 20px rgba(0,0,0,0.05), 4px 6px 0px var(--shadow-color);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        /* วิวข้างหลังรถไฟ */
+        .scenery-bg {
+            position: absolute;
+            bottom: 0;
+            width: 200%;
+            height: 40%;
+            background: var(--pastel-mint);
+            border-top: 3px solid var(--stroke-color);
+            background-image: radial-gradient(var(--pastel-yellow) 15%, transparent 16%);
+            background-size: 40px 40px;
+            background-position: 0 0;
+        }
+
+        .scenery-bg.animate-slow { animation: moveBg 6s linear infinite; }
+        .scenery-bg.animate-fast { animation: moveBg 3s linear infinite; }
+
+        @keyframes moveBg {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* วัตถุที่จะจำ */
+        .item-container {
+            font-size: 120px;
+            position: relative;
+            z-index: 2;
+            filter: drop-shadow(3px 5px 0px rgba(0,0,0,0.15));
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* อนิเมชั่นเลื่อนเข้าออก */
+        .slide-in { animation: slideIn 0.4s forwards; }
+        .slide-out { animation: slideOut 0.4s forwards; }
+
+        @keyframes slideIn {
+            0% { transform: translateX(200px) scale(0.5); opacity: 0; }
+            100% { transform: translateX(0) scale(1); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            0% { transform: translateX(0) scale(1); opacity: 1; }
+            100% { transform: translateX(-200px) scale(0.5); opacity: 0; }
+        }
+
+        /* Feedback อนิเมชั่น */
+        .wiggle { animation: wiggle 0.4s ease-in-out; }
+        
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(-15px) rotate(-10deg); filter: drop-shadow(0 0 10px var(--wrong-red)); }
+            75% { transform: translateX(15px) rotate(10deg); filter: drop-shadow(0 0 10px var(--wrong-red)); }
+        }
+
+        /* กากบาทเบาๆ (ซ้อนทับภาพตอนตอบผิด) */
+        .cross-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 150px;
+            color: var(--wrong-red);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+            font-weight: 100;
+        }
+        
+        .show-cross {
+            animation: fadeInOut 0.6s ease-out forwards;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            30% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        /* ปุ่มควบคุม */
+        .controls-area {
+            display: flex;
+            gap: 16px;
+            height: 130px;
+        }
+
+        .controls-area .btn {
+            height: 100%;
+            margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .btn-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+
+        /* ตัวลอยๆ คอนเฟตติ */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            z-index: 100;
+            font-size: 24px;
+            animation: popOut 0.8s ease-out forwards;
+        }
+
+        @keyframes popOut {
+            0% { transform: translate(0, 0) scale(0.5); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(1.5) rotate(var(--rot)); opacity: 0; }
+        }
+
+        /* กติกาตอนเริ่มเกมเพลย์ */
+        .instruction-overlay {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.9);
+            border: 2px solid var(--stroke-color);
+            padding: 10px 20px;
+            border-radius: 20px;
+            z-index: 10;
+            font-size: 20px;
+            font-weight: 500;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            white-space: nowrap;
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    
+    <!-- หน้าเมนูหลัก -->
+    <div id="menu-screen" class="screen">
+        <div class="scroll-area">
+            <div class="paper-panel">
+                <h1>🚂 Train<br>Memory</h1>
+                <p>จำสิ่งที่เพิ่งผ่านไป 1 ลำดับ<br>แล้วเทียบกับภาพปัจจุบัน!</p>
+            </div>
+
+            <div class="paper-panel" style="padding: 16px;">
+                <p style="font-size: 16px; margin-bottom: 8px; font-weight: 500;">เลือกระดับความยาก</p>
+                
+                <button class="btn btn-mint" onclick="startGame('easy')">
+                    🟢 ง่าย (Easy)
+                    <span class="btn-desc">สิ่งของต่างกันชัดเจน รถไฟวิ่งช้าๆ</span>
+                </button>
+                
+                <button class="btn btn-yellow" onclick="startGame('medium')">
+                    🟡 ปานกลาง (Medium)
+                    <span class="btn-desc">สิ่งของต่างกันชัดเจน แต่รถไฟวิ่งเร็วขึ้น</span>
+                </button>
+                
+                <button class="btn btn-peach" onclick="startGame('hard')">
+                    🔴 ยาก (Hard)
+                    <span class="btn-desc">ภาพหมวดเดียวกัน (เช่น ดอกไม้ต่างสี)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- หน้าเล่นเกม -->
+    <div id="game-screen" class="screen hidden">
+        <div class="top-bar">
+            <button class="btn-back" onclick="backToMenu()">⬅ กลับ</button>
+            <div class="stats-panel">
+                <div class="score-text">คะแนน: <span id="score-display">0</span></div>
+                <div class="time-text">เวลา: <span id="time-display">04:00</span></div>
+            </div>
+        </div>
+
+        <div class="train-window">
+            <div id="scenery" class="scenery-bg animate-slow"></div>
+            <div id="instruction" class="instruction-overlay">👀 จำภาพแรกไว้...</div>
+            <div id="cross-mark" class="cross-overlay">✕</div>
+            <div id="item-display" class="item-container"></div>
+        </div>
+
+        <div class="controls-area">
+            <button class="btn btn-pink" id="btn-diff" onclick="checkAnswer(false)" disabled>
+                <div class="btn-icon">❌</div>
+                ไม่เหมือนเดิม
+            </button>
+            <button class="btn btn-sky" id="btn-same" onclick="checkAnswer(true)" disabled>
+                <div class="btn-icon">✅</div>
+                เหมือนเดิม
+            </button>
+        </div>
+    </div>
+
+    <!-- หน้าสรุปผล -->
+    <div id="result-screen" class="screen hidden" style="justify-content: center;">
+        <div class="paper-panel">
+            <h1>หมดเวลา! 🏁</h1>
+            <p>คุณทำคะแนนไปได้</p>
+            <h1 style="font-size: 64px; color: var(--pastel-peach); margin: 20px 0;" id="final-score">0</h1>
+            <p>ยอดเยี่ยมมากในการฝึกสมองวันนี้!</p>
+        </div>
+        <button class="btn btn-sky" onclick="backToMenu()" style="margin-top: 20px;">เล่นอีกครั้ง</button>
+    </div>
+
+</div>
+
+<script>
+    // Audio Context Setup (Soft sounds)
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function playSound(type) {
+        if (!audioCtx) audioCtx = new AudioContext();
+        
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        if (type === 'correct') {
+            // เสียงนุ่มๆ ใสๆ
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.5);
+        } else if (type === 'wrong') {
+            // เสียงทุ้มๆ นุ่มๆ
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.4);
+        }
+    }
+
+    // Game Data
+    const itemSets = {
+        easy: ['🚗', '🌲', '🏠', '🐶', '🍎', '🚲', '⛄'],
+        hard: ['🌹', '🌻', '🌸', '🌺', '🌷', '🌼', '🪷'] // หมวดเดียวกัน
+    };
+
+    let currentDifficulty = 'easy';
+    let score = 0;
+    let timeLeft = 240; // 4 นาที
+    let timerInterval;
+    
+    let previousItem = '';
+    let currentItem = '';
+    let isFirstItem = true;
+    let isAnimating = false;
+
+    // DOM Elements
+    const screens = {
+        menu: document.getElementById('menu-screen'),
+        game: document.getElementById('game-screen'),
+        result: document.getElementById('result-screen')
+    };
+    const uiScore = document.getElementById('score-display');
+    const uiTime = document.getElementById('time-display');
+    const itemDisplay = document.getElementById('item-display');
+    const sceneryBg = document.getElementById('scenery');
+    const btnSame = document.getElementById('btn-same');
+    const btnDiff = document.getElementById('btn-diff');
+    const instruction = document.getElementById('instruction');
+    const crossMark = document.getElementById('cross-mark');
+
+    function switchScreen(screenName) {
+        Object.values(screens).forEach(s => s.classList.add('hidden'));
+        screens[screenName].classList.remove('hidden');
+    }
+
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function updateStats() {
+        uiScore.innerText = score;
+        uiTime.innerText = formatTime(timeLeft);
+    }
+
+    function startGame(difficulty) {
+        if (!audioCtx) {
+            audioCtx = new AudioContext(); // Init audio on first interaction
+        }
+
+        currentDifficulty = difficulty;
+        score = 0;
+        timeLeft = 240; // เล่น 4 นาที
+        isFirstItem = true;
+        previousItem = '';
+        currentItem = '';
+        
+        updateStats();
+        switchScreen('game');
+
+        // ปรับความเร็วรถไฟ
+        if (difficulty === 'medium' || difficulty === 'hard') {
+            sceneryBg.className = 'scenery-bg animate-fast';
+        } else {
+            sceneryBg.className = 'scenery-bg animate-slow';
+        }
+
+        // ปิดปุ่มจนกว่าภาพที่ 2 จะมา
+        btnSame.disabled = true;
+        btnDiff.disabled = true;
+        instruction.style.opacity = '1';
+        instruction.innerText = '👀 จำภาพแรกไว้...';
+
+        // เริ่มแสดงภาพแรก
+        generateNextItem();
+        
+        // เริ่มจับเวลา
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateStats();
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function getItemsArray() {
+        return (currentDifficulty === 'hard') ? itemSets.hard : itemSets.easy;
+    }
+
+    function generateNextItem() {
+        isAnimating = true;
+        const items = getItemsArray();
+        
+        // โอกาส 40% ที่จะออกภาพเดิม, 60% เปลี่ยนภาพใหม่
+        let nextItem = '';
+        if (!isFirstItem && Math.random() < 0.4) {
+            nextItem = currentItem;
+        } else {
+            // สุ่มของใหม่ที่ไม่ซ้ำอันเดิม (ถ้าเป็นไปได้)
+            do {
+                nextItem = items[Math.floor(Math.random() * items.length)];
+            } while (nextItem === currentItem && items.length > 1);
+        }
+
+        previousItem = currentItem;
+        currentItem = nextItem;
+
+        // Animate slide out old item
+        if (!isFirstItem) {
+            itemDisplay.className = 'item-container slide-out';
+            setTimeout(() => {
+                showNewItem();
+            }, 400); // รอ slide out เสร็จ
+        } else {
+            showNewItem();
+        }
+    }
+
+    function showNewItem() {
+        itemDisplay.innerText = currentItem;
+        itemDisplay.className = 'item-container slide-in';
+        
+        setTimeout(() => {
+            isAnimating = false;
+            if (isFirstItem) {
+                // รอสักพักให้จำภาพแรก แล้วเปลี่ยนเป็นภาพสอง
+                setTimeout(() => {
+                    isFirstItem = false;
+                    instruction.style.opacity = '0'; // ซ่อนคำแนะนำ
+                    generateNextItem();
+                }, 2000);
+            } else {
+                // เปิดให้กดปุ่มได้
+                btnSame.disabled = false;
+                btnDiff.disabled = false;
+            }
+        }, 400); // รอ slide in เสร็จ
+    }
+
+    function checkAnswer(userSaysSame) {
+        if (isAnimating || isFirstItem || btnSame.disabled) return;
+
+        // ล็อคปุ่มกันกดซ้ำ
+        btnSame.disabled = true;
+        btnDiff.disabled = true;
+
+        const isActuallySame = (previousItem === currentItem);
+        const isCorrect = (userSaysSame === isActuallySame);
+
+        if (isCorrect) {
+            score += 10;
+            playSound('correct');
+            createConfetti();
+        } else {
+            score -= 2;
+            playSound('wrong');
+            // ทำภาพสั่น และขึ้นกากบาทเบาๆ
+            itemDisplay.className = 'item-container wiggle';
+            
+            // รีเซ็ตอนิเมชั่นกากบาท
+            crossMark.classList.remove('show-cross');
+            void crossMark.offsetWidth; // trigger reflow
+            crossMark.classList.add('show-cross');
+        }
+
+        updateStats();
+
+        // ไปภาพต่อไป
+        setTimeout(() => {
+            generateNextItem();
+        }, isCorrect ? 500 : 800); // ถ้าผิดรอให้ wiggle เสร็จก่อนแปปนึง
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        document.getElementById('final-score').innerText = score;
+        switchScreen('result');
+    }
+
+    function backToMenu() {
+        clearInterval(timerInterval);
+        switchScreen('menu');
+    }
+
+    // ระบบ Particles ง่ายๆ สำหรับ Confetti
+    function createConfetti() {
+        const container = document.querySelector('.train-window');
+        const emojis = ['✨', '⭐', '🎊'];
+        
+        for (let i = 0; i < 8; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+            
+            // สุ่มทิศทางและตำแหน่ง
+            const tx = (Math.random() - 0.5) * 200 + 'px';
+            const ty = (Math.random() - 1) * 200 + 'px';
+            const rot = (Math.random() - 0.5) * 360 + 'deg';
+            
+            particle.style.setProperty('--tx', tx);
+            particle.style.setProperty('--ty', ty);
+            particle.style.setProperty('--rot', rot);
+            
+            particle.style.left = '50%';
+            particle.style.top = '50%';
+            
+            container.appendChild(particle);
+            
+            // ลบ element เมื่ออนิเมชั่นจบ
+            setTimeout(() => {
+                particle.remove();
+            }, 800);
+        }
+    }
+
+</script>
+</body>
+</html>

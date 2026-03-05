@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Context Clues - นักสืบเติมคำ</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Mali', 'Prompt', sans-serif;
+            /* Prevent default touch actions like scrolling while dragging */
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        .paper-shadow {
+            box-shadow: 4px 4px 0px 0px #D9CDBF;
+        }
+        .paper-shadow-sm {
+            box-shadow: 2px 2px 0px 0px #D9CDBF;
+        }
+        
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg) translateX(0); }
+            25% { transform: rotate(-2deg) translateX(-5px); }
+            50% { transform: rotate(2deg) translateX(5px); }
+            75% { transform: rotate(-1deg) translateX(-2px); }
+        }
+        .animate-wiggle {
+            animation: wiggle 0.4s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-[#FDFBF7] min-h-screen w-full overflow-hidden flex justify-center items-center">
+
+    <!-- Main Container - 9:18 Aspect Ratio Constraint -->
+    <div id="app-container" class="relative w-full h-[100dvh] max-w-[400px] bg-[#FDFBF7] shadow-2xl flex flex-col mx-auto overflow-hidden">
+        
+        <!-- === SCREEN: MENU === -->
+        <div id="screen-menu" class="flex-1 flex flex-col items-center justify-start p-6 pt-16 space-y-8 animate-fade-in">
+            <!-- Title Panel -->
+            <div class="bg-[#FFF3B0] border-2 border-[#D9CDBF] rounded-3xl p-6 w-full text-center paper-shadow relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-white/40"></div>
+                <h1 class="text-4xl font-bold text-[#4A4036] mb-2 tracking-wide">Context<br/>Clues</h1>
+                <div class="bg-[#4A4036] text-white rounded-full py-1 px-4 inline-block font-semibold">
+                    นักสืบเติมคำ
+                </div>
+            </div>
+
+            <!-- Description -->
+            <p class="text-[#6D6257] text-center text-lg leading-relaxed px-4">
+                อ่านประโยคให้เข้าใจ แล้วลากคำศัพท์ที่ถูกต้องไปเติมในช่องว่างให้สมบูรณ์!
+            </p>
+
+            <!-- Difficulty Selection -->
+            <div class="w-full space-y-4 pt-4">
+                <h2 class="text-xl font-bold text-[#4A4036] ml-2">เลือกระดับความยาก:</h2>
+                
+                <button onclick="startGame('easy')" class="w-full bg-[#B2EBF2] border-2 border-[#D9CDBF] rounded-2xl p-4 text-left paper-shadow active:translate-y-1 active:translate-x-1 active:shadow-none transition-all flex items-center group cursor-pointer">
+                    <div class="bg-white rounded-full p-2 mr-4 border-2 border-[#D9CDBF] group-active:bg-gray-50 flex-shrink-0">
+                        <svg class="text-[#4A4036]" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-[#4A4036]">ง่าย (Easy)</h3>
+                        <p class="text-[#6D6257] text-sm mt-1">ประโยคสั้น เดาบริบทง่าย 1 ช่องว่าง</p>
+                    </div>
+                </button>
+
+                <button onclick="startGame('medium')" class="w-full bg-[#FFD6B3] border-2 border-[#D9CDBF] rounded-2xl p-4 text-left paper-shadow active:translate-y-1 active:translate-x-1 active:shadow-none transition-all flex items-center group cursor-pointer">
+                    <div class="bg-white rounded-full p-2 mr-4 border-2 border-[#D9CDBF] group-active:bg-gray-50 flex flex-shrink-0">
+                        <svg class="text-[#4A4036] -mr-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                        <svg class="text-[#4A4036]" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-[#4A4036]">ปานกลาง (Medium)</h3>
+                        <p class="text-[#6D6257] text-sm mt-1">ประโยคยาวขึ้น ต้องอ่านให้จบ</p>
+                    </div>
+                </button>
+
+                <button onclick="startGame('hard')" class="w-full bg-[#BBDDFB] border-2 border-[#D9CDBF] rounded-2xl p-4 text-left paper-shadow active:translate-y-1 active:translate-x-1 active:shadow-none transition-all flex items-center group cursor-pointer">
+                    <div class="bg-white rounded-full p-2 mr-4 border-2 border-[#D9CDBF] group-active:bg-gray-50 flex flex-shrink-0">
+                        <svg class="text-[#4A4036] -mr-2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                        <svg class="text-[#4A4036] -mr-2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                        <svg class="text-[#4A4036]" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-[#4A4036]">ยาก (Hard)</h3>
+                        <p class="text-[#6D6257] text-sm mt-1">ท้าทายด้วย 2 ช่องว่างในหนึ่งประโยค</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- === SCREEN: GAME === -->
+        <div id="screen-game" class="hidden flex-1 flex flex-col relative animate-fade-in h-full">
+            <!-- Header -->
+            <div class="flex justify-between items-center p-4 bg-white/50 backdrop-blur-sm z-10">
+                <button onclick="showMenu()" class="bg-white border-2 border-[#D9CDBF] rounded-xl p-2 paper-shadow-sm active:translate-y-0.5 active:shadow-none cursor-pointer">
+                    <svg class="text-[#4A4036]" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                
+                <div class="bg-white border-2 border-[#D9CDBF] rounded-xl px-4 py-2 paper-shadow-sm">
+                    <span class="font-bold text-[#4A4036] text-xl">คะแนน: <span id="score-display">0</span></span>
+                </div>
+            </div>
+
+            <!-- Progress indicator -->
+            <div id="progress-container" class="px-6 flex justify-center space-x-2 mt-2">
+                <!-- Dots injected via JS -->
+            </div>
+
+            <!-- Game Play Area -->
+            <div class="flex-1 flex flex-col justify-center items-center p-6 space-y-8">
+                
+                <!-- Newspaper / Sentence Board -->
+                <div id="sentence-board" class="bg-white border-2 border-[#D9CDBF] rounded-3xl p-6 w-full paper-shadow transition-transform">
+                    <p id="sentence-text" class="text-[26px] leading-[2.2] text-[#333333] font-medium break-words">
+                        <!-- Text injected via JS -->
+                    </p>
+                </div>
+
+                <!-- Instructions -->
+                <p class="text-[#6D6257] text-lg opacity-80 animate-pulse">
+                    ↓ ลากคำศัพท์ไปเติมในช่องว่าง ↓
+                </p>
+            </div>
+
+            <!-- Word Bank (Bottom Panel) -->
+            <div class="bg-white/80 backdrop-blur-md border-t-2 border-[#D9CDBF] p-6 pb-12 rounded-t-3xl">
+                <div id="word-bank" class="flex flex-wrap justify-center gap-4">
+                    <!-- Words injected via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Drag Item -->
+        <div id="drag-overlay" class="hidden fixed pointer-events-none z-50 px-6 py-4 rounded-2xl border-2 border-[#D9CDBF] bg-white paper-shadow text-2xl font-bold text-[#4A4036] scale-110" style="transform: translate(-50%, -50%) rotate(-5deg)">
+        </div>
+
+    </div>
+
+    <!-- === GAME LOGIC SCRIPT === -->
+    <script>
+        // --- Game Data ---
+        const GAME_DATA = {
+            easy: [
+                { textParts: ["วันนี้ฝนตกหนัก ระวังถนน", ""], blanks: ["ลื่น"], options: ["ลื่น", "แห้ง", "สวย"] },
+                { textParts: ["ฉันชอบกินผลไม้ที่มีรส", "มาก"], blanks: ["หวาน"], options: ["หวาน", "เผ็ด", "สูง"] },
+                { textParts: ["สุนัขตัวนั้นเห่าเสียง", "จนฉันตกใจ"], blanks: ["ดัง"], options: ["ดัง", "เบา", "หอม"] }
+            ],
+            medium: [
+                { textParts: ["ถึงแม้เขาจะอ่านหนังสือมาอย่างหนักหน่วง แต่เขาก็ยังรู้สึก", "กับการสอบครั้งนี้อยู่ดี"], blanks: ["กังวล"], options: ["กังวล", "มั่นใจ", "ง่วงนอน"] },
+                { textParts: ["อากาศในตอนเช้าวันนี้ช่าง", "ทำให้รู้สึกอยากออกไปวิ่งออกกำลังกาย"], blanks: ["สดใส"], options: ["สดใส", "มืดมิด", "หนาวเหน็บ"] },
+                { textParts: ["พนักงานเสิร์ฟเดินมาที่โต๊ะพร้อมกับรอยยิ้มที่", "ก่อนจะรับออเดอร์ของเรา"], blanks: ["เป็นมิตร"], options: ["เป็นมิตร", "โกรธแค้น", "เศร้าหมอง"] }
+            ],
+            hard: [
+                { textParts: ["ฉันชอบไปเที่ยว", "แต่เพื่อนของฉันชอบไปเที่ยว", "มากกว่า"], blanks: ["ภูเขา", "ทะเล"], options: ["ภูเขา", "ทะเล", "ตู้เย็น", "หนังสือ"] },
+                { textParts: ["การดื่ม", "ในตอนเช้าช่วยให้ร่างกาย", "ไปตลอดทั้งวัน"], blanks: ["น้ำเปล่า", "สดชื่น"], options: ["น้ำเปล่า", "สดชื่น", "น้ำอัดลม", "อ่อนเพลีย"] },
+                { textParts: ["ท้องฟ้าคืนนี้เต็มไปด้วย", "และมี", "ส่องสว่างอยู่ตรงกลาง"], blanks: ["ดวงดาว", "ดวงจันทร์"], options: ["ดวงดาว", "ดวงจันทร์", "ก้อนเมฆ", "นกยูง"] }
+            ]
+        };
+
+        // --- Audio System ---
+        let audioCtx = null;
+        
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        const playTone = (frequency, type = 'sine', duration = 0.3) => {
+            if (!audioCtx) return;
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = type;
+            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + duration);
+        };
+
+        const playCorrectSound = () => {
+            initAudio();
+            playTone(523.25, 'sine', 0.2); // C5
+            setTimeout(() => playTone(659.25, 'sine', 0.3), 100); // E5
+        };
+
+        const playWrongSound = () => {
+            initAudio();
+            playTone(200, 'triangle', 0.2);
+            setTimeout(() => playTone(150, 'triangle', 0.3), 150);
+        };
+
+        // --- Game State Variables ---
+        let difficulty = 'easy';
+        let score = 0;
+        let questions = [];
+        let currentQIndex = 0;
+        let filledBlanks = {}; // { 0: "word", 1: "word" }
+        
+        // Drag State
+        let draggingWord = null;
+        let draggedElement = null; // To hide/show original element
+
+        // --- DOM Elements ---
+        const screenMenu = document.getElementById('screen-menu');
+        const screenGame = document.getElementById('screen-game');
+        const scoreDisplay = document.getElementById('score-display');
+        const progressContainer = document.getElementById('progress-container');
+        const sentenceText = document.getElementById('sentence-text');
+        const sentenceBoard = document.getElementById('sentence-board');
+        const wordBank = document.getElementById('word-bank');
+        const dragOverlay = document.getElementById('drag-overlay');
+
+        // --- Core Functions ---
+        function showMenu() {
+            screenGame.classList.add('hidden');
+            screenMenu.classList.remove('hidden');
+        }
+
+        function startGame(level) {
+            initAudio(); // Initialize audio context on first user interaction
+            difficulty = level;
+            score = 0;
+            scoreDisplay.innerText = score;
+            
+            // Shuffle questions
+            questions = [...GAME_DATA[level]].sort(() => Math.random() - 0.5);
+            currentQIndex = 0;
+            filledBlanks = {};
+            
+            screenMenu.classList.add('hidden');
+            screenGame.classList.remove('hidden');
+            
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const currentQ = questions[currentQIndex];
+            
+            // Render Progress
+            let progressHtml = '';
+            for (let i = 0; i < questions.length; i++) {
+                const bgClass = i <= currentQIndex ? 'bg-[#FFD6B3]' : 'bg-gray-200';
+                progressHtml += `<div class="h-2 rounded-full flex-1 transition-colors duration-300 ${bgClass}"></div>`;
+            }
+            progressContainer.innerHTML = progressHtml;
+
+            // Render Sentence
+            let sentenceHtml = '';
+            currentQ.textParts.forEach((part, index) => {
+                sentenceHtml += `<span>${part}</span>`;
+                if (index < currentQ.textParts.length - 1) {
+                    const filledWord = filledBlanks[index];
+                    if (filledWord) {
+                        sentenceHtml += `
+                            <span data-blank-index="${index}" class="inline-flex justify-center items-center min-w-[100px] h-[48px] px-4 mx-2 align-middle rounded-xl border-2 border-dashed bg-[#B2EBF2] border-[#81cdd7] text-[#4A4036] font-bold shadow-inner transition-all duration-300">
+                                ${filledWord}
+                            </span>`;
+                    } else {
+                        sentenceHtml += `
+                            <span data-blank-index="${index}" class="inline-flex justify-center items-center min-w-[100px] h-[48px] px-4 mx-2 align-middle rounded-xl border-2 border-dashed bg-gray-50 border-gray-300 transition-all duration-300">
+                            </span>`;
+                    }
+                }
+            });
+            sentenceText.innerHTML = sentenceHtml;
+
+            // Render Word Bank
+            const colors = ['bg-[#FFD6B3]', 'bg-[#FFF3B0]', 'bg-[#BBDDFB]', 'bg-[#B2EBF2]'];
+            let wordBankHtml = '';
+            currentQ.options.forEach((word, index) => {
+                const isUsed = Object.values(filledBlanks).includes(word);
+                const colorClass = colors[index % colors.length];
+                
+                if (isUsed) {
+                    // Render hidden/disabled version
+                    wordBankHtml += `
+                        <div class="${colorClass} border-2 border-[#D9CDBF] rounded-2xl px-6 py-4 text-2xl font-bold text-[#4A4036] transition-all duration-200 opacity-0 scale-50 pointer-events-none">
+                            ${word}
+                        </div>`;
+                } else {
+                    // Render interactive version
+                    wordBankHtml += `
+                        <div data-word="${word}" class="word-drag-item ${colorClass} border-2 border-[#D9CDBF] rounded-2xl px-6 py-4 text-2xl font-bold text-[#4A4036] transition-all duration-200 opacity-100 scale-100 paper-shadow cursor-grab hover:-translate-y-1">
+                            ${word}
+                        </div>`;
+                }
+            });
+            wordBank.innerHTML = wordBankHtml;
+
+            // Attach drag events to new word elements
+            document.querySelectorAll('.word-drag-item').forEach(el => {
+                el.addEventListener('pointerdown', handlePointerDown);
+                el.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false }); // Prevent scroll on touch
+            });
+        }
+
+        // --- Drag & Drop Handlers ---
+        function handlePointerDown(e) {
+            e.preventDefault();
+            initAudio();
+            
+            const target = e.currentTarget;
+            const word = target.getAttribute('data-word');
+            
+            if (!word) return;
+
+            draggingWord = word;
+            draggedElement = target;
+            
+            // Get coordinates
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+            // Setup Overlay
+            dragOverlay.innerText = word;
+            dragOverlay.style.left = `${clientX}px`;
+            dragOverlay.style.top = `${clientY}px`;
+            dragOverlay.classList.remove('hidden');
+            
+            // Hide original visually but keep space
+            target.style.opacity = '0';
+        }
+
+        function handlePointerMove(e) {
+            if (!draggingWord) return;
+            e.preventDefault();
+            
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            dragOverlay.style.left = `${clientX}px`;
+            dragOverlay.style.top = `${clientY}px`;
+        }
+
+        function handlePointerUp(e) {
+            if (!draggingWord) return;
+            e.preventDefault();
+            
+            const clientX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
+            const clientY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
+            
+            // Hide overlay temporarily to find element underneath
+            dragOverlay.classList.add('hidden');
+            
+            // Find element under cursor
+            const elementBelow = document.elementFromPoint(clientX, clientY);
+            const dropTarget = elementBelow ? elementBelow.closest('[data-blank-index]') : null;
+            
+            if (dropTarget) {
+                const blankIndex = parseInt(dropTarget.getAttribute('data-blank-index'), 10);
+                checkAnswer(draggingWord, blankIndex, dropTarget);
+            } else {
+                // Return item back
+                if(draggedElement) draggedElement.style.opacity = '1';
+            }
+            
+            // Reset state
+            draggingWord = null;
+            draggedElement = null;
+        }
+
+        // Bind move and up to window to catch fast movements
+        window.addEventListener('pointermove', handlePointerMove, { passive: false });
+        window.addEventListener('pointerup', handlePointerUp);
+        window.addEventListener('touchmove', handlePointerMove, { passive: false });
+        window.addEventListener('touchend', handlePointerUp);
+
+        // --- Game Logic Checks ---
+        function checkAnswer(word, blankIndex, dropTarget) {
+            const currentQ = questions[currentQIndex];
+            const correctAnswer = currentQ.blanks[blankIndex];
+            
+            if (word === correctAnswer) {
+                // Correct!
+                filledBlanks[blankIndex] = word;
+                score += 15;
+                scoreDisplay.innerText = score;
+                playCorrectSound();
+                
+                // Confetti at drop location
+                const rect = dropTarget.getBoundingClientRect();
+                const x = (rect.left + rect.width / 2) / window.innerWidth;
+                const y = (rect.top + rect.height / 2) / window.innerHeight;
+                confetti({ particleCount: 30, spread: 40, origin: { x, y }, colors: ['#B2EBF2', '#FFF3B0', '#FFD6B3'] });
+                
+                renderQuestion();
+                checkLevelComplete();
+            } else {
+                // Wrong!
+                if(draggedElement) draggedElement.style.opacity = '1'; // Show it back in word bank
+                score -= 5;
+                scoreDisplay.innerText = score;
+                playWrongSound();
+                triggerWiggle();
+            }
+        }
+
+        function triggerWiggle() {
+            sentenceBoard.classList.add('border-orange-300', 'animate-wiggle');
+            setTimeout(() => {
+                sentenceBoard.classList.remove('border-orange-300', 'animate-wiggle');
+            }, 400);
+        }
+
+        function checkLevelComplete() {
+            const currentQ = questions[currentQIndex];
+            const requiredBlanksCount = currentQ.blanks.length;
+            const filledCount = Object.keys(filledBlanks).length;
+            
+            if (filledCount === requiredBlanksCount) {
+                // Wait slightly before moving to next question
+                setTimeout(() => {
+                    if (currentQIndex < questions.length - 1) {
+                        currentQIndex++;
+                        filledBlanks = {};
+                        renderQuestion();
+                    } else {
+                        // Game Over
+                        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                        setTimeout(() => {
+                            alert(`จบเกม! คุณได้ ${score} คะแนน`);
+                            showMenu();
+                        }, 1500);
+                    }
+                }, 1000);
+            }
+        }
+
+    </script>
+</body>
+</html>
