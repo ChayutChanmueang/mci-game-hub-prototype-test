@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>กลองยาวเข้าจังหวะ - Rhythm Drum</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #FFFDF5;
+            --primary-border: #5A4A42;
+            --peach: #FFB8B8;
+            --mint: #B5EAD7;
+            --sky: #C7CEEA;
+            --yellow: #FFF5BA;
+        }
+
+        body {
+            font-family: 'Mali', sans-serif;
+            background-color: #E2E2E2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none; /* Prevent scrolling on touch */
+        }
+
+        /* Mobile Container 9:18 Aspect Ratio */
+        #game-container {
+            width: 100%;
+            height: 100vh;
+            max-width: 450px; /* Max width for desktop viewing */
+            max-height: 900px;
+            background-color: var(--bg-color);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Paper Cut Style UI Elements */
+        .paper-panel {
+            background-color: white;
+            border: 3px solid var(--primary-border);
+            border-radius: 20px;
+            box-shadow: 4px 4px 0px rgba(90, 74, 66, 0.15), inset 2px 2px 5px rgba(255,255,255,0.8);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .paper-btn {
+            background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+            border: 3px solid var(--primary-border);
+            border-radius: 16px;
+            box-shadow: 3px 3px 0px rgba(90, 74, 66, 0.2);
+            font-family: 'Mali', sans-serif;
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: var(--primary-border);
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            text-align: center;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .paper-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px rgba(90, 74, 66, 0.2);
+        }
+
+        .diff-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 0.75rem;
+        }
+
+        .diff-btn span {
+            font-size: 0.85rem;
+            font-weight: 400;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        .btn-easy { background: var(--mint); }
+        .btn-medium { background: var(--yellow); }
+        .btn-hard { background: var(--peach); }
+        
+        .btn-start {
+            background: var(--sky);
+            font-size: 1.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        /* Big Hit Box */
+        #hit-button-container {
+            height: 25%;
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(to top, rgba(255,253,245,1) 0%, rgba(255,253,245,0) 100%);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        #hit-button {
+            width: 90%;
+            height: 80%;
+            background: var(--peach);
+            border: 4px solid var(--primary-border);
+            border-radius: 30px;
+            box-shadow: 0px 8px 0px var(--primary-border), inset 0px 5px 10px rgba(255,255,255,0.5);
+            font-family: 'Mali', sans-serif;
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--primary-border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.05s, box-shadow 0.05s;
+        }
+
+        #hit-button:active {
+            transform: translateY(8px);
+            box-shadow: 0px 0px 0px var(--primary-border), inset 0px 2px 5px rgba(255,255,255,0.5);
+        }
+
+        /* Canvas */
+        canvas {
+            width: 100%;
+            height: 75%;
+            display: block;
+        }
+
+        /* Screens */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            box-sizing: border-box;
+            background: var(--bg-color);
+            z-index: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Header in game */
+        #game-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .header-pill {
+            background: white;
+            border: 2px solid var(--primary-border);
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            color: var(--primary-border);
+            pointer-events: auto;
+            box-shadow: 2px 2px 0px rgba(90, 74, 66, 0.1);
+        }
+
+        #btn-back {
+            padding: 0.5rem;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <!-- Main Menu Screen -->
+    <div id="menu-screen" class="screen overflow-y-auto pb-8">
+        <h1 class="text-4xl font-bold text-center mt-4 mb-2" style="color: var(--primary-border);">Rhythm Drum</h1>
+        <h2 class="text-2xl font-bold text-center mb-6" style="color: var(--primary-border);">กลองยาวเข้าจังหวะ</h2>
+        
+        <div class="paper-panel text-center">
+            <p class="text-lg leading-relaxed text-gray-700">
+                เคาะหน้าจอให้ตรงกับจังหวะ <b>"ตึง-ตึง-โป๊ะ"</b><br>
+                เมื่อวงกลมสีวิ่งมาทับเส้นเป้าหมายพอดี!
+            </p>
+        </div>
+
+        <div class="paper-panel">
+            <h3 class="text-xl font-bold mb-3 text-center" style="color: var(--primary-border);">เลือกระดับความยาก</h3>
+            
+            <button class="paper-btn diff-btn btn-easy" onclick="selectDifficulty('easy')">
+                ง่าย (Easy)
+                <span>จังหวะ 4/4 ช้าๆ สม่ำเสมอ</span>
+            </button>
+            <button class="paper-btn diff-btn btn-medium opacity-50" onclick="selectDifficulty('medium')" id="btn-med">
+                ปานกลาง (Medium)
+                <span>จังหวะเร็วขึ้น แบบรำวง</span>
+            </button>
+            <button class="paper-btn diff-btn btn-hard opacity-50" onclick="selectDifficulty('hard')" id="btn-hrd">
+                ยาก (Hard)
+                <span>จังหวะขัดเล็กน้อย (Syncopation)</span>
+            </button>
+        </div>
+
+        <button class="paper-btn btn-start w-full" onclick="startGame()">เริ่มเล่นเกม!</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen hidden" style="padding: 0;">
+        <div id="game-header">
+            <button id="btn-back" class="paper-btn header-pill" onclick="returnToMenu()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div class="header-pill text-xl">Score: <span id="score">0</span></div>
+            <div class="header-pill text-xl" id="time-display">3:00</div>
+        </div>
+        
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="hit-button-container">
+            <div id="hit-button" onmousedown="handleTap()" ontouchstart="handleTap(event)">ตีกลอง!</div>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="result-screen" class="screen hidden justify-center items-center">
+        <div class="paper-panel text-center w-full max-w-sm">
+            <h2 class="text-3xl font-bold mb-4" style="color: var(--primary-border);">จบเกม!</h2>
+            <p class="text-xl mb-2">คะแนนของคุณ</p>
+            <p class="text-5xl font-bold mb-6" style="color: var(--peach);" id="final-score">0</p>
+            
+            <div class="flex justify-between text-left mb-6 px-4">
+                <div>
+                    <p class="text-green-600 font-bold">Perfect: <span id="stat-perfect">0</span></p>
+                    <p class="text-blue-500 font-bold">Good: <span id="stat-good">0</span></p>
+                </div>
+                <div>
+                    <p class="text-gray-500 font-bold">Miss: <span id="stat-miss">0</span></p>
+                </div>
+            </div>
+
+            <button class="paper-btn w-full btn-easy" onclick="returnToMenu()">เล่นอีกครั้ง</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- State Management ---
+    let gameState = 'menu'; // menu, playing, gameover
+    let currentDifficulty = 'easy';
+    let score = 0;
+    let timeRemaining = 180; // 3 minutes
+    let gameTimer;
+    let animationFrameId;
+    
+    let stats = { perfect: 0, good: 0, miss: 0 };
+
+    // --- DOM Elements ---
+    const screens = {
+        menu: document.getElementById('menu-screen'),
+        game: document.getElementById('game-screen'),
+        result: document.getElementById('result-screen')
+    };
+    const scoreDisplay = document.getElementById('score');
+    const timeDisplay = document.getElementById('time-display');
+    const hitButton = document.getElementById('hit-button');
+    const gameContainer = document.getElementById('game-container');
+
+    // --- Canvas Setup ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    const hitZoneYRatio = 0.8; // Position of the target line on canvas
+
+    function resizeCanvas() {
+        width = canvas.clientWidth;
+        height = canvas.clientHeight;
+        canvas.width = width;
+        canvas.height = height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // --- Audio System (Web Audio API) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let bgmOscillator = null;
+    let bgmGain = null;
+
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        const time = audioCtx.currentTime;
+        
+        if (type === 'doom') {
+            // Low drum sound
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(150, time);
+            osc.frequency.exponentialRampToValueAtTime(40, time + 0.1);
+            
+            gainNode.gain.setValueAtTime(1, time);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+            
+            osc.start(time);
+            osc.stop(time + 0.3);
+        } else if (type === 'pah') {
+            // High snap/snare sound (using short triangle + noise simulation)
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(300, time);
+            osc.frequency.exponentialRampToValueAtTime(100, time + 0.1);
+            
+            gainNode.gain.setValueAtTime(0.8, time);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+            
+            osc.start(time);
+            osc.stop(time + 0.15);
+        } else if (type === 'perfect') {
+            // Soft chime
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, time); // A5
+            
+            gainNode.gain.setValueAtTime(0.3, time);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+            
+            osc.start(time);
+            osc.stop(time + 0.5);
+        }
+    }
+
+    function startBGM() {
+        if(bgmOscillator) return;
+        bgmOscillator = audioCtx.createOscillator();
+        bgmGain = audioCtx.createGain();
+        
+        bgmOscillator.type = 'triangle';
+        bgmOscillator.frequency.value = 110; // Low soft hum
+        
+        bgmGain.gain.value = 0.05; // Very quiet background
+        
+        bgmOscillator.connect(bgmGain);
+        bgmGain.connect(audioCtx.destination);
+        
+        bgmOscillator.start();
+    }
+
+    function stopBGM() {
+        if(bgmOscillator) {
+            bgmOscillator.stop();
+            bgmOscillator.disconnect();
+            bgmGain.disconnect();
+            bgmOscillator = null;
+        }
+    }
+
+    // --- Game Engine ---
+    let notes = [];
+    let particles = [];
+    let popups = [];
+    let spawnTimer = 0;
+    let baseNoteSpeed = 3;
+    let speedMultiplier = 1;
+    let frameCount = 0;
+    let sequenceIndex = 0;
+    
+    // Rhythm Sequences based on difficulty
+    const sequences = {
+        easy: [
+            {type: 'doom', delay: 60},
+            {type: 'doom', delay: 60},
+            {type: 'pah', delay: 60},
+            {type: 'rest', delay: 60}
+        ],
+        medium: [
+            {type: 'doom', delay: 35},
+            {type: 'doom', delay: 35},
+            {type: 'pah', delay: 50},
+            {type: 'doom', delay: 30},
+            {type: 'pah', delay: 60}
+        ],
+        hard: [
+            {type: 'doom', delay: 25},
+            {type: 'rest', delay: 15},
+            {type: 'doom', delay: 25},
+            {type: 'pah', delay: 40},
+            {type: 'doom', delay: 25},
+            {type: 'pah', delay: 25}
+        ]
+    };
+
+    function selectDifficulty(diff) {
+        currentDifficulty = diff;
+        // Visual feedback for selection
+        document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.add('opacity-50'));
+        document.querySelector(`.btn-${diff}`).classList.remove('opacity-50');
+    }
+
+    function startGame() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        gameState = 'playing';
+        score = 0;
+        timeRemaining = 180;
+        stats = { perfect: 0, good: 0, miss: 0 };
+        notes = [];
+        particles = [];
+        popups = [];
+        spawnTimer = 0;
+        sequenceIndex = 0;
+        frameCount = 0;
+        
+        scoreDisplay.innerText = score;
+        updateTimeDisplay();
+
+        screens.menu.classList.add('hidden');
+        screens.game.classList.remove('hidden');
+        
+        resizeCanvas();
+        startBGM();
+
+        // Start Timers
+        gameTimer = setInterval(() => {
+            timeRemaining--;
+            updateTimeDisplay();
+            if (timeRemaining <= 0) {
+                endGame();
+            }
+        }, 1000);
+
+        // Adjust speed based on difficulty
+        if(currentDifficulty === 'easy') baseNoteSpeed = height * 0.005;
+        if(currentDifficulty === 'medium') baseNoteSpeed = height * 0.007;
+        if(currentDifficulty === 'hard') baseNoteSpeed = height * 0.009;
+
+        gameLoop();
+    }
+
+    function updateTimeDisplay() {
+        const m = Math.floor(timeRemaining / 60);
+        const s = timeRemaining % 60;
+        timeDisplay.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    function returnToMenu() {
+        gameState = 'menu';
+        clearInterval(gameTimer);
+        cancelAnimationFrame(animationFrameId);
+        stopBGM();
+        
+        screens.game.classList.add('hidden');
+        screens.result.classList.add('hidden');
+        screens.menu.classList.remove('hidden');
+    }
+
+    function endGame() {
+        gameState = 'gameover';
+        clearInterval(gameTimer);
+        cancelAnimationFrame(animationFrameId);
+        stopBGM();
+        
+        document.getElementById('final-score').innerText = score;
+        document.getElementById('stat-perfect').innerText = stats.perfect;
+        document.getElementById('stat-good').innerText = stats.good;
+        document.getElementById('stat-miss').innerText = stats.miss;
+
+        screens.game.classList.add('hidden');
+        screens.result.classList.remove('hidden');
+    }
+
+    // --- Game Loop & Logic ---
+    function spawnNote() {
+        const seq = sequences[currentDifficulty];
+        const currentNote = seq[sequenceIndex];
+        
+        if (spawnTimer >= currentNote.delay) {
+            if (currentNote.type !== 'rest') {
+                notes.push({
+                    x: width / 2,
+                    y: -50,
+                    type: currentNote.type,
+                    color: currentNote.type === 'doom' ? '#FFB8B8' : '#C7CEEA', // Peach for Doom, Sky for Pah
+                    text: currentNote.type === 'doom' ? 'ตึง' : 'โป๊ะ',
+                    radius: width * 0.12 // Responsive size
+                });
+            }
+            
+            spawnTimer = 0;
+            sequenceIndex = (sequenceIndex + 1) % seq.length;
+        } else {
+            spawnTimer += speedMultiplier;
+        }
+    }
+
+    function createParticles(x, y, color) {
+        for(let i=0; i<8; i++) {
+            particles.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 10,
+                vy: (Math.random() - 0.5) * 10,
+                life: 1,
+                color: color,
+                size: Math.random() * 8 + 4
+            });
+        }
+    }
+
+    function createPopup(text, color, x, y) {
+        popups.push({ text, color, x, y, life: 1 });
+    }
+
+    function handleTap(e) {
+        if(e) e.preventDefault(); // Prevent double firing on touch devices
+        if (gameState !== 'playing') return;
+
+        // Visual feedback for button press
+        hitButton.style.transform = 'translateY(8px)';
+        hitButton.style.boxShadow = '0px 0px 0px var(--primary-border), inset 0px 2px 5px rgba(255,255,255,0.5)';
+        setTimeout(() => {
+            hitButton.style.transform = '';
+            hitButton.style.boxShadow = '';
+        }, 100);
+
+        const targetY = height * hitZoneYRatio;
+        const hitWindow = height * 0.15; // Margin of error
+        let hit = false;
+        let tappedNote = null;
+        let closestDist = Infinity;
+        let noteIndex = -1;
+
+        // Find the closest note
+        for (let i = 0; i < notes.length; i++) {
+            let dist = Math.abs(notes[i].y - targetY);
+            if (dist < hitWindow && dist < closestDist) {
+                closestDist = dist;
+                tappedNote = notes[i];
+                noteIndex = i;
+            }
+        }
+
+        if (tappedNote) {
+            hit = true;
+            playSound(tappedNote.type); // Play respective drum sound
+            
+            // Score calculation
+            if (closestDist < hitWindow * 0.3) {
+                // Perfect
+                score += 10;
+                stats.perfect++;
+                createParticles(tappedNote.x, targetY, tappedNote.color);
+                createPopup("Perfect!", "#10B981", tappedNote.x, targetY - 60);
+                playSound('perfect'); // Extra chime for perfect
+            } else {
+                // Good
+                score += 5;
+                stats.good++;
+                createParticles(tappedNote.x, targetY, "#FFF5BA"); // Yellow sparks
+                createPopup("Good", "#3B82F6", tappedNote.x, targetY - 60);
+            }
+            
+            scoreDisplay.innerText = score;
+            notes.splice(noteIndex, 1); // Remove hit note
+        } else {
+            // Missed (tapped when nothing is there)
+            stats.miss++;
+            createPopup("Miss", "#9CA3AF", width/2, targetY - 60);
+        }
+    }
+
+    function draw() {
+        // Clear background
+        ctx.fillStyle = '#FFFDF5'; // match --bg-color
+        ctx.fillRect(0, 0, width, height);
+
+        const targetY = height * hitZoneYRatio;
+
+        // Draw hit zone line/circle (Paper cut style)
+        ctx.beginPath();
+        ctx.arc(width / 2, targetY, width * 0.14, 0, Math.PI * 2);
+        ctx.fillStyle = '#E8F5E9'; // Soft mint background
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#5A4A42'; // Dark brown border
+        ctx.setLineDash([10, 10]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Inner shadow effect for hit zone
+        ctx.beginPath();
+        ctx.arc(width / 2, targetY, width * 0.14 - 2, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Draw Notes
+        for (let i = 0; i < notes.length; i++) {
+            let n = notes[i];
+            
+            // Shadow
+            ctx.beginPath();
+            ctx.arc(n.x + 4, n.y + 4, n.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(90, 74, 66, 0.2)';
+            ctx.fill();
+
+            // Main circle
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+            ctx.fillStyle = n.color;
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#5A4A42';
+            ctx.stroke();
+
+            // Text
+            ctx.fillStyle = '#5A4A42';
+            ctx.font = 'bold 24px Mali';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(n.text, n.x, n.y);
+        }
+
+        // Draw Particles (Confetti)
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+
+        // Draw Popups
+        for (let i = popups.length - 1; i >= 0; i--) {
+            let pop = popups[i];
+            ctx.globalAlpha = pop.life;
+            ctx.fillStyle = pop.color;
+            ctx.font = 'bold 28px Mali';
+            
+            // Text shadow for readability
+            ctx.shadowColor = 'white';
+            ctx.shadowBlur = 4;
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'white';
+            ctx.strokeText(pop.text, pop.x, pop.y);
+            
+            ctx.shadowBlur = 0;
+            ctx.fillText(pop.text, pop.x, pop.y);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    function update() {
+        frameCount++;
+        // ทำให้ความเร็วสลับช้า/เร็ว แบบคลื่น Sine wave (เร่งและลดความเร็วในระหว่างการเล่น)
+        speedMultiplier = 1 + 0.35 * Math.sin(frameCount / 180);
+        let currentNoteSpeed = baseNoteSpeed * speedMultiplier;
+
+        spawnNote();
+
+        const targetY = height * hitZoneYRatio;
+        const missZone = height + 100;
+
+        // Move Notes
+        for (let i = notes.length - 1; i >= 0; i--) {
+            notes[i].y += currentNoteSpeed;
+
+            // Miss logic (passed the screen)
+            if (notes[i].y > missZone) {
+                stats.miss++;
+                notes.splice(i, 1);
+            }
+        }
+
+        // Update Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].x += particles[i].vx;
+            particles[i].y += particles[i].vy;
+            particles[i].vy += 0.5; // gravity
+            particles[i].life -= 0.03;
+            if (particles[i].life <= 0) particles.splice(i, 1);
+        }
+
+        // Update Popups
+        for (let i = popups.length - 1; i >= 0; i--) {
+            popups[i].y -= 1.5;
+            popups[i].life -= 0.02;
+            if (popups[i].life <= 0) popups.splice(i, 1);
+        }
+    }
+
+    function gameLoop() {
+        if (gameState === 'playing') {
+            update();
+            draw();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+    }
+
+    // Initialize layout
+    selectDifficulty('easy');
+
+</script>
+</body>
+</html>

@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Garden Defender - ผู้พิทักษ์สวน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #FFFBF2;
+            --pastel-peach: #FFDAB9;
+            --pastel-mint: #B5EAD7;
+            --pastel-sky: #C7CEEA;
+            --pastel-yellow: #FFF5BA;
+            --text-dark: #4A4A4A;
+            --stroke-color: rgba(74, 74, 74, 0.3);
+        }
+
+        body {
+            font-family: 'Mali', sans-serif;
+            background-color: #e0e5ec;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            color: var(--text-dark);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 9:18 Aspect Ratio Container */
+        #app-container {
+            width: 100%;
+            height: 100%;
+            max-width: 450px; /* Max width for desktop viewing */
+            aspect-ratio: 9 / 18;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border: 2px solid var(--stroke-color);
+        }
+
+        @media (min-aspect-ratio: 9/18) {
+            #app-container {
+                height: 100vh;
+                width: calc(100vh * (9 / 18));
+            }
+        }
+        @media (max-aspect-ratio: 9/18) {
+            #app-container {
+                width: 100vw;
+                height: calc(100vw * (18 / 9));
+                max-width: none;
+            }
+        }
+
+        /* Paper Cut Style Utilities */
+        .paper-panel {
+            background: linear-gradient(135deg, #ffffff 0%, var(--bg-cream) 100%);
+            border: 3px solid var(--pastel-peach);
+            border-radius: 24px;
+            box-shadow: 4px 6px 0px rgba(255, 218, 185, 0.6), inset 2px 2px 5px rgba(255,255,255,0.8);
+            padding: 24px;
+        }
+
+        .paper-btn {
+            background-color: white;
+            border: 2px solid var(--stroke-color);
+            border-radius: 999px;
+            box-shadow: 2px 4px 0px var(--stroke-color);
+            transition: transform 0.1s, box-shadow 0.1s;
+            font-weight: 600;
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
+        
+        .paper-btn:active {
+            transform: translate(2px, 4px);
+            box-shadow: 0px 0px 0px var(--stroke-color);
+        }
+
+        .btn-easy { background-color: var(--pastel-mint); }
+        .btn-medium { background-color: var(--pastel-yellow); }
+        .btn-hard { background-color: var(--pastel-peach); }
+        .btn-start { background-color: var(--pastel-sky); font-size: 1.5rem; padding: 12px 32px;}
+
+        /* Typography */
+        h1 { font-size: 2.2rem; font-weight: 700; text-align: center; margin-bottom: 0.5rem; line-height: 1.2; text-shadow: 1px 1px 0px white;}
+        p { font-size: 1.1rem; line-height: 1.6; }
+
+        /* Game Area */
+        #game-area {
+            background: linear-gradient(180deg, var(--pastel-sky) 0%, #E2F0CB 40%, #B5EAD7 100%);
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+            display: none;
+        }
+
+        .top-bar {
+            position: absolute;
+            top: 16px; left: 16px; right: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .stat-badge {
+            background: white;
+            border: 2px solid var(--stroke-color);
+            border-radius: 16px;
+            padding: 8px 16px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 2px 3px 0px var(--stroke-color);
+        }
+
+        .back-btn {
+            background: white;
+            border: 2px solid var(--stroke-color);
+            border-radius: 50%;
+            width: 44px; height: 44px;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 2px 3px 0px var(--stroke-color);
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
+        .back-btn:active {
+            transform: translate(2px, 3px);
+            box-shadow: 0px 0px 0px var(--stroke-color);
+        }
+
+        /* Insects */
+        .insect {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transform-origin: center;
+            filter: drop-shadow(2px 4px 2px rgba(0,0,0,0.15));
+            transition: transform 0.2s;
+        }
+        
+        .insect-hitbox {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+        }
+
+        .insect svg {
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Animations */
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        @keyframes popOut {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        .pop-out { animation: popOut 0.2s ease-in forwards; }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg) scale(1.1); }
+            50% { transform: rotate(15deg) scale(1.1); }
+            75% { transform: rotate(-10deg) scale(1.1); }
+        }
+        .wiggle { animation: wiggle 0.4s ease-in-out; }
+
+        /* Confetti Particle */
+        .particle {
+            position: absolute;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* Hard Mode Filters (Make bad bugs look like good bugs) */
+        .hard-mode .bug-fly { filter: hue-rotate(220deg) saturate(1.5); } /* Make fly look yellowish/bee-like */
+        .hard-mode .bug-caterpillar { filter: hue-rotate(180deg) saturate(1.2); } /* Make caterpillar blueish/butterfly-like */
+
+        /* Floating Animation for bugs */
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .float-anim { animation: float 3s infinite ease-in-out; }
+
+        /* Screens */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            padding: 24px;
+            box-sizing: border-box;
+            background: var(--bg-cream);
+            transition: opacity 0.3s ease;
+            z-index: 20;
+        }
+        .hidden { display: none !important; opacity: 0; pointer-events: none; }
+
+        /* Tree decorations */
+        .bush {
+            position: absolute;
+            bottom: -20px;
+            width: 150px; height: 150px;
+            background: #88D49E;
+            border: 3px solid #66A378;
+            border-radius: 50%;
+            box-shadow: inset -10px -10px 0px rgba(0,0,0,0.05);
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    
+    <!-- Background element that was missing -->
+    <div id="game-area"></div>
+    
+    <!-- MAIN MENU SCREEN -->
+    <div id="screen-menu" class="screen justify-center">
+        <div class="paper-panel flex flex-col items-center text-center gap-4">
+            <h1 style="color: #FF8A65;">ผู้พิทักษ์สวน</h1>
+            <p class="text-sm">แตะไล่ศัตรูพืช 🐛🪰<br>ห้ามแตะแมลงดีเด็ดขาด! 🦋🐝</p>
+            
+            <div class="w-full flex flex-col gap-3 mt-4">
+                <p class="font-bold text-left mb-1">เลือกระดับความยาก:</p>
+                <button class="paper-btn btn-easy py-2 px-4 text-left flex flex-col" onclick="selectDiff('easy')">
+                    <span>🟢 ง่าย</span>
+                    <span class="text-xs font-normal">แมลงช้า แยกสีชัดเจน</span>
+                </button>
+                <button class="paper-btn btn-medium py-2 px-4 text-left flex flex-col" onclick="selectDiff('medium')">
+                    <span>🟡 ปานกลาง</span>
+                    <span class="text-xs font-normal">จำนวนแมลงโผล่มามากขึ้น</span>
+                </button>
+                <button class="paper-btn btn-hard py-2 px-4 text-left flex flex-col" onclick="selectDiff('hard')">
+                    <span>🔴 ยาก</span>
+                    <span class="text-xs font-normal">สีหลอกตา ต้องดูที่รูปร่าง!</span>
+                </button>
+            </div>
+
+            <button id="btn-start" class="paper-btn btn-start mt-6 w-full text-white" onclick="startGame()" disabled style="opacity: 0.5;">เริ่มเกม</button>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="screen-game" class="screen !p-0 hidden !bg-transparent z-10">
+        <!-- Background Decor -->
+        <div class="bush" style="left: -50px;"></div>
+        <div class="bush" style="right: -50px; width: 200px; height: 200px; background: #A0E8AF;"></div>
+        <div class="bush" style="left: 30%; bottom: -80px; width: 250px; height: 250px;"></div>
+
+        <div class="top-bar">
+            <button class="back-btn" onclick="backToMenu()">🔙</button>
+            <div class="stat-badge text-[#FF8A65]">⭐ <span id="ui-score">0</span></div>
+            <div class="stat-badge text-[#4A90E2]">⏱️ <span id="ui-time">3:00</span></div>
+        </div>
+
+        <div id="game-canvas" class="w-full h-full relative" style="margin-top: 80px; height: calc(100% - 180px); z-index: 5;">
+            <!-- Insects spawn here -->
+        </div>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="screen-gameover" class="screen justify-center hidden">
+        <div class="paper-panel flex flex-col items-center text-center gap-6">
+            <h1 style="color: #4A90E2;">หมดเวลา!</h1>
+            <div>
+                <p class="text-lg">คะแนนของคุณ</p>
+                <p class="text-5xl font-bold text-[#FF8A65] my-2" id="ui-final-score" style="text-shadow: 2px 2px 0px rgba(0,0,0,0.1);">0</p>
+                <p class="text-sm text-gray-500">คุณปกป้องสวนไว้ได้!</p>
+            </div>
+            <button class="paper-btn btn-start w-full text-white mt-4" onclick="backToMenu()">เล่นอีกครั้ง</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Audio System (Web Audio API) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playTone(type) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+        
+        if (type === 'correct') {
+            // Soft chime
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        } else if (type === 'wrong') {
+            // Low soft thud
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+    }
+
+    // --- SVG Assets (Paper Cut Style) ---
+    const svgAssets = {
+        // Bad Bug: Caterpillar (Green)
+        caterpillar: `<svg viewBox="0 0 100 100" class="bug-caterpillar float-anim">
+            <g stroke="rgba(0,0,0,0.3)" stroke-width="2">
+                <circle cx="20" cy="50" r="15" fill="#A8E6CF" />
+                <circle cx="45" cy="45" r="16" fill="#DCEDC1" />
+                <circle cx="70" cy="50" r="18" fill="#FFD3B6" />
+                <!-- Eyes -->
+                <circle cx="65" cy="45" r="3" fill="#4A4A4A" />
+                <circle cx="78" cy="45" r="3" fill="#4A4A4A" />
+                <!-- Antennae -->
+                <path d="M 65 35 Q 60 20 55 25" fill="none" stroke="#4A4A4A" stroke-width="2" stroke-linecap="round"/>
+                <path d="M 75 35 Q 80 20 85 25" fill="none" stroke="#4A4A4A" stroke-width="2" stroke-linecap="round"/>
+            </g>
+        </svg>`,
+        // Bad Bug: Fly (Gray/Blue)
+        fly: `<svg viewBox="0 0 100 100" class="bug-fly float-anim">
+            <g stroke="rgba(0,0,0,0.3)" stroke-width="2">
+                <!-- Wings -->
+                <ellipse cx="30" cy="30" rx="20" ry="10" fill="#E0F7FA" transform="rotate(-30 30 30)" opacity="0.8"/>
+                <ellipse cx="70" cy="30" rx="20" ry="10" fill="#E0F7FA" transform="rotate(30 70 30)" opacity="0.8"/>
+                <!-- Body -->
+                <ellipse cx="50" cy="60" rx="18" ry="25" fill="#B0BEC5" />
+                <!-- Big Eyes -->
+                <circle cx="40" cy="45" r="10" fill="#FF8A80" />
+                <circle cx="60" cy="45" r="10" fill="#FF8A80" />
+                <circle cx="38" cy="43" r="3" fill="white" />
+                <circle cx="58" cy="43" r="3" fill="white" />
+            </g>
+        </svg>`,
+        // Good Bug: Butterfly (Pink/Blue)
+        butterfly: `<svg viewBox="0 0 100 100" class="bug-butterfly float-anim">
+            <g stroke="rgba(0,0,0,0.3)" stroke-width="2">
+                <!-- Top Wings -->
+                <path d="M 50 50 C 20 20, 10 40, 45 55 Z" fill="#FFB7B2" />
+                <path d="M 50 50 C 80 20, 90 40, 55 55 Z" fill="#FFB7B2" />
+                <!-- Bottom Wings -->
+                <path d="M 45 55 C 20 80, 40 90, 50 65 Z" fill="#E2F0CB" />
+                <path d="M 55 55 C 80 80, 60 90, 50 65 Z" fill="#E2F0CB" />
+                <!-- Body -->
+                <ellipse cx="50" cy="55" rx="5" ry="15" fill="#4A4A4A" />
+                <!-- Antennae -->
+                <path d="M 48 40 Q 40 25 35 30" fill="none" stroke="#4A4A4A" stroke-width="2" stroke-linecap="round"/>
+                <path d="M 52 40 Q 60 25 65 30" fill="none" stroke="#4A4A4A" stroke-width="2" stroke-linecap="round"/>
+            </g>
+        </svg>`,
+        // Good Bug: Bee (Yellow/Black)
+        bee: `<svg viewBox="0 0 100 100" class="bug-bee float-anim">
+            <g stroke="rgba(0,0,0,0.3)" stroke-width="2">
+                <!-- Wings -->
+                <ellipse cx="40" cy="30" rx="15" ry="20" fill="#E0F7FA" transform="rotate(-20 40 30)" opacity="0.8"/>
+                <ellipse cx="60" cy="30" rx="15" ry="20" fill="#E0F7FA" transform="rotate(20 60 30)" opacity="0.8"/>
+                <!-- Body -->
+                <ellipse cx="50" cy="60" rx="25" ry="18" fill="#FFF5BA" />
+                <!-- Stripes -->
+                <path d="M 35 45 Q 50 60 35 75" fill="none" stroke="#4A4A4A" stroke-width="6" />
+                <path d="M 50 42 Q 65 60 50 78" fill="none" stroke="#4A4A4A" stroke-width="6" />
+                <!-- Face -->
+                <circle cx="75" cy="60" r="12" fill="#FFF5BA" />
+                <circle cx="78" cy="58" r="2" fill="#4A4A4A" />
+                <path d="M 78 65 Q 75 68 72 65" fill="none" stroke="#4A4A4A" stroke-width="2" stroke-linecap="round"/>
+                <!-- Stinger -->
+                <polygon points="25,60 15,65 25,70" fill="#4A4A4A" />
+            </g>
+        </svg>`
+    };
+
+    const INSECT_TYPES = [
+        { id: 'caterpillar', isBad: true, score: 10 },
+        { id: 'fly', isBad: true, score: 10 },
+        { id: 'butterfly', isBad: false, score: -5 },
+        { id: 'bee', isBad: false, score: -5 }
+    ];
+
+    // --- Game State ---
+    let state = {
+        difficulty: null,
+        score: 0,
+        timeLeft: 180, // 3 minutes
+        gameInterval: null,
+        spawnInterval: null,
+        activeInsects: []
+    };
+
+    const diffSettings = {
+        easy: { spawnRate: 1500, maxActive: 5, duration: 4000 },
+        medium: { spawnRate: 900, maxActive: 8, duration: 3000 },
+        hard: { spawnRate: 700, maxActive: 10, duration: 2500 }
+    };
+
+    // --- UI Logic ---
+    function selectDiff(level) {
+        state.difficulty = level;
+        document.querySelectorAll('.paper-btn').forEach(btn => btn.style.borderWidth = '2px');
+        document.querySelector(`.btn-${level}`).style.borderWidth = '4px';
+        document.querySelector(`.btn-${level}`).style.borderColor = '#4A4A4A';
+        
+        const startBtn = document.getElementById('btn-start');
+        startBtn.disabled = false;
+        startBtn.style.opacity = '1';
+    }
+
+    function switchScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        const gameArea = document.getElementById('game-area');
+        
+        if(screenId === 'screen-game') {
+            document.getElementById('screen-game').classList.remove('hidden');
+            if(gameArea) gameArea.style.display = 'block';
+        } else {
+            document.getElementById(screenId).classList.remove('hidden');
+            if(gameArea) gameArea.style.display = 'none';
+        }
+    }
+
+    function updateHUD() {
+        document.getElementById('ui-score').innerText = state.score;
+        const mins = Math.floor(state.timeLeft / 60);
+        const secs = state.timeLeft % 60;
+        document.getElementById('ui-time').innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // --- Core Game Logic ---
+    function startGame() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        
+        state.score = 0;
+        state.timeLeft = 180;
+        state.activeInsects = [];
+        document.getElementById('game-canvas').innerHTML = '';
+        
+        const canvas = document.getElementById('game-canvas');
+        if(state.difficulty === 'hard') {
+            canvas.classList.add('hard-mode');
+        } else {
+            canvas.classList.remove('hard-mode');
+        }
+
+        updateHUD();
+        switchScreen('screen-game');
+
+        state.gameInterval = setInterval(() => {
+            state.timeLeft--;
+            updateHUD();
+            if(state.timeLeft <= 0) endGame();
+        }, 1000);
+
+        const settings = diffSettings[state.difficulty];
+        state.spawnInterval = setInterval(spawnInsect, settings.spawnRate);
+        spawnInsect(); // Spawn first immediately
+    }
+
+    function endGame() {
+        clearInterval(state.gameInterval);
+        clearInterval(state.spawnInterval);
+        document.getElementById('game-canvas').innerHTML = '';
+        document.getElementById('ui-final-score').innerText = state.score;
+        switchScreen('screen-gameover');
+    }
+
+    function backToMenu() {
+        clearInterval(state.gameInterval);
+        clearInterval(state.spawnInterval);
+        switchScreen('screen-menu');
+        state.difficulty = null;
+        document.querySelectorAll('.paper-btn').forEach(btn => {
+            btn.style.borderWidth = '2px';
+            btn.style.borderColor = 'var(--stroke-color)';
+        });
+        document.getElementById('btn-start').disabled = true;
+        document.getElementById('btn-start').style.opacity = '0.5';
+    }
+
+    function spawnInsect() {
+        const settings = diffSettings[state.difficulty];
+        if (state.activeInsects.length >= settings.maxActive) return;
+
+        const canvas = document.getElementById('game-canvas');
+        const insectData = INSECT_TYPES[Math.floor(Math.random() * INSECT_TYPES.length)];
+        
+        const insectEl = document.createElement('div');
+        insectEl.className = 'insect pop-in';
+        insectEl.innerHTML = svgAssets[insectData.id];
+        
+        // Random position
+        const size = 80;
+        const maxX = canvas.clientWidth - size;
+        const maxY = canvas.clientHeight - size;
+        const randomX = Math.random() * maxX;
+        const randomY = Math.random() * maxY;
+        
+        insectEl.style.left = `${randomX}px`;
+        insectEl.style.top = `${randomY}px`;
+        
+        // Add hitbox
+        const hitbox = document.createElement('div');
+        hitbox.className = 'insect-hitbox';
+        insectEl.appendChild(hitbox);
+
+        // Interaction
+        insectEl.onclick = (e) => handleTap(e, insectEl, insectData);
+
+        canvas.appendChild(insectEl);
+        state.activeInsects.push(insectEl);
+
+        // Auto remove
+        setTimeout(() => {
+            if (canvas.contains(insectEl)) {
+                removeInsect(insectEl);
+            }
+        }, settings.duration + (Math.random() * 1000));
+    }
+
+    function handleTap(e, el, data) {
+        if(el.classList.contains('pop-out')) return; // Already dying
+
+        if (data.isBad) {
+            // Correct hit
+            state.score += data.score;
+            playTone('correct');
+            createConfetti(e.clientX, e.clientY);
+            removeInsect(el);
+        } else {
+            // Wrong hit
+            state.score += data.score;
+            playTone('wrong');
+            
+            // Wiggle feedback
+            el.classList.remove('pop-in');
+            el.classList.add('wiggle');
+            
+            // Show minus score text temporarily
+            showFloatingText(e.clientX, e.clientY, data.score, '#FF5252');
+            
+            setTimeout(() => {
+                if(el) el.classList.remove('wiggle');
+            }, 400);
+        }
+        updateHUD();
+    }
+
+    function removeInsect(el) {
+        el.classList.remove('pop-in');
+        el.classList.add('pop-out');
+        setTimeout(() => {
+            if(el.parentNode) el.parentNode.removeChild(el);
+            state.activeInsects = state.activeInsects.filter(i => i !== el);
+        }, 200);
+    }
+
+    // --- Visual Effects ---
+    function createConfetti(x, y) {
+        const container = document.getElementById('app-container');
+        const colors = ['#FFDAB9', '#B5EAD7', '#C7CEEA', '#FFF5BA'];
+        const rect = container.getBoundingClientRect();
+        
+        const localX = x - rect.left;
+        const localY = y - rect.top;
+
+        for (let i = 0; i < 6; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            particle.style.left = `${localX}px`;
+            particle.style.top = `${localY}px`;
+            
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = 20 + Math.random() * 30;
+            const tx = Math.cos(angle) * velocity;
+            const ty = Math.sin(angle) * velocity;
+
+            particle.animate([
+                { transform: 'translate(0,0) scale(1)', opacity: 1 },
+                { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
+            ], {
+                duration: 400 + Math.random() * 200,
+                easing: 'cubic-bezier(0, .9, .57, 1)'
+            });
+
+            container.appendChild(particle);
+            setTimeout(() => particle.remove(), 600);
+        }
+    }
+
+    function showFloatingText(x, y, text, color) {
+        const container = document.getElementById('app-container');
+        const rect = container.getBoundingClientRect();
+        const el = document.createElement('div');
+        
+        el.innerText = text;
+        el.style.position = 'absolute';
+        el.style.left = `${x - rect.left}px`;
+        el.style.top = `${y - rect.top}px`;
+        el.style.color = color;
+        el.style.fontWeight = 'bold';
+        el.style.fontSize = '1.5rem';
+        el.style.pointerEvents = 'none';
+        el.style.zIndex = '100';
+        el.style.textShadow = '1px 1px 0px white';
+        
+        container.appendChild(el);
+        
+        el.animate([
+            { transform: 'translate(-50%, -50%)', opacity: 1 },
+            { transform: 'translate(-50%, -150%)', opacity: 0 }
+        ], { duration: 800, easing: 'ease-out' });
+        
+        setTimeout(() => el.remove(), 800);
+    }
+
+</script>
+</body>
+</html>

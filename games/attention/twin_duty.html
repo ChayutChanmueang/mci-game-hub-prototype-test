@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Twin Duty (ยามเฝ้าเตา)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #FFFDF7;
+            --pastel-peach: #FFDAB9;
+            --pastel-mint: #A7F3D0;
+            --pastel-sky: #BAE6FD;
+            --pastel-yellow: #FEF08A;
+            --pastel-purple: #E9D5FF;
+            --text-dark: #44403C;
+            --stroke-color: #57534E;
+        }
+
+        body {
+            font-family: 'Mali', sans-serif;
+            background-color: #e5e5e5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: manipulation; /* ป้องกันการซูมเมื่อแตะรัวๆ */
+        }
+
+        /* จำลองหน้าจอมือถือ 9:18 */
+        #game-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            max-height: 800px;
+            aspect-ratio: 9 / 18;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            color: var(--text-dark);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        /* สไตล์ Paper Cut */
+        .paper-panel {
+            background-color: white;
+            border: 3px solid var(--stroke-color);
+            border-radius: 24px;
+            box-shadow: 4px 4px 0px var(--stroke-color);
+        }
+
+        .paper-btn {
+            background-color: white;
+            border: 3px solid var(--stroke-color);
+            border-radius: 20px;
+            box-shadow: 4px 4px 0px var(--stroke-color);
+            transition: all 0.1s ease;
+            cursor: pointer;
+            padding: 12px 24px;
+            font-weight: 600;
+            font-size: 1.25rem; /* 20px+ */
+        }
+
+        .paper-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px var(--stroke-color);
+        }
+
+        .color-peach { background: linear-gradient(135deg, #FFE4E1, #FFDAB9); }
+        .color-mint { background: linear-gradient(135deg, #D1FAE5, #A7F3D0); }
+        .color-sky { background: linear-gradient(135deg, #E0F2FE, #BAE6FD); }
+
+        /* อนิเมชั่นทำผิด (Wiggle) */
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+            75% { transform: rotate(-5deg); }
+        }
+        .animate-wiggle {
+            animation: wiggle 0.3s ease-in-out;
+        }
+
+        /* อนิเมชั่นดาว/พลุตอนทำถูก */
+        .star {
+            position: absolute;
+            font-size: 24px;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            z-index: 50;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 1; }
+            50% { transform: translateY(-30px) scale(1.2); opacity: 1; }
+            100% { transform: translateY(-60px) scale(1); opacity: 0; }
+        }
+
+        /* ส่วนประกอบเกม */
+        .station-hitbox {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid var(--stroke-color);
+            border-radius: 24px;
+            box-shadow: inset 0px -4px 0px rgba(0,0,0,0.1), 4px 4px 0px var(--stroke-color);
+            overflow: hidden;
+            transition: transform 0.1s;
+        }
+        .station-hitbox:active {
+            transform: scale(0.96);
+        }
+
+        .progress-bar-container {
+            width: 80%;
+            height: 24px;
+            border: 2px solid var(--stroke-color);
+            border-radius: 12px;
+            background-color: white;
+            position: relative;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.1s linear, background-color 0.2s;
+        }
+
+        .target-zone {
+            position: absolute;
+            height: 100%;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.4),
+                rgba(255, 255, 255, 0.4) 10px,
+                rgba(255, 255, 255, 0.1) 10px,
+                rgba(255, 255, 255, 0.1) 20px
+            );
+            border-left: 2px dashed var(--stroke-color);
+            border-right: 2px dashed var(--stroke-color);
+            z-index: 10;
+        }
+
+        /* สิ่งของในเตา */
+        .soup-pot {
+            width: 80px; height: 60px;
+            background-color: #F87171;
+            border: 3px solid var(--stroke-color);
+            border-radius: 10px 10px 30px 30px;
+            position: relative;
+        }
+        .soup-liquid {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background-color: #FBBF24;
+            border-radius: 0 0 26px 26px;
+            transition: height 0.1s;
+        }
+
+        .toaster {
+            width: 70px; height: 60px;
+            background-color: #60A5FA;
+            border: 3px solid var(--stroke-color);
+            border-radius: 10px;
+            position: relative;
+        }
+        .bread {
+            width: 50px; height: 40px;
+            background-color: #FEF3C7;
+            border: 3px solid var(--stroke-color);
+            border-radius: 10px 10px 0 0;
+            position: absolute;
+            top: -20px; left: 7px;
+            transition: top 0.1s, background-color 0.3s;
+        }
+
+        .kettle {
+            width: 70px; height: 60px;
+            background-color: #A78BFA;
+            border: 3px solid var(--stroke-color);
+            border-radius: 30px 30px 10px 10px;
+            position: relative;
+        }
+
+        /* ซ่อนหน้าจอ */
+        .hidden-screen { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <!-- === หน้าเมนูหลัก === -->
+    <div id="screen-menu" class="absolute inset-0 flex flex-col items-center p-6 bg-white z-10">
+        <h1 class="text-4xl font-bold mt-10 mb-2 text-center" style="color: #ea580c; text-shadow: 2px 2px 0px var(--stroke-color);">
+            Twin Duty<br><span class="text-2xl text-gray-700">(ยามเฝ้าเตา)</span>
+        </h1>
+        
+        <div class="paper-panel p-4 my-6 text-center text-lg w-full color-peach">
+            <p>แบ่งความสนใจ ดูแลเตาหลายฝั่งพร้อมกัน!</p>
+            <ul class="text-left text-base mt-2 ml-4 list-disc">
+                <li>แตะเมื่อถึง <b>จุดที่กำหนด</b>: <span class="text-green-600 font-bold">+10 แต้ม</span></li>
+                <li>ปล่อยจน <b>ล้น/ไหม้</b>: <span class="text-red-600 font-bold">-5 แต้ม</span></li>
+            </ul>
+        </div>
+
+        <div class="w-full flex flex-col gap-4 mt-auto mb-10">
+            <h2 class="text-xl font-bold text-center">เลือกระดับความยาก</h2>
+            
+            <button class="paper-btn color-mint text-left" onclick="startGame('easy')">
+                <div class="font-bold text-xl">🟢 ง่าย (Easy)</div>
+                <div class="text-sm font-normal text-gray-700">ซุปเดือดช้า ขนมปังไหม้เร็ว (กะจังหวะง่าย)</div>
+            </button>
+            
+            <button class="paper-btn color-sky text-left" onclick="startGame('medium')">
+                <div class="font-bold text-xl">🟡 ปานกลาง (Medium)</div>
+                <div class="text-sm font-normal text-gray-700">ความเร็วใกล้เคียงกัน ต้องมองสลับบ่อย</div>
+            </button>
+            
+            <button class="paper-btn color-peach text-left" onclick="startGame('hard')">
+                <div class="font-bold text-xl">🔴 ยาก (Hard)</div>
+                <div class="text-sm font-normal text-gray-700">เพิ่มกาต้มน้ำ! ต้องดูแล 3 อย่างพร้อมกัน</div>
+            </button>
+        </div>
+    </div>
+
+    <!-- === หน้าเล่นเกม === -->
+    <div id="screen-game" class="absolute inset-0 flex flex-col hidden-screen bg-[#FFFDF7]">
+        <!-- Header -->
+        <div class="flex justify-between items-center p-4 border-b-3 border-gray-700 bg-white z-10 box-border" style="border-bottom: 3px solid var(--stroke-color);">
+            <button onclick="backToMenu()" class="paper-btn py-1 px-3 text-sm bg-gray-200">🔙 ออก</button>
+            <div class="text-center font-bold">
+                <div class="text-sm text-gray-500">เวลา</div>
+                <div id="time-display" class="text-2xl">03:00</div>
+            </div>
+            <div class="text-center font-bold">
+                <div class="text-sm text-gray-500">คะแนน</div>
+                <div id="score-display" class="text-2xl text-orange-600">0</div>
+            </div>
+        </div>
+
+        <!-- Game Area (แบ่งโซน) -->
+        <div id="game-area" class="flex-1 flex flex-col p-4 gap-4">
+            <!-- ซุป (ซ้ายมือในโหมดปกติ, ด้านบนในโหมด 3 เตา) -->
+            <div id="station-soup" class="flex-1 station-hitbox bg-[#FEF2F2]" onclick="interact('soup', event)">
+                <div class="text-lg font-bold mb-2">ซุปหม้อไฟ 🍲</div>
+                <div class="soup-pot">
+                    <div id="soup-liquid" class="soup-liquid" style="height: 10%;"></div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="target-zone" style="left: 70%; width: 30%;"></div>
+                    <div id="bar-soup" class="progress-fill bg-orange-400"></div>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">แตะเพื่อคนก่อนล้น!</div>
+            </div>
+
+            <!-- กาต้มน้ำ (เฉพาะ Hard Mode) -->
+            <div id="station-kettle" class="flex-1 station-hitbox bg-[#F5F3FF] hidden-screen" onclick="interact('kettle', event)">
+                <div class="text-lg font-bold mb-2">กาน้ำชา 🫖</div>
+                <div class="kettle"></div>
+                <div class="progress-bar-container">
+                    <div class="target-zone" style="left: 80%; width: 20%;"></div>
+                    <div id="bar-kettle" class="progress-fill bg-purple-400"></div>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">แตะตอนน้ำเดือดจัด!</div>
+            </div>
+
+            <!-- ขนมปัง (ขวามือในโหมดปกติ, ด้านล่างในโหมด 3 เตา) -->
+            <div id="station-toast" class="flex-1 station-hitbox bg-[#F0F9FF]" onclick="interact('toast', event)">
+                <div class="text-lg font-bold mb-2">เครื่องปิ้งขนมปัง 🍞</div>
+                <div class="toaster">
+                    <div id="bread" class="bread"></div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="target-zone" style="left: 55%; width: 30%;"></div>
+                    <div id="bar-toast" class="progress-fill bg-yellow-400"></div>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">แตะตอนเหลืองทอง!</div>
+            </div>
+        </div>
+        
+        <!-- แถบแจ้งเตือน Action -->
+        <div id="feedback-msg" class="absolute bottom-20 left-0 right-0 text-center text-xl font-bold opacity-0 transition-opacity pointer-events-none z-50">
+            เยี่ยมมาก! +10
+        </div>
+    </div>
+
+    <!-- === หน้าสรุปผล === -->
+    <div id="screen-result" class="absolute inset-0 flex flex-col items-center justify-center p-6 bg-white z-20 hidden-screen">
+        <div class="paper-panel p-8 text-center color-peach w-full max-w-[300px]">
+            <h2 class="text-3xl font-bold mb-2">หมดเวลา!</h2>
+            <div class="text-gray-600 mb-4">คะแนนของคุณ</div>
+            <div id="final-score" class="text-6xl font-bold text-orange-600 mb-8" style="text-shadow: 2px 2px 0px var(--stroke-color);">0</div>
+            
+            <button class="paper-btn color-mint w-full" onclick="backToMenu()">
+                กลับหน้าหลัก
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- ระบบเสียงเบื้องต้น (Web Audio API) เพื่อให้ไม่ต้องโหลดไฟล์ ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playTone(frequency, type, duration, volume = 0.1) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.type = type;
+        osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+        
+        gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playBGM() {
+        // เล่นเสียงนุ่มๆ คล้ายคอร์ดเป็นจังหวะเบาๆ (จำลองบรรยากาศอะคูสติกเบาๆ)
+        if(!gameActive || !audioCtx) return;
+        playTone(300, 'sine', 0.5, 0.02);
+        playTone(400, 'sine', 0.5, 0.02);
+        setTimeout(() => { if(gameActive) playTone(350, 'sine', 0.5, 0.02); }, 1000);
+    }
+
+    function sndSuccess() {
+        initAudio();
+        playTone(600, 'sine', 0.1, 0.1);
+        setTimeout(() => playTone(800, 'sine', 0.3, 0.1), 100);
+    }
+
+    function sndFail() {
+        initAudio();
+        playTone(250, 'triangle', 0.3, 0.1);
+        setTimeout(() => playTone(200, 'triangle', 0.4, 0.1), 150);
+    }
+
+    function sndTap() {
+        initAudio();
+        playTone(400, 'sine', 0.1, 0.05);
+    }
+
+
+    // --- ตัวแปรระบบเกม ---
+    let gameActive = false;
+    let score = 0;
+    let timeLeft = 180; // 3 นาที
+    let currentDifficulty = 'easy';
+    let gameLoopInterval;
+    let timerInterval;
+    let bgmInterval;
+
+    // สถานะสิ่งของ
+    const state = {
+        soup: { val: 0, speed: 0, target: [70, 100] },
+        toast: { val: 0, speed: 0, target: [55, 85] },
+        kettle: { val: 0, speed: 0, target: [80, 100] }
+    };
+
+    // --- ควบคุมหน้าจอ ---
+    function switchScreen(screenId) {
+        document.getElementById('screen-menu').classList.add('hidden-screen');
+        document.getElementById('screen-game').classList.add('hidden-screen');
+        document.getElementById('screen-result').classList.add('hidden-screen');
+        document.getElementById(screenId).classList.remove('hidden-screen');
+    }
+
+    function backToMenu() {
+        stopGame();
+        switchScreen('screen-menu');
+    }
+
+    // --- เริ่มเกม ---
+    function startGame(difficulty) {
+        initAudio();
+        currentDifficulty = difficulty;
+        score = 0;
+        timeLeft = 180; // 180 วินาที
+        gameActive = true;
+        
+        updateScoreDisplay();
+        updateTimeDisplay();
+
+        // ตั้งค่าความเร็วตามระดับ
+        state.soup.val = 0;
+        state.toast.val = 0;
+        state.kettle.val = 0;
+
+        if (difficulty === 'easy') {
+            state.soup.speed = 0.4;   // ช้า
+            state.toast.speed = 0.8;  // เร็ว
+            document.getElementById('station-kettle').classList.add('hidden-screen');
+            document.getElementById('game-area').classList.remove('flex-col');
+            document.getElementById('game-area').classList.add('flex-row'); // แบ่งซ้ายขวา
+        } else if (difficulty === 'medium') {
+            state.soup.speed = 0.6;
+            state.toast.speed = 0.65;
+            document.getElementById('station-kettle').classList.add('hidden-screen');
+            document.getElementById('game-area').classList.remove('flex-col');
+            document.getElementById('game-area').classList.add('flex-row');
+        } else if (difficulty === 'hard') {
+            state.soup.speed = 0.5;
+            state.toast.speed = 0.6;
+            state.kettle.speed = 0.45;
+            document.getElementById('station-kettle').classList.remove('hidden-screen');
+            document.getElementById('game-area').classList.remove('flex-row');
+            document.getElementById('game-area').classList.add('flex-col'); // แบ่งบนกลางล่าง
+        }
+
+        switchScreen('screen-game');
+        
+        // Loop หลัก
+        gameLoopInterval = setInterval(updateGame, 50); // อัปเดต 20 ครั้งต่อวิ
+        timerInterval = setInterval(updateTimer, 1000);
+        
+        // BGM เบาๆ
+        bgmInterval = setInterval(playBGM, 2000);
+    }
+
+    function stopGame() {
+        gameActive = false;
+        clearInterval(gameLoopInterval);
+        clearInterval(timerInterval);
+        clearInterval(bgmInterval);
+    }
+
+    // --- อัปเดต Logic เกม ---
+    function updateGame() {
+        if (!gameActive) return;
+
+        // อัปเดตค่าต่างๆ
+        increaseState('soup');
+        increaseState('toast');
+        if (currentDifficulty === 'hard') increaseState('kettle');
+    }
+
+    function increaseState(type) {
+        state[type].val += state[type].speed;
+        
+        // ถ้าเต็ม 100 คือพัง/ล้น/ไหม้
+        if (state[type].val >= 100) {
+            handleFail(type, 'ปล่อยไหม้/ล้น!');
+            state[type].val = 0; // รีเซ็ต
+        }
+
+        renderVisuals(type);
+    }
+
+    // --- การโต้ตอบ (แตะ) ---
+    function interact(type, event) {
+        if (!gameActive) return;
+        sndTap();
+
+        const val = state[type].val;
+        const target = state[type].target;
+
+        // เช็คว่าอยู่ในระยะที่กำหนดหรือไม่
+        if (val >= target[0] && val <= target[1]) {
+            // สำเร็จ
+            handleSuccess(type, event);
+        } else if (val < target[0]) {
+            // แตะเร็วไป รีเซ็ตเฉยๆ ไม่ได้แต้ม
+            showFeedbackMsg('เร็วไปนิด!', 'text-gray-500');
+        }
+
+        // รีเซ็ตสถานะ
+        state[type].val = 0;
+        renderVisuals(type);
+    }
+
+    function handleSuccess(type, event) {
+        score += 10;
+        updateScoreDisplay();
+        sndSuccess();
+        showFeedbackMsg('+10 ยอดเยี่ยม!', 'text-green-500');
+        
+        // สร้าง Effect ดาวตรงจุดที่แตะ
+        createConfetti(event.clientX, event.clientY);
+    }
+
+    function handleFail(type, reason) {
+        score -= 5;
+        updateScoreDisplay();
+        sndFail();
+        showFeedbackMsg(`-5 ${reason}`, 'text-red-500');
+        
+        // สั่น Element
+        const el = document.getElementById(`station-${type}`);
+        el.classList.remove('animate-wiggle');
+        void el.offsetWidth; // trigger reflow
+        el.classList.add('animate-wiggle');
+    }
+
+    // --- แสดงผลกราฟิก ---
+    function renderVisuals(type) {
+        const val = state[type].val;
+        const bar = document.getElementById(`bar-${type}`);
+        bar.style.width = `${val}%`;
+
+        if (type === 'soup') {
+            // น้ำซุปสูงขึ้น
+            document.getElementById('soup-liquid').style.height = `${10 + (val * 0.8)}%`;
+            if (val > 70) {
+                bar.style.backgroundColor = '#EF4444'; // แดงเตือน
+                document.getElementById('soup-liquid').style.backgroundColor = '#F97316';
+            } else {
+                bar.style.backgroundColor = '#FBBF24'; // ปกติ
+                document.getElementById('soup-liquid').style.backgroundColor = '#FBBF24';
+            }
+        } 
+        else if (type === 'toast') {
+            // ขนมปังจมลง และเปลี่ยนสี
+            const bread = document.getElementById('bread');
+            bread.style.top = `${-20 + (val * 0.3)}px`;
+            
+            if (val < 50) {
+                bread.style.backgroundColor = '#FEF3C7'; // ขาว
+                bar.style.backgroundColor = '#FDE047';
+            } else if (val < 85) {
+                bread.style.backgroundColor = '#F59E0B'; // เหลืองทอง
+                bar.style.backgroundColor = '#22C55E'; // เขียวให้กด
+            } else {
+                bread.style.backgroundColor = '#451A03'; // ไหม้
+                bar.style.backgroundColor = '#EF4444';
+            }
+        }
+        else if (type === 'kettle') {
+            if (val > 80) bar.style.backgroundColor = '#EF4444';
+            else bar.style.backgroundColor = '#A855F7';
+        }
+    }
+
+    // --- เวลาและคะแนน ---
+    function updateTimer() {
+        if (!gameActive) return;
+        timeLeft--;
+        updateTimeDisplay();
+
+        if (timeLeft <= 0) {
+            endGame();
+        }
+    }
+
+    function updateTimeDisplay() {
+        const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+        const s = (timeLeft % 60).toString().padStart(2, '0');
+        document.getElementById('time-display').innerText = `${m}:${s}`;
+        
+        if (timeLeft <= 10) {
+            document.getElementById('time-display').classList.add('text-red-600', 'animate-pulse');
+        } else {
+            document.getElementById('time-display').classList.remove('text-red-600', 'animate-pulse');
+        }
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('score-display').innerText = score;
+    }
+
+    function endGame() {
+        stopGame();
+        document.getElementById('final-score').innerText = score;
+        switchScreen('screen-result');
+        playTone(500, 'sine', 0.2);
+        setTimeout(()=>playTone(600, 'sine', 0.4), 200);
+    }
+
+    // --- UI Feedback เบ็ดเตล็ด ---
+    let msgTimeout;
+    function showFeedbackMsg(text, colorClass) {
+        const msg = document.getElementById('feedback-msg');
+        msg.innerText = text;
+        msg.className = `absolute bottom-20 left-0 right-0 text-center text-2xl font-bold transition-opacity pointer-events-none z-50 opacity-100 ${colorClass}`;
+        
+        clearTimeout(msgTimeout);
+        msgTimeout = setTimeout(() => {
+            msg.classList.remove('opacity-100');
+            msg.classList.add('opacity-0');
+        }, 1000);
+    }
+
+    function createConfetti(x, y) {
+        const container = document.getElementById('game-container');
+        const emojis = ['✨', '⭐', '🌟'];
+        
+        for (let i = 0; i < 3; i++) {
+            const star = document.createElement('div');
+            star.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+            star.className = 'star';
+            // สุ่มตำแหน่งกระจายตัวนิดหน่อย
+            star.style.left = `${x - 10 + (Math.random() * 20)}px`;
+            star.style.top = `${y - 10 + (Math.random() * 20)}px`;
+            
+            container.appendChild(star);
+            
+            // ลบทิ้งเมื่อเล่นอนิเมชั่นเสร็จ
+            setTimeout(() => {
+                star.remove();
+            }, 1000);
+        }
+    }
+
+</script>
+</body>
+</html>

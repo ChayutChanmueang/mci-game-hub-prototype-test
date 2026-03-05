@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ocean Focus - นักสำรวจใต้สมุทร</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Typography & Variables */
+        :root {
+            --bg-cream: #FDFBF7;
+            --text-dark: #4A4A4A;
+            --pastel-peach: #FFB89E;
+            --pastel-mint: #A7E8D0;
+            --pastel-sky: #A0D2EB;
+            --pastel-yellow: #FFD670;
+            --stroke-color: #E2DCD0;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #2c3e50;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation; /* Prevent double-tap zoom */
+        }
+
+        /* 9:18 Aspect Ratio Container */
+        #game-container {
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            max-height: 900px;
+            aspect-ratio: 9 / 18;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            color: var(--text-dark);
+        }
+
+        @media (max-aspect-ratio: 9/18) {
+            #game-container {
+                max-height: 100vh;
+                aspect-ratio: auto;
+            }
+        }
+
+        /* Paper Cut UI Styles */
+        .paper-panel {
+            background: linear-gradient(135deg, #ffffff, #FDFBF7);
+            border: 3px solid var(--stroke-color);
+            border-radius: 24px;
+            box-shadow: 4px 4px 0px 0px rgba(226, 220, 208, 0.6), inset 2px 2px 5px rgba(255,255,255,0.8);
+            padding: 24px;
+        }
+
+        .paper-btn {
+            background: linear-gradient(135deg, #ffffff, #f4f1eb);
+            border: 3px solid var(--stroke-color);
+            border-radius: 20px;
+            box-shadow: 4px 4px 0px 0px rgba(226, 220, 208, 0.8);
+            transition: all 0.1s ease;
+            cursor: pointer;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .paper-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px 0px rgba(226, 220, 208, 0.8);
+        }
+
+        .paper-btn.active-theme {
+            background: var(--pastel-mint);
+            border-color: #85c7b0;
+        }
+
+        /* Game Objects */
+        .game-object {
+            position: absolute;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            filter: drop-shadow(3px 3px 0px rgba(0,0,0,0.1));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hitbox {
+            position: absolute;
+            width: 120%;
+            height: 120%;
+            border-radius: 50%;
+        }
+
+        /* Animations */
+        @keyframes swimRight {
+            from { transform: translateX(-100px) translateY(0); }
+            to { transform: translateX(500px) translateY(10px); }
+        }
+
+        @keyframes swimLeft {
+            from { transform: translateX(500px) translateY(0) scaleX(-1); }
+            to { transform: translateX(-100px) translateY(-10px) scaleX(-1); }
+        }
+
+        @keyframes floatSpaceRight {
+            from { transform: translateX(-100px) rotate(0deg); }
+            to { transform: translateX(500px) rotate(360deg); }
+        }
+        
+        @keyframes floatSpaceLeft {
+            from { transform: translateX(500px) rotate(0deg); }
+            to { transform: translateX(-100px) rotate(-360deg); }
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            50% { transform: rotate(15deg); }
+            75% { transform: rotate(-15deg); }
+        }
+
+        .wiggle-effect {
+            animation: wiggle 0.3s ease-in-out;
+        }
+
+        /* Confetti Particle */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: popOut 0.6s ease-out forwards;
+        }
+
+        @keyframes popOut {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+
+        /* Hide Scrollbar */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <!-- MAIN MENU SCREEN -->
+    <div id="screen-menu" class="absolute inset-0 flex flex-col items-center justify-center p-6 z-10">
+        <div class="paper-panel w-full max-w-sm flex flex-col gap-4">
+            <div class="text-center mb-2">
+                <h1 class="text-3xl font-bold text-teal-600 mb-1">Ocean Focus</h1>
+                <p class="text-lg text-gray-500 font-medium">นักสำรวจใต้สมุทร</p>
+                <p class="text-sm mt-3 text-gray-600 leading-relaxed">
+                    ทดสอบสายตา! แตะเฉพาะ <strong id="menu-target-name" class="text-yellow-500">ปลาสีทอง</strong><br>
+                    หลบสิ่งรบกวนให้ดี มีเวลา 2 นาที
+                </p>
+            </div>
+
+            <!-- Theme Selector -->
+            <div>
+                <h2 class="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wide">เลือกธีม (Theme)</h2>
+                <div class="flex gap-2">
+                    <button class="paper-btn flex-1 py-3 text-center active-theme" onclick="setTheme('ocean')" id="btn-theme-ocean">
+                        🌊 ทะเล
+                    </button>
+                    <button class="paper-btn flex-1 py-3 text-center" onclick="setTheme('space')" id="btn-theme-space">
+                        🚀 อวกาศ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Difficulty Selector -->
+            <div>
+                <h2 class="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wide mt-2">ระดับความยาก (Difficulty)</h2>
+                <div class="flex flex-col gap-3">
+                    <button class="paper-btn p-3" onclick="startGame('easy')">
+                        <div class="font-bold text-xl text-green-500">Easy (ง่าย)</div>
+                        <div class="text-sm text-gray-500">เป้าหมายชัดเจน เคลื่อนที่ช้า</div>
+                    </button>
+                    <button class="paper-btn p-3" onclick="startGame('medium')">
+                        <div class="font-bold text-xl text-orange-400">Medium (ปานกลาง)</div>
+                        <div class="text-sm text-gray-500">เร็วขึ้น มีสีรบกวนคล้ายกัน</div>
+                    </button>
+                    <button class="paper-btn p-3" onclick="startGame('hard')">
+                        <div class="font-bold text-xl text-red-500">Hard (ยาก)</div>
+                        <div class="text-sm text-gray-500">มาสองทิศทาง เป้าหมายอาจเปลี่ยน!</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME PLAY SCREEN -->
+    <div id="screen-game" class="absolute inset-0 hidden flex-col z-10">
+        <!-- Top UI Bar -->
+        <div class="paper-panel m-4 p-3 flex justify-between items-center z-20" style="border-radius: 16px;">
+            <button onclick="endGame(true)" class="paper-btn w-10 h-10 flex items-center justify-center !p-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+            <div class="text-center">
+                <div class="text-xs font-bold text-gray-400 uppercase">เป้าหมาย</div>
+                <div id="ui-target-name" class="text-lg font-bold text-teal-600">ปลาสีทอง</div>
+            </div>
+            <div class="text-right min-w-[60px]">
+                <div class="text-xs font-bold text-gray-400 uppercase">เวลา</div>
+                <div id="ui-time" class="text-xl font-bold">2:00</div>
+            </div>
+        </div>
+
+        <div class="absolute top-24 left-4 right-4 text-center z-20 pointer-events-none">
+            <div class="paper-panel inline-block px-4 py-2 !border-2 !shadow-sm">
+                <span class="text-sm font-bold text-gray-500 uppercase">คะแนน:</span> 
+                <span id="ui-score" class="text-2xl font-bold text-teal-600">0</span>
+            </div>
+        </div>
+
+        <!-- Target Switch Alert -->
+        <div id="target-alert" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30 hidden pointer-events-none">
+            <div class="paper-panel text-center animate-bounce border-yellow-400 bg-yellow-50">
+                <div class="text-lg font-bold text-yellow-600">⚠️ เป้าหมายเปลี่ยน!</div>
+                <div id="alert-target-name" class="text-2xl font-bold text-teal-700">จับปู!</div>
+            </div>
+        </div>
+
+        <!-- Play Area -->
+        <div id="play-area" class="flex-1 relative overflow-hidden">
+            <!-- Objects will spawn here -->
+        </div>
+        
+        <!-- Background Elements (Decorative) -->
+        <div id="bg-decoration" class="absolute bottom-0 w-full h-32 bg-teal-100 opacity-50 z-0" style="border-radius: 50% 50% 0 0 / 100% 100% 0 0;"></div>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="screen-end" class="absolute inset-0 hidden flex-col items-center justify-center p-6 z-40 bg-white/90 backdrop-blur-sm">
+        <div class="paper-panel w-full max-w-sm text-center">
+            <h2 class="text-3xl font-bold text-teal-600 mb-2">หมดเวลา!</h2>
+            <p class="text-gray-500 mb-6">ความพยายามของคุณยอดเยี่ยมมาก</p>
+            
+            <div class="text-6xl font-bold text-yellow-500 mb-8" id="final-score">150</div>
+            
+            <button class="paper-btn w-full py-4 text-center justify-center text-xl font-bold text-teal-700" onclick="showMenu()">
+                🔄 เล่นอีกครั้ง
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Audio System (Web Audio API) ---
+    // Using simple synthesized sounds for soft, gentle feedback
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playTone(freq, type, duration, vol = 0.1) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playSuccessSound() {
+        playTone(880, 'sine', 0.1, 0.1); // A5
+        setTimeout(() => playTone(1108.73, 'sine', 0.3, 0.1), 100); // C#6
+    }
+
+    function playErrorSound() {
+        playTone(300, 'triangle', 0.2, 0.1);
+        setTimeout(() => playTone(250, 'triangle', 0.3, 0.1), 100);
+    }
+
+    function playAlertSound() {
+        playTone(600, 'sine', 0.2, 0.1);
+        setTimeout(() => playTone(800, 'sine', 0.4, 0.1), 200);
+    }
+
+    // --- Game Data & Assets (Vector SVG Strings) ---
+    const SVGS = {
+        fish_gold: `<svg viewBox="0 0 100 60" width="80" height="48"><path d="M80,30 Q90,10 100,20 L95,30 L100,40 Q90,50 80,30 Z" fill="#FFD670"/><ellipse cx="45" cy="30" rx="40" ry="25" fill="#FFD670"/><circle cx="25" cy="22" r="4" fill="#4A4A4A"/><path d="M40,55 Q50,70 60,50" stroke="#FFD670" stroke-width="6" fill="none"/></svg>`,
+        fish_blue: `<svg viewBox="0 0 100 60" width="80" height="48"><path d="M80,30 Q90,10 100,20 L95,30 L100,40 Q90,50 80,30 Z" fill="#A0D2EB"/><ellipse cx="45" cy="30" rx="40" ry="25" fill="#A0D2EB"/><circle cx="25" cy="22" r="4" fill="#4A4A4A"/></svg>`,
+        fish_mint: `<svg viewBox="0 0 100 60" width="80" height="48"><path d="M80,30 Q90,10 100,20 L95,30 L100,40 Q90,50 80,30 Z" fill="#A7E8D0"/><ellipse cx="45" cy="30" rx="40" ry="25" fill="#A7E8D0"/><circle cx="25" cy="22" r="4" fill="#4A4A4A"/></svg>`,
+        crab: `<svg viewBox="0 0 100 80" width="70" height="56"><ellipse cx="50" cy="45" rx="35" ry="25" fill="#FFB89E"/><circle cx="35" cy="35" r="4" fill="#4A4A4A"/><circle cx="65" cy="35" r="4" fill="#4A4A4A"/><path d="M20,45 Q5,30 15,15" stroke="#FFB89E" stroke-width="8" stroke-linecap="round" fill="none"/><path d="M80,45 Q95,30 85,15" stroke="#FFB89E" stroke-width="8" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="8" fill="#FFB89E"/><circle cx="85" cy="15" r="8" fill="#FFB89E"/></svg>`,
+        trash: `<svg viewBox="0 0 60 80" width="45" height="60"><path d="M10,10 L30,10 L35,40 L50,50 L50,70 L10,70 Z" fill="#B0BEC5"/><path d="M10,10 L30,10" stroke="#78909C" stroke-width="4" stroke-linecap="round"/></svg>`,
+        
+        star_gold: `<svg viewBox="0 0 100 100" width="70" height="70"><polygon points="50,5 61,35 95,35 68,55 79,85 50,65 21,85 32,55 5,35 39,35" fill="#FFD670"/></svg>`,
+        planet_blue: `<svg viewBox="0 0 100 100" width="70" height="70"><circle cx="50" cy="50" r="40" fill="#A0D2EB"/><ellipse cx="50" cy="50" rx="55" ry="15" fill="none" stroke="#E2DCD0" stroke-width="6" transform="rotate(20 50 50)"/></svg>`,
+        planet_mint: `<svg viewBox="0 0 100 100" width="60" height="60"><circle cx="50" cy="50" r="45" fill="#A7E8D0"/><circle cx="30" cy="30" r="10" fill="#85c7b0" opacity="0.5"/><circle cx="70" cy="60" r="15" fill="#85c7b0" opacity="0.5"/></svg>`,
+        alien: `<svg viewBox="0 0 100 100" width="65" height="65"><path d="M20,50 Q50,0 80,50 Q50,100 20,50 Z" fill="#A7E8D0"/><ellipse cx="35" cy="50" rx="8" ry="15" fill="#4A4A4A" transform="rotate(-20 35 50)"/><ellipse cx="65" cy="50" rx="8" ry="15" fill="#4A4A4A" transform="rotate(20 65 50)"/></svg>`,
+        meteor: `<svg viewBox="0 0 100 100" width="70" height="70"><path d="M80,20 L30,70 Q20,80 10,70 Q0,60 10,50 L60,0 Z" fill="#FFB89E"/><circle cx="25" cy="65" r="5" fill="#E2DCD0"/><circle cx="45" cy="45" r="4" fill="#E2DCD0"/></svg>`
+    };
+
+    const THEMES = {
+        ocean: {
+            bgDecoration: 'bg-teal-100',
+            targets: [
+                { id: 'fish_gold', name: 'ปลาสีทอง', svg: SVGS.fish_gold, points: 10 },
+                { id: 'crab', name: 'ปูน้อย', svg: SVGS.crab, points: 10 } // Hard mode alt
+            ],
+            distractors: [
+                { id: 'fish_blue', svg: SVGS.fish_blue, points: -5 },
+                { id: 'fish_mint', svg: SVGS.fish_mint, points: -5 },
+                { id: 'trash', svg: SVGS.trash, points: -5 }
+            ]
+        },
+        space: {
+            bgDecoration: 'bg-indigo-900',
+            targets: [
+                { id: 'star_gold', name: 'ดาวสีทอง', svg: SVGS.star_gold, points: 10 },
+                { id: 'alien', name: 'เอเลี่ยน', svg: SVGS.alien, points: 10 } // Hard mode alt
+            ],
+            distractors: [
+                { id: 'planet_blue', svg: SVGS.planet_blue, points: -5 },
+                { id: 'planet_mint', svg: SVGS.planet_mint, points: -5 },
+                { id: 'meteor', svg: SVGS.meteor, points: -5 }
+            ]
+        }
+    };
+
+    // --- Game State ---
+    let currentTheme = 'ocean';
+    let currentDifficulty = 'easy';
+    let isPlaying = false;
+    let score = 0;
+    let timeLeft = 120; // 2 minutes
+    let gameInterval;
+    let spawnInterval;
+    let currentTargetObj = null;
+    let switchTargetTimer;
+
+    // --- UI Elements ---
+    const screens = {
+        menu: document.getElementById('screen-menu'),
+        game: document.getElementById('screen-game'),
+        end: document.getElementById('screen-end')
+    };
+    const uiScore = document.getElementById('ui-score');
+    const uiTime = document.getElementById('ui-time');
+    const uiTargetName = document.getElementById('ui-target-name');
+    const playArea = document.getElementById('play-area');
+    const bgDecoration = document.getElementById('bg-decoration');
+    const targetAlert = document.getElementById('target-alert');
+    const alertTargetName = document.getElementById('alert-target-name');
+    const menuTargetName = document.getElementById('menu-target-name');
+
+    // --- Initialization & Flow ---
+
+    function setTheme(theme) {
+        currentTheme = theme;
+        document.getElementById('btn-theme-ocean').classList.toggle('active-theme', theme === 'ocean');
+        document.getElementById('btn-theme-space').classList.toggle('active-theme', theme === 'space');
+        
+        const targetText = THEMES[theme].targets[0].name;
+        menuTargetName.innerText = targetText;
+        
+        if(theme === 'space') {
+            document.body.style.backgroundColor = '#1a202c';
+            bgDecoration.className = 'absolute bottom-0 w-full h-32 opacity-20 z-0 ' + THEMES[theme].bgDecoration;
+        } else {
+            document.body.style.backgroundColor = '#2c3e50';
+            bgDecoration.className = 'absolute bottom-0 w-full h-32 opacity-50 z-0 ' + THEMES[theme].bgDecoration;
+        }
+    }
+
+    function showScreen(screenName) {
+        Object.values(screens).forEach(s => s.classList.add('hidden'));
+        screens[screenName].classList.remove('hidden');
+        if(screenName === 'game') screens[screenName].classList.add('flex');
+    }
+
+    function showMenu() {
+        showScreen('menu');
+        playArea.innerHTML = '';
+    }
+
+    function startGame(difficulty) {
+        // Resume Audio Context on user interaction
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+
+        currentDifficulty = difficulty;
+        score = 0;
+        timeLeft = 120;
+        isPlaying = true;
+        
+        currentTargetObj = THEMES[currentTheme].targets[0];
+        updateUI();
+        
+        showScreen('game');
+        
+        // Start Loops
+        gameInterval = setInterval(updateTimer, 1000);
+        
+        // Difficulty settings
+        let spawnRate = 1200; // default medium
+        if(difficulty === 'easy') spawnRate = 2000;
+        if(difficulty === 'hard') spawnRate = 800;
+        
+        spawnInterval = setInterval(spawnObject, spawnRate);
+
+        // Hard mode logic: Switch target every 20-30 seconds
+        if(difficulty === 'hard') {
+            scheduleTargetSwitch();
+        }
+    }
+
+    function updateTimer() {
+        timeLeft--;
+        updateUI();
+        if(timeLeft <= 0) {
+            endGame(false);
+        }
+    }
+
+    function updateUI() {
+        uiScore.innerText = score;
+        const m = Math.floor(timeLeft / 60);
+        const s = timeLeft % 60;
+        uiTime.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+        uiTargetName.innerText = currentTargetObj.name;
+    }
+
+    function endGame(manual) {
+        isPlaying = false;
+        clearInterval(gameInterval);
+        clearInterval(spawnInterval);
+        clearTimeout(switchTargetTimer);
+        
+        playArea.innerHTML = ''; // clear objects
+        
+        if(!manual) {
+            document.getElementById('final-score').innerText = score;
+            showScreen('end');
+        } else {
+            showMenu();
+        }
+    }
+
+    // --- Hard Mode Logic ---
+    function scheduleTargetSwitch() {
+        const timeToSwitch = Math.floor(Math.random() * 10000) + 15000; // 15-25s
+        switchTargetTimer = setTimeout(() => {
+            if(!isPlaying) return;
+            
+            // Toggle target
+            const targets = THEMES[currentTheme].targets;
+            currentTargetObj = (currentTargetObj.id === targets[0].id) ? targets[1] : targets[0];
+            
+            // Show Alert
+            playAlertSound();
+            alertTargetName.innerText = `จับ ${currentTargetObj.name}!`;
+            targetAlert.classList.remove('hidden');
+            
+            setTimeout(() => { targetAlert.classList.add('hidden'); }, 3000);
+            
+            updateUI();
+            scheduleTargetSwitch(); // schedule next
+        }, timeToSwitch);
+    }
+
+    // --- Spawning & Gameplay Logic ---
+    function spawnObject() {
+        if(!isPlaying || document.hidden) return;
+
+        const el = document.createElement('div');
+        el.className = 'game-object';
+        
+        // Determine object type (Target vs Distractor)
+        // Hard mode has more distractors, Easy has more targets
+        let isTarget = false;
+        const r = Math.random();
+        if(currentDifficulty === 'easy' && r < 0.6) isTarget = true;
+        else if(currentDifficulty === 'medium' && r < 0.4) isTarget = true;
+        else if(currentDifficulty === 'hard' && r < 0.3) isTarget = true;
+
+        let objData;
+        if(isTarget) {
+            objData = currentTargetObj;
+        } else {
+            const distractors = THEMES[currentTheme].distractors;
+            // In hard mode, the inactive target becomes a distractor
+            let availableDistractors = [...distractors];
+            if(currentDifficulty === 'hard') {
+                 const inactiveTarget = THEMES[currentTheme].targets.find(t => t.id !== currentTargetObj.id);
+                 availableDistractors.push({...inactiveTarget, points: -5});
+            }
+            objData = availableDistractors[Math.floor(Math.random() * availableDistractors.length)];
+        }
+
+        el.innerHTML = objData.svg;
+        
+        // Big Hitbox for touch
+        const hitbox = document.createElement('div');
+        hitbox.className = 'hitbox';
+        el.appendChild(hitbox);
+
+        // Positioning (Avoid top UI)
+        const topMargin = 150;
+        const bottomMargin = 50;
+        const availableHeight = playArea.clientHeight - topMargin - bottomMargin;
+        const randomY = topMargin + Math.random() * availableHeight;
+        el.style.top = `${randomY}px`;
+
+        // Movement Speed based on difficulty
+        let duration = 6 + Math.random() * 3; // base medium
+        if(currentDifficulty === 'easy') duration = 8 + Math.random() * 4;
+        if(currentDifficulty === 'hard') duration = 4 + Math.random() * 2;
+
+        // Direction
+        let isRightToLeft = false;
+        if(currentDifficulty === 'hard' && Math.random() > 0.5) {
+            isRightToLeft = true;
+        }
+
+        const animName = currentTheme === 'ocean' 
+            ? (isRightToLeft ? 'swimLeft' : 'swimRight')
+            : (isRightToLeft ? 'floatSpaceLeft' : 'floatSpaceRight');
+
+        el.style.animation = `${animName} ${duration}s linear forwards`;
+
+        // Interaction
+        el.onpointerdown = (e) => {
+            e.preventDefault(); // prevent double click zoom
+            handleTap(objData, el, e.clientX, e.clientY);
+        };
+
+        // Cleanup
+        el.onanimationend = () => {
+            if(el.parentNode) el.parentNode.removeChild(el);
+        };
+
+        playArea.appendChild(el);
+    }
+
+    function handleTap(objData, element, x, y) {
+        if(!isPlaying) return;
+
+        // Prevent multiple taps on same object
+        if(element.dataset.tapped) return;
+        element.dataset.tapped = "true";
+
+        if(objData.id === currentTargetObj.id) {
+            // Success
+            score += objData.points;
+            playSuccessSound();
+            createConfetti(x, y);
+            
+            // Pop out animation
+            element.style.animation = 'none';
+            element.style.transition = 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            element.style.transform = 'scale(1.5)';
+            element.style.opacity = '0';
+            setTimeout(() => { if(element.parentNode) element.parentNode.removeChild(element); }, 200);
+
+        } else {
+            // Error
+            score = Math.max(0, score + objData.points); // Don't go below 0 visually, or let it go negative depending on design. Let's allow negative to make it punishing.
+            // score += objData.points; // Allow negative
+            playErrorSound();
+            
+            // Wiggle effect
+            element.classList.add('wiggle-effect');
+            setTimeout(() => element.classList.remove('wiggle-effect'), 300);
+            
+            // Visual text popup "-5"
+            createFloatingText(x, y, "-5", "text-red-500");
+        }
+        
+        updateUI();
+    }
+
+    function createConfetti(x, y) {
+        // Adjust coordinate relative to game container
+        const rect = playArea.getBoundingClientRect();
+        const relX = x - rect.left;
+        const relY = y - rect.top;
+
+        const colors = ['#FFD670', '#A7E8D0', '#FFB89E'];
+        for(let i=0; i<6; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            p.style.left = `${relX}px`;
+            p.style.top = `${relY}px`;
+            
+            // Random direction
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 30 + Math.random() * 50;
+            p.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
+            p.style.setProperty('--ty', `${Math.sin(angle) * distance}px`);
+            
+            playArea.appendChild(p);
+            setTimeout(() => { if(p.parentNode) p.parentNode.removeChild(p); }, 600);
+        }
+        createFloatingText(x, y, "+10", "text-green-500");
+    }
+
+    function createFloatingText(x, y, text, colorClass) {
+        const rect = playArea.getBoundingClientRect();
+        const el = document.createElement('div');
+        el.innerText = text;
+        el.className = `absolute font-bold text-xl ${colorClass} z-50`;
+        el.style.left = `${x - rect.left}px`;
+        el.style.top = `${y - rect.top - 20}px`;
+        el.style.transition = 'all 0.5s ease-out';
+        el.style.pointerEvents = 'none';
+        
+        playArea.appendChild(el);
+        
+        // Trigger reflow
+        void el.offsetWidth;
+        
+        el.style.transform = 'translateY(-30px)';
+        el.style.opacity = '0';
+        
+        setTimeout(() => { if(el.parentNode) el.parentNode.removeChild(el); }, 500);
+    }
+
+    // Init
+    setTheme('ocean');
+
+</script>
+</body>
+</html>
