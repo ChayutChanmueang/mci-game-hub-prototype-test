@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คำพ้อง...ต้องทาย (Thai Homophone Game)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Kanit -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #111827; /* Gray-900 */
+            overflow: hidden; /* Prevent body scroll, handle inside app */
+        }
+        
+        /* Custom Scrollbar for Leaderboard */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Animations */
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slideUp {
+            animation: slideUp 0.5s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(-5%); }
+            50% { transform: translateY(5%); }
+        }
+        .animate-bounce-slow {
+            animation: bounce-slow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Icons Components (Inline SVG for single file portability) ---
+        const Icon = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Heart = (props) => <Icon {...props}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></Icon>;
+        const Trophy = (props) => <Icon {...props}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></Icon>;
+        const Clock = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
+        const CheckCircle = (props) => <Icon {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Icon>;
+        const XCircle = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></Icon>;
+        const ChevronRight = (props) => <Icon {...props}><path d="m9 18 6-6-6-6"/></Icon>;
+        const Star = (props) => <Icon {...props}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></Icon>;
+        const ListIcon = (props) => <Icon {...props}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></Icon>;
+        const ArrowLeft = (props) => <Icon {...props}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></Icon>;
+        const Crown = (props) => <Icon {...props}><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></Icon>;
+        const RotateCcw = (props) => <Icon {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></Icon>;
+
+        // --- Data ---
+        const QUESTIONS_EASY = [
+            { id: 101, emoji: "🚗", correct: "รถ", options: ["รถ", "รส", "รด", "รธ"], desc: "รถ (ยานพาหนะ) vs รส (รสชาติ)" },
+            { id: 102, emoji: "👩", correct: "หน้า", options: ["หน้า", "น่า", "น้า", "หนา"], desc: "หน้า (ใบหน้า) vs น่า (น่ารัก)" },
+            { id: 103, emoji: "👵", correct: "ย่า", options: ["ย่า", "หญ้า", "อย่า", "ยา"], desc: "ย่า (แม่ของพ่อ) vs หญ้า (พืช)" },
+            { id: 104, emoji: "🌱", correct: "หญ้า", options: ["หญ้า", "ย่า", "อย่า", "ยา"], desc: "หญ้า (สนามหญ้า) vs ย่า (คุณย่า)" },
+            { id: 105, emoji: "🛠️", correct: "ช่าง", options: ["ช่าง", "ช้าง", "ชาง", "เชี่ยว"], desc: "ช่าง (อาชีพ) vs ช้าง (สัตว์)" },
+            { id: 106, emoji: "🐘", correct: "ช้าง", options: ["ช้าง", "ช่าง", "ชาง", "คช"], desc: "ช้าง (สัตว์ประจำชาติ) vs ช่าง (อาชีพ)" },
+            { id: 107, emoji: "🚿", correct: "รด", options: ["รด", "รถ", "รส", "รต"], desc: "รด (รดน้ำต้นไม้) vs รถ (รถยนต์)" },
+            { id: 108, emoji: "🍲", correct: "ลาบ", options: ["ลาบ", "ลาภ", "ราบ", "หลาบ"], desc: "ลาบ (อาหารอีสาน) vs ลาภ (โชคลาภ)" },
+            { id: 109, emoji: "🏝️", correct: "เกาะ", options: ["เกาะ", "เกราะ", "กะ", "เจาะ"], desc: "เกาะ (เกาะกลางทะเล) vs เกราะ (เสื้อเกราะ)" },
+            { id: 110, emoji: "🐔", correct: "ไก่", options: ["ไก่", "ไก", "ใกล้", "ไกร"], desc: "ไก่ (สัตว์ปีก) vs ไก (ไกปืน)" },
+            { id: 111, emoji: "🐶", correct: "เขี้ยว", options: ["เขี้ยว", "เคี่ยว", "เชี่ยว", "คด"], desc: "เขี้ยว (ฟันสัตว์) vs เคี่ยว (ต้มให้ข้น)" },
+            { id: 112, emoji: "🥣", correct: "เคี่ยว", options: ["เคี่ยว", "เขี้ยว", "เชี่ยว", "เดี่ยว"], desc: "เคี่ยว (ทำอาหาร) vs เขี้ยว (ฟัน)" },
+            { id: 113, emoji: "🧗", correct: "ขั้น", options: ["ขั้น", "คั่น", "คัน", "ขัน"], desc: "ขั้น (บันได/ระดับ) vs คั่น (แทรก)" },
+            { id: 114, emoji: "🔖", correct: "คั่น", options: ["คั่น", "ขั้น", "คัน", "ขัน"], desc: "คั่น (ที่คั่นหนังสือ) vs ขั้น (ระดับ)" },
+            { id: 115, emoji: "🥘", correct: "คั่ว", options: ["คั่ว", "ขั้ว", "ครัว", "คัว"], desc: "คั่ว (การทำอาหาร) vs ขั้ว (ขั้วโลก)" },
+            { id: 116, emoji: "🍴", correct: "ส้อม", options: ["ส้อม", "ซ่อม", "สอม", "ซ้อม"], desc: "ส้อม (อุปกรณ์กินข้าว) vs ซ่อม (ซ่อมแซม)" },
+            { id: 117, emoji: "🔧", correct: "ซ่อม", options: ["ซ่อม", "ส้อม", "ซอม", "ส่อม"], desc: "ซ่อม (แก้ไข) vs ส้อม (ช้อนส้อม)" },
+            { id: 118, emoji: "💐", correct: "พาน", options: ["พาน", "พาล", "ภาน", "ปาน"], desc: "พาน (ภาชนะมีฐาน) vs พาล (เกเร)" },
+            { id: 119, emoji: "✊", correct: "กำ", options: ["กำ", "กรรม", "กัม", "กรร"], desc: "กำ (กำมือ) vs กรรม (การกระทำ)" },
+            { id: 120, emoji: "🔘", correct: "กด", options: ["กด", "กฎ", "กต", "กษ"], desc: "กด (ผลักลง) vs กฎ (ข้อบังคับ)" },
+            { id: 121, emoji: "🔋", correct: "ขั้ว", options: ["ขั้ว", "คั่ว", "ครัว", "คั้ว"], desc: "ขั้ว (ปลายสองข้าง) vs คั่ว (ทำให้สุก)" },
+            { id: 122, emoji: "🐅", correct: "เสือ", options: ["เสือ", "เสื่อ", "เสื้อ", "สือ"], desc: "เสือ (สัตว์ป่า) - ระวังเสียงวรรณยุกต์" },
+            { id: 123, emoji: "👕", correct: "เสื้อ", options: ["เสื้อ", "เสือ", "เสื่อ", "เชื้อ"], desc: "เสื้อ (เครื่องแต่งกาย) - ระวังเสียงวรรณยุกต์" },
+            { id: 124, emoji: "🐝", correct: "ผึ้ง", options: ["ผึ้ง", "พึ่ง", "บึ้ง", "ปึ้ง"], desc: "ผึ้ง (แมลง) vs พึ่ง (พึ่งพา)" },
+            { id: 125, emoji: "🇹🇭", correct: "ไทย", options: ["ไทย", "ไท", "ไธย", "ทัย"], desc: "ไทย (ประเทศไทย) vs ไท (อิสระ)" },
+            { id: 126, emoji: "🔥", correct: "ไหม้", options: ["ไหม้", "ไหม", "ใหม่", "ไม้"], desc: "ไหม้ (ไฟไหม้) - ระวังเสียงวรรณยุกต์" },
+            { id: 127, emoji: "🦶", correct: "เท้า", options: ["เท้า", "เท่า", "เฒ่า", "ท้าว"], desc: "เท้า (อวัยวะ) vs เท่า (เสมอภาค)" },
+            { id: 128, emoji: "🥚", correct: "ไข่", options: ["ไข่", "ไข", "ใคร", "ไค"], desc: "ไข่ (อาหาร) vs ไข (ไขกุญแจ)" },
+            { id: 129, emoji: "🔑", correct: "ไข", options: ["ไข", "ไข่", "ใคร", "ไค"], desc: "ไข (เปิด/ไขมัน) vs ไข่ (อาหาร)" },
+            { id: 130, emoji: "👄", correct: "ปาก", options: ["ปาก", "ปากก์", "ปาศ", "ปาต"], desc: "ปาก (อวัยวะ) - คำง่ายๆ" }
+        ];
+
+        const QUESTIONS_MEDIUM = [
+            { id: 201, emoji: "😊", correct: "สุข", options: ["สุข", "ศุกร์", "สุก", "ศุข"], desc: "สุข (ความสุข) vs ศุกร์ (วันศุกร์)" },
+            { id: 202, emoji: "📅", correct: "ศุกร์", options: ["ศุกร์", "สุข", "สุก", "สุด"], desc: "ศุกร์ (วันในสัปดาห์) vs สุข (ความสบาย)" },
+            { id: 203, emoji: "🥭", correct: "สุก", options: ["สุก", "สุข", "ศุกร์", "สุด"], desc: "สุก (ผลไม้สุก/อาหารสุก)" },
+            { id: 204, emoji: "💰", correct: "บาท", options: ["บาท", "บาตร", "บาศ", "บาด"], desc: "บาท (เงินตรา) vs บาตร (ของพระ)" },
+            { id: 205, emoji: "🥣", correct: "บาตร", options: ["บาตร", "บาท", "บาศ", "บาด"], desc: "บาตร (ภาชนะพระ) vs บาท (เงิน)" },
+            { id: 206, emoji: "🔪", correct: "บาด", options: ["บาด", "บาท", "บาตร", "บาศ"], desc: "บาด (มีดบาด) vs บาท (เงิน)" },
+            { id: 207, emoji: "🚶", correct: "ก้าว", options: ["ก้าว", "เก้า", "กาว", "กล่าว"], desc: "ก้าว (เดิน) vs เก้า (เลข 9)" },
+            { id: 208, emoji: "9️⃣", correct: "เก้า", options: ["เก้า", "ก้าว", "เก่า", "เกล้า"], desc: "เก้า (จำนวน) vs ก้าว (เดิน)" },
+            { id: 209, emoji: "👅", correct: "รส", options: ["รส", "รถ", "รด", "รศ"], desc: "รส (รสชาติ) vs รถ (พาหนะ)" },
+            { id: 210, emoji: "🌙", correct: "จันทร์", options: ["จันทร์", "จันทน์", "จรร", "จัน"], desc: "จันทร์ (ดวงจันทร์/วันจันทร์)" },
+            { id: 211, emoji: "🪵", correct: "จันทน์", options: ["จันทน์", "จันทร์", "จรร", "จัน"], desc: "จันทน์ (ไม้หอม/ดอกไม้จันทน์)" },
+            { id: 212, emoji: "🎰", correct: "ลาภ", options: ["ลาภ", "ลาบ", "ราบ", "ภาพ"], desc: "ลาภ (โชคลาภ) vs ลาบ (อาหาร)" },
+            { id: 213, emoji: "❓", correct: "โจทย์", options: ["โจทย์", "โจทก์", "โจษ", "จด"], desc: "โจทย์ (ปัญหา/คำถาม) vs โจทก์ (ผู้ฟ้อง)" },
+            { id: 214, emoji: "🧑‍⚖️", correct: "โจทก์", options: ["โจทก์", "โจทย์", "โจษ", "จด"], desc: "โจทก์ (คู่ความฝ่ายฟ้อง) vs โจทย์ (เลข)" },
+            { id: 215, emoji: "🤝", correct: "พบ", options: ["พบ", "ภพ", "พบบ", "พลบ"], desc: "พบ (เจอ) vs ภพ (โลก/แผ่นดิน)" },
+            { id: 216, emoji: "🙏", correct: "พุทธ", options: ["พุทธ", "พุธ", "พุ", "ภุช"], desc: "พุทธ (พระพุทธเจ้า) vs พุธ (วันพุธ)" },
+            { id: 217, emoji: "🗓️", correct: "พุธ", options: ["พุธ", "พุทธ", "พุ", "ภุช"], desc: "พุธ (วันพุธ) vs พุทธ (ศาสนา)" },
+            { id: 218, emoji: "🐶", correct: "สัตว์", options: ["สัตว์", "สัตย์", "สัตร", "ซัด"], desc: "สัตว์ (สิ่งมีชีวิต) vs สัตย์ (ความจริง)" },
+            { id: 219, emoji: "🤞", correct: "สัตย์", options: ["สัตย์", "สัตว์", "ซัด", "สัด"], desc: "สัตย์ (ซื่อสัตย์/คำสาบาน)" },
+            { id: 220, emoji: "🕌", correct: "วัด", options: ["วัด", "วัตร", "หวัด", "วัฒน์"], desc: "วัด (สถานที่) vs วัตร (กิจวัตร)" },
+            { id: 221, emoji: "🧹", correct: "วัตร", options: ["วัตร", "วัด", "วัฒน์", "หวัด"], desc: "วัตร (กิจวัตร/การปฏิบัติ) vs วัด (สถานที่)" },
+            { id: 222, emoji: "🏨", correct: "พรรค", options: ["พรรค", "พัก", "ภัค", "พัค"], desc: "พรรค (พวกพ้อง/พรรคการเมือง) vs พัก (หยุด)" },
+            { id: 223, emoji: "🛌", correct: "พัก", options: ["พัก", "พรรค", "ภัค", "พัค"], desc: "พัก (ผ่อนคลาย) vs พรรค (พวก)" },
+            { id: 224, emoji: "📓", correct: "สมุด", options: ["สมุด", "สมุทร", "สมุต", "สบู่"], desc: "สมุด (หนังสือเขียน) vs สมุทร (ทะเล)" },
+            { id: 225, emoji: "🌊", correct: "สมุทร", options: ["สมุทร", "สมุด", "สมุต", "สมุติ"], desc: "สมุทร (มหาสมุทร) vs สมุด (เขียน)" },
+            { id: 226, emoji: "⚛️", correct: "ธาตุ", options: ["ธาตุ", "ทาส", "ทาต", "ธาต"], desc: "ธาตุ (สสาร) vs ทาส (คนรับใช้)" },
+            { id: 227, emoji: "⛓️", correct: "ทาส", options: ["ทาส", "ธาตุ", "ทาด", "ทาศ"], desc: "ทาส (ผู้ไม่มีอิสระ) vs ธาตุ (สสาร)" },
+            { id: 228, emoji: "💦", correct: "สาด", options: ["สาด", "ศาสตร์", "ศาสน์", "สาธ"], desc: "สาด (เทน้ำ) vs ศาสตร์ (ความรู้)" },
+            { id: 229, emoji: "📚", correct: "ศาสตร์", options: ["ศาสตร์", "สาด", "ศาสน์", "สาธ"], desc: "ศาสตร์ (วิชาความรู้) vs สาด (น้ำ)" },
+            { id: 230, emoji: "🧬", correct: "พันธุ์", options: ["พันธุ์", "พัน", "ภัณฑ์", "พรรณ"], desc: "พันธุ์ (เชื้อสาย) vs พัน (พันรอบ/จำนวน)" }
+        ];
+
+        const QUESTIONS_HARD = [
+            { id: 301, emoji: "👂", correct: "กรรณ", options: ["กรรณ", "กันย์", "กัน", "กัลป์"], desc: "กรรณ (หู/ใบหู) เป็นคำราชาศัพท์/วรรณคดี" },
+            { id: 302, emoji: "♍", correct: "กันย์", options: ["กันย์", "กรรณ", "กัน", "กัลป์"], desc: "กันย์ (ราศีกันย์/สาวรุ่น)" },
+            { id: 303, emoji: "🛡️", correct: "เกราะ", options: ["เกราะ", "เกาะ", "กะ", "เพาะ"], desc: "เกราะ (เครื่องสวมใส่ป้องกันอาวุธ)" },
+            { id: 304, emoji: "🌲", correct: "พนา", options: ["พนา", "พะนา", "ภนา", "พาหนะ"], desc: "พนา (ป่าไม้)" },
+            { id: 305, emoji: "🌊", correct: "ชล", options: ["ชล", "ชน", "ชร", "ชญ"], desc: "ชล (น้ำ/สายน้ำ)" },
+            { id: 306, emoji: "💥", correct: "ชน", options: ["ชน", "ชล", "ชร", "ชญ"], desc: "ชน (กระทบ/ปะทะ)" },
+            { id: 307, emoji: "⏳", correct: "กาล", options: ["กาล", "การ", "กาฬ", "กานต์"], desc: "กาล (เวลา)" },
+            { id: 308, emoji: "⚫", correct: "กาฬ", options: ["กาฬ", "กาล", "การ", "กานต์"], desc: "กาฬ (สีดำ/โรคระบาด)" },
+            { id: 309, emoji: "❤️", correct: "กานต์", options: ["กานต์", "กาล", "การ", "กาฬ"], desc: "กานต์ (เป็นที่รัก)" },
+            { id: 310, emoji: "💎", correct: "ค่า", options: ["ค่า", "ข้า", "ฆ่า", "ค้า"], desc: "ค่า (มูลค่า/คุณค่า)" },
+            { id: 311, emoji: "🔪", correct: "ฆ่า", options: ["ฆ่า", "ค่า", "ข้า", "ค้า"], desc: "ฆ่า (ทำให้ตาย)" },
+            { id: 312, emoji: "⚖️", correct: "ธรรม", options: ["ธรรม", "ทำ", "ทัม", "ทัณฑ์"], desc: "ธรรม (ความดี/ความถูกต้อง) vs ทำ (กระทำ)" },
+            { id: 313, emoji: "🎨", correct: "สรรค์", options: ["สรรค์", "สรร", "ศัลย์", "สัน"], desc: "สรรค์ (สร้างให้มีให้เป็น เช่น สร้างสรรค์)" },
+            { id: 314, emoji: "👀", correct: "ทัศน์", options: ["ทัศน์", "ทัด", "ธรรศ", "ทัส"], desc: "ทัศน์ (การเห็น/สิ่งที่เห็น เช่น ทิวทัศน์)" },
+            { id: 315, emoji: "🌸", correct: "พรรณ", options: ["พรรณ", "พัน", "พันธ์", "ภัณฑ์"], desc: "พรรณ (สีของผิว/ชนิดพืช) vs พัน (จำนวน)" },
+            { id: 316, emoji: "🗡️", correct: "ขรรค์", options: ["ขรรค์", "ขัน", "ครรภ์", "คัน"], desc: "ขรรค์ (อาวุธคล้ายหอก/ดาบ) vs ขัน (ภาชนะ)" },
+            { id: 317, emoji: "🥣", correct: "ขัน", options: ["ขัน", "ขรรค์", "คัน", "ครรภ์"], desc: "ขัน (ภาชนะตักน้ำ) vs ขรรค์ (อาวุธ)" },
+            { id: 318, emoji: "🤰", correct: "ครรภ์", options: ["ครรภ์", "คัน", "ขัน", "ขรรค์"], desc: "ครรภ์ (ท้อง) vs คัน (อาการคัน)" },
+            { id: 319, emoji: "👑", correct: "รัช", options: ["รัช", "รัด", "รัฐ", "รัตน์"], desc: "รัช (สมบัติ/ความเป็นพระราชา เช่น รัชกาล)" },
+            { id: 320, emoji: "🎗️", correct: "รัด", options: ["รัด", "รัช", "รัฐ", "รัตน์"], desc: "รัด (โอบรอบให้แน่น) vs รัช (ราชสมบัติ)" },
+            { id: 321, emoji: "👥", correct: "ราษฎร์", options: ["ราษฎร์", "ราด", "ราช", "ลาภ"], desc: "ราษฎร์ (พลเมือง) vs ราด (เทน้ำ)" },
+            { id: 322, emoji: "🚿", correct: "ราด", options: ["ราด", "ราษฎร์", "ราช", "ลาศ"], desc: "ราด (เทของเหลว) vs ราษฎร์ (คน)" },
+            { id: 323, emoji: "⚙️", correct: "จักร", options: ["จักร", "จัก", "จั๊ก", "จักษ์"], desc: "จักร (ล้อ/อาวุธกลม) vs จัก (จะ)" },
+            { id: 324, emoji: "👴", correct: "เกษียณ", options: ["เกษียณ", "เกษียน", "เกรียน", "เขียน"], desc: "เกษียณ (ครบกำหนดอายุทำงาน)" },
+            { id: 325, emoji: "🥛", correct: "เกษียน", options: ["เกษียน", "เกษียณ", "เขียน", "เสถียร"], desc: "เกษียน (น้ำนม - เกษียรสมุทร)" },
+            { id: 326, emoji: "👸", correct: "พักตร์", options: ["พักตร์", "พัก", "พรรค", "ภัค"], desc: "พักตร์ (ใบหน้า) vs พัก (หยุด)" },
+            { id: 327, emoji: "📜", correct: "กฤช", options: ["กฤช", "กริช", "กิจ", "กฤษฎ์"], desc: "กฤช (มีดสองคม) - บางทีสะกด กริช" },
+            { id: 328, emoji: "🌍", correct: "โลกา", options: ["โลกา", "โรคา", "โลภา", "โศกา"], desc: "โลกา (โลก) vs โรคา (โรค)" },
+            { id: 329, emoji: "🤕", correct: "โรคา", options: ["โรคา", "โลกา", "ราก้า", "ราคา"], desc: "โรคา (ความเจ็บป่วย) vs โลกา (โลก)" },
+            { id: 330, emoji: "🐎", correct: "อาชา", options: ["อาชา", "อาชญา", "อาจาร", "อาจา"], desc: "อาชา (ม้า) vs อาชญา (โทษ)" },
+            { id: 331, emoji: "⚖️", correct: "อาชญา", options: ["อาชญา", "อาชา", "อาญา", "อารยา"], desc: "อาชญา (อำนาจ/โทษ) - อาชญากรรม" }
+        ];
+
+        // --- Logic ---
+        const shuffleArray = (array) => {
+            return [...array].sort(() => Math.random() - 0.5);
+        };
+
+        const getOptionsForDifficulty = (allOptions, correct, difficulty) => {
+            let numOptions = 4;
+            if (difficulty === 'EASY') numOptions = 2;
+            if (difficulty === 'MEDIUM') numOptions = 3;
+
+            const distractors = allOptions.filter(opt => opt !== correct);
+            const selectedDistractors = shuffleArray(distractors).slice(0, numOptions - 1);
+            
+            return shuffleArray([correct, ...selectedDistractors]);
+        };
+
+        function App() {
+            const [gameState, setGameState] = useState('START'); // START, PLAYING, GAME_OVER, LEADERBOARD
+            const [difficulty, setDifficulty] = useState('EASY');
+            const [score, setScore] = useState(0);
+            
+            const [leaderboardEasy, setLeaderboardEasy] = useState([]);
+            const [leaderboardMedium, setLeaderboardMedium] = useState([]);
+            const [leaderboardHard, setLeaderboardHard] = useState([]);
+            
+            const [activeLeaderboardTab, setActiveLeaderboardTab] = useState('EASY');
+            const [highScoreDisplay, setHighScoreDisplay] = useState(0);
+
+            const [currentQIndex, setCurrentQIndex] = useState(0);
+            const [activeQuestions, setActiveQuestions] = useState([]);
+            const [currentOptions, setCurrentOptions] = useState([]);
+            const [lives, setLives] = useState(3);
+            
+            const [timer, setTimer] = useState(0); 
+            const [totalPlayTime, setTotalPlayTime] = useState(0); 
+            
+            const [selectedOption, setSelectedOption] = useState(null);
+            const [isCorrect, setIsCorrect] = useState(null);
+            const [showFeedback, setShowFeedback] = useState(false);
+
+            useEffect(() => {
+                const lbEasy = JSON.parse(localStorage.getItem('thai-homophone-lb-easy') || '[]');
+                const lbMedium = JSON.parse(localStorage.getItem('thai-homophone-lb-medium') || '[]');
+                const lbHard = JSON.parse(localStorage.getItem('thai-homophone-lb-hard') || '[]');
+                
+                setLeaderboardEasy(lbEasy);
+                setLeaderboardMedium(lbMedium);
+                setLeaderboardHard(lbHard);
+
+                if (lbEasy.length > 0) setHighScoreDisplay(lbEasy[0].score);
+            }, []);
+
+            useEffect(() => {
+                let interval;
+                if (gameState === 'PLAYING' && !showFeedback) {
+                    const startTime = Date.now() - (timer * 1000);
+                    interval = setInterval(() => {
+                        setTimer((Date.now() - startTime) / 1000);
+                    }, 100);
+                }
+                return () => clearInterval(interval);
+            }, [gameState, showFeedback]); // eslint-disable-line
+
+            const startGame = (selectedDiff) => {
+                setDifficulty(selectedDiff);
+                
+                let pool = [];
+                if (selectedDiff === 'EASY') pool = [...QUESTIONS_EASY];
+                else if (selectedDiff === 'MEDIUM') pool = [...QUESTIONS_MEDIUM];
+                else pool = [...QUESTIONS_HARD];
+
+                const allShuffled = shuffleArray(pool);
+                const gameQuestions = allShuffled.slice(0, 15);
+                
+                setActiveQuestions(gameQuestions);
+                
+                setCurrentQIndex(0);
+                if (gameQuestions.length > 0) {
+                    const firstQ = gameQuestions[0];
+                    setCurrentOptions(getOptionsForDifficulty(firstQ.options, firstQ.correct, selectedDiff));
+                }
+                
+                setScore(0);
+                setLives(3);
+                setTimer(0);
+                setTotalPlayTime(0); 
+                setGameState('PLAYING');
+                setSelectedOption(null);
+                setIsCorrect(null);
+                setShowFeedback(false);
+            };
+
+            const handleAnswer = (option) => {
+                if (showFeedback) return;
+
+                const currentQ = activeQuestions[currentQIndex];
+                const correct = option === currentQ.correct;
+
+                setTotalPlayTime((prev) => prev + timer);
+
+                setSelectedOption(option);
+                setIsCorrect(correct);
+                setShowFeedback(true);
+
+                if (correct) {
+                    const speedBonus = Math.max(0, Math.ceil(10 - timer));
+                    let difficultyMultiplier = 1;
+                    if (difficulty === 'MEDIUM') difficultyMultiplier = 1.2;
+                    if (difficulty === 'HARD') difficultyMultiplier = 1.5;
+
+                    setScore((s) => s + Math.ceil((10 + speedBonus) * difficultyMultiplier));
+                } else {
+                    setLives((l) => l - 1);
+                }
+            };
+
+            const nextQuestion = () => {
+                if (lives <= 0 && !isCorrect) {
+                    endGame();
+                    return;
+                }
+
+                if (currentQIndex >= activeQuestions.length - 1) {
+                    endGame(); 
+                    return;
+                }
+
+                const nextIdx = currentQIndex + 1;
+                const nextQ = activeQuestions[nextIdx];
+                
+                setCurrentQIndex(nextIdx);
+                setCurrentOptions(getOptionsForDifficulty(nextQ.options, nextQ.correct, difficulty));
+                
+                setTimer(0);
+                setSelectedOption(null);
+                setIsCorrect(null);
+                setShowFeedback(false);
+            };
+
+            const endGame = () => {
+                const newEntry = {
+                    id: Date.now().toString(),
+                    score: score,
+                    difficulty: difficulty,
+                    time: totalPlayTime,
+                    date: new Date().toISOString()
+                };
+
+                let currentList = [];
+                let storageKey = '';
+
+                if (difficulty === 'EASY') {
+                    currentList = [...leaderboardEasy];
+                    storageKey = 'thai-homophone-lb-easy';
+                } else if (difficulty === 'MEDIUM') {
+                    currentList = [...leaderboardMedium];
+                    storageKey = 'thai-homophone-lb-medium';
+                } else {
+                    currentList = [...leaderboardHard];
+                    storageKey = 'thai-homophone-lb-hard';
+                }
+
+                const updatedList = [...currentList, newEntry]
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 10);
+
+                if (difficulty === 'EASY') setLeaderboardEasy(updatedList);
+                else if (difficulty === 'MEDIUM') setLeaderboardMedium(updatedList);
+                else setLeaderboardHard(updatedList);
+
+                localStorage.setItem(storageKey, JSON.stringify(updatedList));
+                setGameState('GAME_OVER');
+            };
+
+            const renderStartScreen = () => {
+                const maxEasy = leaderboardEasy.length > 0 ? leaderboardEasy[0].score : 0;
+                const maxMedium = leaderboardMedium.length > 0 ? leaderboardMedium[0].score : 0;
+                const maxHard = leaderboardHard.length > 0 ? leaderboardHard[0].score : 0;
+
+                return (
+                    <div className="flex flex-col items-center justify-center h-full p-6 text-center animate-fadeIn relative">
+                        <div className="mb-6 relative">
+                            <div className="text-8xl mb-4 animate-bounce-slow">🇹🇭</div>
+                        </div>
+                        <h1 className="text-3xl font-extrabold text-white mb-2 drop-shadow-md">คำพ้อง...ต้องทาย</h1>
+                        <p className="text-blue-100 mb-8 text-sm font-light">เลือกคำศัพท์ที่ถูกต้องให้ตรงกับภาพ</p>
+
+                        <div className="w-full max-w-xs space-y-3 mb-6">
+                            <p className="text-white/80 font-bold mb-2">เลือกระดับความยาก:</p>
+                            
+                            <button onClick={() => startGame('EASY')} className="group w-full bg-green-500 hover:bg-green-400 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-between relative overflow-hidden">
+                                <span className="flex items-center gap-2 relative z-10"><Star size={18} fill="currentColor"/> ง่าย</span>
+                                <span className="text-xs opacity-80 bg-black/20 px-2 py-1 rounded relative z-10">สูงสุด: {maxEasy}</span>
+                            </button>
+
+                            <button onClick={() => startGame('MEDIUM')} className="group w-full bg-yellow-500 hover:bg-yellow-400 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-between relative overflow-hidden">
+                                <span className="flex items-center gap-2 relative z-10"><Star size={18} fill="currentColor"/><Star size={18} fill="currentColor"/> ปานกลาง</span>
+                                <span className="text-xs opacity-80 bg-black/20 px-2 py-1 rounded relative z-10">สูงสุด: {maxMedium}</span>
+                            </button>
+
+                            <button onClick={() => startGame('HARD')} className="group w-full bg-red-500 hover:bg-red-400 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-between relative overflow-hidden">
+                                <span className="flex items-center gap-2 relative z-10"><Star size={18} fill="currentColor"/><Star size={18} fill="currentColor"/><Star size={18} fill="currentColor"/> ยาก</span>
+                                <span className="text-xs opacity-80 bg-black/20 px-2 py-1 rounded relative z-10">สูงสุด: {maxHard}</span>
+                            </button>
+                        </div>
+
+                        <button 
+                            onClick={() => { setActiveLeaderboardTab('EASY'); setGameState('LEADERBOARD'); }}
+                            className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-full font-bold transition-all border border-white/10"
+                        >
+                            <Trophy size={20} className="text-yellow-400" /> อันดับยอดเยี่ยม
+                        </button>
+                    </div>
+                );
+            };
+
+            const renderLeaderboard = () => {
+                let currentList = [];
+                if (activeLeaderboardTab === 'EASY') currentList = leaderboardEasy;
+                else if (activeLeaderboardTab === 'MEDIUM') currentList = leaderboardMedium;
+                else currentList = leaderboardHard;
+
+                return (
+                    <div className="flex flex-col h-full p-6 animate-fadeIn relative">
+                        <div className="flex items-center justify-between mb-4">
+                            <button onClick={() => setGameState('START')} className="p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors">
+                                <ArrowLeft size={24} />
+                            </button>
+                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                <Trophy className="text-yellow-400" /> กระดานผู้นำ
+                            </h2>
+                            <div className="w-10"></div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex p-1 bg-black/20 rounded-xl mb-4">
+                            {['EASY', 'MEDIUM', 'HARD'].map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveLeaderboardTab(tab)}
+                                    className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
+                                        activeLeaderboardTab === tab 
+                                            ? (tab === 'EASY' ? 'bg-green-500 text-white shadow-md' : tab === 'MEDIUM' ? 'bg-yellow-500 text-white shadow-md' : 'bg-red-500 text-white shadow-md')
+                                            : 'text-white/60 hover:text-white hover:bg-white/10'
+                                    }`}
+                                >
+                                    {tab === 'EASY' ? 'ง่าย' : tab === 'MEDIUM' ? 'กลาง' : 'ยาก'}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="bg-white/95 backdrop-blur-md rounded-3xl flex-1 overflow-hidden flex flex-col shadow-2xl custom-scrollbar">
+                            <div className={`p-3 text-white grid grid-cols-12 gap-2 text-xs font-bold text-center uppercase tracking-wider
+                                ${activeLeaderboardTab === 'EASY' ? 'bg-green-600' : activeLeaderboardTab === 'MEDIUM' ? 'bg-yellow-600' : 'bg-red-600'}
+                            `}>
+                                <div className="col-span-2">#</div>
+                                <div className="col-span-5">คะแนน</div>
+                                <div className="col-span-5">เวลา</div>
+                            </div>
+                            
+                            <div className="overflow-y-auto flex-1 p-2 custom-scrollbar">
+                                {currentList.length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                                        <ListIcon size={48} className="mb-2 opacity-50" />
+                                        <p>ยังไม่มีข้อมูลระดับนี้</p>
+                                    </div>
+                                ) : (
+                                    currentList.map((entry, index) => (
+                                        <div key={index} className={`grid grid-cols-12 gap-2 items-center p-3 mb-2 rounded-xl text-center border-b-2 ${index === 0 ? 'bg-yellow-50 border-yellow-200' : index === 1 ? 'bg-gray-50 border-gray-200' : index === 2 ? 'bg-orange-50 border-orange-200' : 'bg-white border-transparent'}`}>
+                                            <div className="col-span-2 font-black text-gray-600 flex justify-center">
+                                                {index === 0 ? <Crown size={20} className="text-yellow-500" /> : index + 1}
+                                            </div>
+                                            <div className="col-span-5 font-bold text-indigo-600 text-lg">{entry.score}</div>
+                                            <div className="col-span-5 text-xs text-gray-500 font-mono">
+                                                {entry.time.toFixed(0)} วินาที
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderGameScreen = () => {
+                const currentQ = activeQuestions[currentQIndex];
+                if (!currentQ) return null;
+
+                return (
+                    <div className="flex flex-col h-full relative">
+                        {/* Top Bar */}
+                        <div className="px-4 py-4 flex justify-between items-center bg-black/10 backdrop-blur-md sticky top-0 z-10">
+                            <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-full min-w-[60px] justify-center">
+                                <Heart className={`w-4 h-4 ${lives < 2 ? 'text-red-500 animate-pulse' : 'text-red-400'} fill-current`} />
+                                <span className="font-bold text-white text-sm">{lives}</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 bg-gray-800/60 px-4 py-1 rounded-full border border-white/10">
+                                <Clock size={16} className="text-blue-300" />
+                                <span className="font-mono text-xl text-blue-100 font-bold w-[45px] text-center">
+                                    {timer.toFixed(1)}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-full min-w-[70px] justify-center">
+                                <Trophy className="w-4 h-4 text-yellow-400 fill-current" />
+                                <span className="font-bold text-white text-sm">{score}</span>
+                            </div>
+                        </div>
+
+                        <div className="absolute top-16 right-4">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white uppercase tracking-wider
+                                ${difficulty === 'EASY' ? 'bg-green-500/80' : difficulty === 'MEDIUM' ? 'bg-yellow-500/80' : 'bg-red-500/80'}
+                            `}>
+                                {difficulty}
+                            </span>
+                        </div>
+
+                        <div className="flex-1 flex flex-col items-center justify-center p-6 pb-2">
+                            <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-xs text-center relative overflow-visible transform transition hover:scale-105 duration-300">
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-3 py-0.5 rounded-b-lg text-xs font-bold shadow-sm whitespace-nowrap">
+                                    ด่านที่ {currentQIndex + 1} / {activeQuestions.length}
+                                </div>
+                                
+                                <div className="text-[8rem] leading-none mb-4 filter drop-shadow-md mt-4 select-none">
+                                    {currentQ.emoji}
+                                </div>
+                                
+                                <div className="bg-gray-100 rounded-lg p-2 mb-2">
+                                    <p className="text-gray-500 text-sm font-medium">คำศัพท์ที่ถูกต้องคือ?</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/10 backdrop-blur-md rounded-t-3xl p-6 pb-12 animate-slideUp">
+                            <div className={`grid gap-3 ${currentOptions.length === 2 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                                {currentOptions.map((option, idx) => {
+                                    let btnClass = "bg-white text-gray-800 shadow-[0_4px_0_rgb(209,213,219)] active:shadow-none active:translate-y-[4px]";
+                                    
+                                    if (showFeedback) {
+                                        if (option === currentQ.correct) {
+                                            btnClass = "bg-green-500 text-white shadow-[0_4px_0_rgb(21,128,61)] scale-105 ring-2 ring-white";
+                                        } else if (option === selectedOption && option !== currentQ.correct) {
+                                            btnClass = "bg-red-500 text-white shadow-none opacity-50";
+                                        } else {
+                                            btnClass = "bg-gray-200 text-gray-400 shadow-none opacity-50";
+                                        }
+                                    }
+
+                                    return (
+                                        <button
+                                            key={idx}
+                                            onClick={() => handleAnswer(option)}
+                                            disabled={showFeedback}
+                                            className={`
+                                                h-16 rounded-2xl text-2xl font-bold transition-all duration-200 
+                                                flex items-center justify-center relative overflow-hidden
+                                                ${btnClass}
+                                            `}
+                                        >
+                                            {option}
+                                            {showFeedback && option === currentQ.correct && (
+                                                <CheckCircle className="absolute top-2 right-2 w-5 h-5 text-white/80" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {showFeedback && (
+                            <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-[2px] animate-fadeIn">
+                                <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-full text-center border-4 border-white relative">
+                                    
+                                    {isCorrect && (
+                                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 animate-bounce-slow">
+                                            <span className="bg-yellow-400 text-yellow-900 font-bold px-4 py-1 rounded-full shadow-lg border-2 border-white">
+                                                +{Math.ceil((10 + Math.max(0, 10 - timer)) * (difficulty === 'MEDIUM' ? 1.2 : difficulty === 'HARD' ? 1.5 : 1))} คะแนน!
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-3 ${isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                        {isCorrect ? <CheckCircle size={32} /> : <XCircle size={32} />}
+                                    </div>
+                                    
+                                    <h2 className={`text-xl font-bold mb-1 ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                                        {isCorrect ? 'ถูกต้อง!' : 'ผิดครับ!'}
+                                    </h2>
+                                    <p className="text-gray-400 text-xs mb-4">ใช้เวลาไป {timer.toFixed(1)} วินาที</p>
+                                    
+                                    <div className="bg-blue-50 p-3 rounded-xl mb-5 text-left border border-blue-100">
+                                        <p className="text-gray-800 text-base leading-relaxed font-medium">
+                                            {currentQ.desc}
+                                        </p>
+                                    </div>
+
+                                    <button 
+                                        onClick={nextQuestion}
+                                        className={`w-full py-3 rounded-xl font-bold text-white text-lg shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95 ${isCorrect ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-500 hover:bg-gray-600'}`}
+                                    >
+                                        {currentQIndex >= activeQuestions.length - 1 && (lives > 0 || isCorrect) ? 'สรุปผลคะแนน' : <span>ข้อต่อไป <ChevronRight size={20} className="inline"/></span>}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            const renderGameOver = () => (
+                <div className="flex flex-col items-center justify-center h-full p-6 text-center animate-fadeIn">
+                    <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-sm relative">
+                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-yellow-400 p-4 rounded-full shadow-lg border-4 border-white">
+                            <Trophy size={48} className="text-yellow-900" />
+                        </div>
+                        
+                        <h2 className="text-2xl font-bold text-gray-800 mt-8 mb-1">สรุปผลการเล่น</h2>
+                        <p className="text-gray-400 text-sm mb-6">ระดับ: {difficulty}</p>
+                        
+                        <div className="grid grid-cols-2 gap-4 w-full mb-6">
+                            <div className="bg-blue-50 p-4 rounded-2xl flex flex-col items-center border border-blue-100">
+                                <span className="text-4xl font-black text-blue-600">{score}</span>
+                                <span className="text-xs font-bold text-gray-500 uppercase mt-1">คะแนนรวม</span>
+                            </div>
+                            <div className="bg-orange-50 p-4 rounded-2xl flex flex-col items-center border border-orange-100">
+                                <span className="text-4xl font-black text-orange-600 flex items-baseline">
+                                    {totalPlayTime.toFixed(0)} <span className="text-sm font-bold ml-1 text-orange-400">วิ</span>
+                                </span>
+                                <span className="text-xs font-bold text-gray-500 uppercase mt-1">เวลาที่ใช้</span>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 mb-6">
+                            <button 
+                                onClick={() => { setActiveLeaderboardTab(difficulty); setGameState('LEADERBOARD'); }}
+                                className="flex-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-bold py-3 rounded-xl transition-colors flex flex-col items-center justify-center gap-1"
+                            >
+                                <ListIcon size={20} />
+                                <span className="text-xs">ดูอันดับ (ระดับนี้)</span>
+                            </button>
+                        </div>
+
+                        <button 
+                            onClick={() => setGameState('START')}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95"
+                        >
+                            <RotateCcw size={20} /> กลับไปหน้าหลัก
+                        </button>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen flex items-center justify-center font-sans">
+                    <div className="w-full h-[100dvh] sm:h-[800px] sm:w-[450px] bg-gradient-to-br from-indigo-500 to-purple-700 sm:rounded-[3rem] overflow-hidden shadow-2xl relative font-thai">
+                        
+                        <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute bottom-[-10%] right-[-10%] w-80 h-80 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+
+                        {gameState === 'START' && renderStartScreen()}
+                        {gameState === 'PLAYING' && renderGameScreen()}
+                        {gameState === 'GAME_OVER' && renderGameOver()}
+                        {gameState === 'LEADERBOARD' && renderLeaderboard()}
+                        
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

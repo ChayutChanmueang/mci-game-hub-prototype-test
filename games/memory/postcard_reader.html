@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Postcard Reader - จดหมายจากหลานรัก</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti for correct answer feedback -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Mitr (Rounded Sans Serif for Thai) -->
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Mitr', 'sans-serif'],
+                    },
+                    colors: {
+                        cream: '#FDFBF7',
+                        peach: '#FFDAB9',
+                        mint: '#A2E4B8',
+                        sky: '#B0E0E6',
+                        lemon: '#FFFACD',
+                        stroke: '#7A756D',
+                        textMain: '#4A4641'
+                    },
+                    boxShadow: {
+                        'paper': '4px 4px 0px 0px #7A756D',
+                        'paper-sm': '2px 2px 0px 0px #7A756D',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #E8E5DF;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Mitr', sans-serif;
+        }
+
+        /* Mobile Viewport Container (9:18 Aspect Ratio simulation) */
+        #game-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            max-height: 800px;
+            background-color: #FDFBF7;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Paper Cut UI Elements */
+        .paper-panel {
+            background-color: #fff;
+            border: 3px solid #7A756D;
+            border-radius: 24px;
+            box-shadow: 4px 4px 0px 0px #7A756D;
+            transition: transform 0.1s;
+        }
+
+        .paper-btn {
+            border: 3px solid #7A756D;
+            border-radius: 20px;
+            box-shadow: 4px 4px 0px 0px #7A756D;
+            transition: all 0.1s ease-in-out;
+            cursor: pointer;
+        }
+
+        .paper-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px 0px #7A756D;
+        }
+
+        .paper-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 4px 4px 0px 0px #7A756D;
+        }
+
+        /* Wiggle Animation for wrong answers */
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px) rotate(-3deg); }
+            75% { transform: translateX(8px) rotate(3deg); }
+        }
+        .wiggle {
+            animation: wiggle 0.4s ease-in-out;
+        }
+
+        /* Gradient Backgrounds */
+        .bg-gradient-peach { background: linear-gradient(135deg, #FFEFD5, #FFDAB9); }
+        .bg-gradient-mint { background: linear-gradient(135deg, #E0F8E8, #A2E4B8); }
+        .bg-gradient-sky { background: linear-gradient(135deg, #E0F7FA, #B0E0E6); }
+
+        .progress-bar-fill {
+            transition: width 1s linear;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container" class="text-textMain">
+    
+    <!-- Top Bar (Back, Score, Time) -->
+    <div id="top-bar" class="hidden flex justify-between items-center p-4 z-10">
+        <button onclick="goToMenu()" class="paper-btn bg-white px-3 py-2 text-sm font-bold flex items-center gap-1 hover:bg-gray-50">
+            <span>🏠</span> หน้าหลัก
+        </button>
+        <div class="flex gap-3">
+            <div class="paper-panel px-4 py-1 bg-lemon text-sm font-bold">
+                ⏱ <span id="time-display">04:00</span>
+            </div>
+            <div class="paper-panel px-4 py-1 bg-gradient-peach text-sm font-bold">
+                ⭐ <span id="score-display">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen: Menu -->
+    <div id="screen-menu" class="absolute inset-0 flex flex-col items-center justify-center p-6 bg-cream z-20">
+        <div class="paper-panel bg-gradient-peach p-6 text-center w-full mb-6">
+            <h1 class="text-3xl font-bold mb-2">จดหมายจากหลานรัก</h1>
+            <p class="text-lg leading-relaxed">อ่านข้อความในโปสการ์ด<br>แล้วตอบคำถามให้ถูกต้อง!</p>
+        </div>
+
+        <div class="w-full flex flex-col gap-4 mb-8">
+            <h2 class="text-xl font-bold text-center">เลือกระดับความยาก</h2>
+            
+            <button onclick="selectDifficulty('easy')" id="btn-easy" class="paper-btn bg-white p-4 flex flex-col items-center border-mint border-4">
+                <span class="text-xl font-bold text-mint-700">ง่าย (Easy)</span>
+                <span class="text-sm text-gray-600">ประโยคสั้นๆ จำข้อมูลเดียว</span>
+            </button>
+
+            <button onclick="selectDifficulty('medium')" id="btn-medium" class="paper-btn bg-white p-4 flex flex-col items-center">
+                <span class="text-xl font-bold text-sky-700">ปานกลาง (Medium)</span>
+                <span class="text-sm text-gray-600">2 ประโยค จำข้อมูล 2 อย่าง</span>
+            </button>
+
+            <button onclick="selectDifficulty('hard')" id="btn-hard" class="paper-btn bg-white p-4 flex flex-col items-center">
+                <span class="text-xl font-bold text-orange-600">ยาก (Hard)</span>
+                <span class="text-sm text-gray-600">3 ประโยค มีตัวเลขเข้ามาเกี่ยว</span>
+            </button>
+        </div>
+
+        <button onclick="startGame()" class="paper-btn bg-gradient-mint text-xl font-bold py-4 px-12 w-full mt-auto mb-4">
+            ▶ เริ่มเกม
+        </button>
+    </div>
+
+    <!-- Screen: Reading Postcard -->
+    <div id="screen-reading" class="hidden absolute inset-0 flex flex-col items-center p-6 bg-cream z-10 pt-20">
+        <div class="w-full flex items-center gap-2 mb-4">
+            <span class="text-xl font-bold">จำให้ได้ใน:</span>
+            <span id="read-timer-text" class="text-2xl font-bold text-red-500">10</span>
+            <span class="text-xl font-bold">วิ</span>
+        </div>
+        
+        <div class="w-full bg-gray-200 h-4 rounded-full mb-8 overflow-hidden paper-panel !p-0">
+            <div id="read-progress" class="bg-gradient-peach h-full w-full progress-bar-fill"></div>
+        </div>
+
+        <div class="paper-panel bg-white p-8 w-full flex-1 flex items-center justify-center text-center shadow-lg relative">
+            <!-- Stamp graphic -->
+            <div class="absolute top-4 right-4 text-4xl opacity-50">📮</div>
+            <p id="postcard-text" class="text-2xl leading-loose font-medium"></p>
+        </div>
+        <div class="h-10"></div>
+    </div>
+
+    <!-- Screen: Question -->
+    <div id="screen-question" class="hidden absolute inset-0 flex flex-col items-center p-6 bg-cream z-10 pt-20">
+        <div class="paper-panel bg-gradient-sky p-6 w-full text-center mb-8">
+            <h2 id="question-text" class="text-2xl font-bold leading-relaxed">คำถาม?</h2>
+        </div>
+
+        <div id="options-container" class="w-full flex flex-col gap-4">
+            <!-- Options injected here via JS -->
+        </div>
+    </div>
+
+    <!-- Screen: Game Over -->
+    <div id="screen-gameover" class="hidden absolute inset-0 flex flex-col items-center justify-center p-6 bg-cream z-30">
+        <div class="paper-panel bg-gradient-peach p-8 text-center w-full mb-8">
+            <h1 class="text-4xl font-bold mb-4">หมดเวลา!</h1>
+            <p class="text-xl mb-2">คะแนนรวมของคุณ</p>
+            <p id="final-score" class="text-6xl font-bold text-orange-600 mb-4">0</p>
+        </div>
+        <button onclick="goToMenu()" class="paper-btn bg-gradient-mint text-xl font-bold py-4 px-12 w-full">
+            เล่นอีกครั้ง
+        </button>
+    </div>
+
+</div>
+
+<script>
+    // --- Data Base ---
+    const questionDB = {
+        easy: [
+            { text: "สวัสดีครับตา วันนี้ผมไป ทะเล และกิน ปูเผา อร่อยมาก", q: "หลานไปเที่ยวที่ไหนมา?", options: [{img: "🌊", label:"ทะเล", correct: true}, {img: "⛰️", label:"ภูเขา", correct: false}, {img: "🏞️", label:"น้ำตก", correct: false}] },
+            { text: "สวัสดีครับตา วันนี้ผมไป ทะเล และกิน ปูเผา อร่อยมาก", q: "หลานกินอะไร?", options: [{img: "🦀", label:"ปูเผา", correct: true}, {img: "🐟", label:"ปลาทอด", correct: false}, {img: "🦐", label:"กุ้งเผา", correct: false}] },
+            { text: "ผมซื้อ เสื้อใหม่ สีฟ้า สวยมากครับ", q: "หลานซื้อเสื้อสีอะไร?", options: [{img: "🟦", label:"สีฟ้า", correct: true}, {img: "🟥", label:"สีแดง", correct: false}, {img: "🟩", label:"สีเขียว", correct: false}] }
+        ],
+        medium: [
+            { text: "วันนี้ผมไป สวนสัตว์ มาครับ ตอนแรกว่าจะไปดู ยีราฟ แต่ผมชอบดู ช้าง ตัวใหญ่ที่สุดเลย", q: "หลานชอบดูสัตว์อะไรที่สุด?", options: [{img: "🐘", label:"ช้าง", correct: true}, {img: "🦒", label:"ยีราฟ", correct: false}, {img: "🐒", label:"ลิง", correct: false}] },
+            { text: "ผมไปเดิน ตลาดน้ำ เห็น น้ำแข็งใส น่ากินมาก แต่สุดท้ายก็ซื้อ ขนมครก มากินครับ", q: "หลานซื้อขนมอะไรมากิน?", options: [{img: "🥞", label:"ขนมครก", correct: true}, {img: "🍧", label:"น้ำแข็งใส", correct: false}, {img: "🍡", label:"ลูกชิ้น", correct: false}] },
+            { text: "อากาศ ร้อน มากครับ เพื่อนซื้อรส สตรอว์เบอร์รี แต่ผมซื้อ ไอศกรีม รสช็อกโกแลต มากิน", q: "หลานกินไอศกรีมรสอะไร?", options: [{img: "🍫", label:"ช็อกโกแลต", correct: true}, {img: "🍓", label:"สตรอว์เบอร์รี", correct: false}, {img: "🍦", label:"วานิลลา", correct: false}] }
+        ],
+        hard: [
+            { text: "ผมไป สวนสนุก ตอนแรกชวนเพื่อนไป 4 คน แต่มาจริงแค่ 3 คน พวกเราไปเล่น รถไฟเหาะ หวาดเสียวมากครับ", q: "หลานไปเที่ยวกับเพื่อนกี่คน?", options: [{img: "3️⃣", label:"3 คน", correct: true}, {img: "2️⃣", label:"2 คน", correct: false}, {img: "4️⃣", label:"4 คน", correct: false}] },
+            { text: "ผมไป สวนสนุก กับเพื่อน 3 คน ตอนแรกว่าจะขึ้น ม้าหมุน แต่คิวยาว เลยไปเล่น รถไฟเหาะ หวาดเสียวมากครับ", q: "หลานเล่นเครื่องเล่นอะไร?", options: [{img: "🎢", label:"รถไฟเหาะ", correct: true}, {img: "🎠", label:"ม้าหมุน", correct: false}, {img: "🎡", label:"ชิงช้าสวรรค์", correct: false}] },
+            { text: "ผมซื้อ เสื้อใหม่ มา 2 ตัว สีแดงกับสีฟ้า ตอนแรกกะจะซื้อ 3 ตัวแต่เงินไม่พอ หมดเงินไป 500 บาทครับ", q: "หลานซื้อเสื้อใหม่มากี่ตัว?", options: [{img: "2️⃣", label:"2 ตัว", correct: true}, {img: "1️⃣", label:"1 ตัว", correct: false}, {img: "3️⃣", label:"3 ตัว", correct: false}] }
+        ]
+    };
+
+    // --- State Variables ---
+    let currentDifficulty = 'easy';
+    let score = 0;
+    let gameDuration = 240; // 4 minutes in seconds
+    let timeRemaining = gameDuration;
+    let gameTimerInterval = null;
+    let readTimerInterval = null;
+    let currentQuestionData = null;
+    let isAnswering = false;
+
+    // --- Audio System (Web Audio API) ---
+    // Generates soft sounds without needing external files
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playSound(type) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        if (type === 'correct') {
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+            oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1); // Slide up
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.5);
+        } else if (type === 'wrong') {
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.2); // Slide down
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.4);
+        }
+    }
+
+    // --- Core Logic ---
+
+    function selectDifficulty(diff) {
+        currentDifficulty = diff;
+        // Visual feedback for selection
+        ['easy', 'medium', 'hard'].forEach(d => {
+            const btn = document.getElementById(`btn-${d}`);
+            if(d === diff) {
+                btn.style.borderColor = '#7A756D'; // Select color
+                btn.classList.add('bg-gray-100');
+            } else {
+                btn.style.borderColor = '#7A756D';
+                btn.classList.remove('bg-gray-100');
+            }
+        });
+    }
+
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('score-display').innerText = score;
+    }
+
+    function hideAllScreens() {
+        document.getElementById('screen-menu').classList.add('hidden');
+        document.getElementById('screen-reading').classList.add('hidden');
+        document.getElementById('screen-question').classList.add('hidden');
+        document.getElementById('screen-gameover').classList.add('hidden');
+    }
+
+    function goToMenu() {
+        isAnswering = false;
+        clearInterval(gameTimerInterval);
+        clearInterval(readTimerInterval);
+        document.getElementById('top-bar').classList.add('hidden');
+        hideAllScreens();
+        document.getElementById('screen-menu').classList.remove('hidden');
+    }
+
+    function startGame() {
+        // Init state
+        score = 0;
+        timeRemaining = gameDuration;
+        updateScoreDisplay();
+        document.getElementById('time-display').innerText = formatTime(timeRemaining);
+        
+        // Show UI
+        hideAllScreens();
+        document.getElementById('top-bar').classList.remove('hidden');
+        
+        // Start Global Timer
+        clearInterval(gameTimerInterval);
+        gameTimerInterval = setInterval(() => {
+            timeRemaining--;
+            document.getElementById('time-display').innerText = formatTime(timeRemaining);
+            if(timeRemaining <= 0) {
+                endGame();
+            }
+        }, 1000);
+
+        nextRound();
+    }
+
+    function endGame() {
+        clearInterval(gameTimerInterval);
+        clearInterval(readTimerInterval);
+        document.getElementById('top-bar').classList.add('hidden');
+        hideAllScreens();
+        document.getElementById('screen-gameover').classList.remove('hidden');
+        document.getElementById('final-score').innerText = score;
+    }
+
+    function nextRound() {
+        isAnswering = false;
+        hideAllScreens();
+        document.getElementById('screen-reading').classList.remove('hidden');
+        
+        // Pick random question
+        const list = questionDB[currentDifficulty];
+        currentQuestionData = list[Math.floor(Math.random() * list.length)];
+        
+        // Setup Postcard
+        document.getElementById('postcard-text').innerHTML = currentQuestionData.text;
+        
+        // Setup 10s Timer
+        let readTime = 10;
+        document.getElementById('read-timer-text').innerText = readTime;
+        const progressFill = document.getElementById('read-progress');
+        progressFill.style.width = '100%';
+        progressFill.style.transition = 'none';
+        
+        // Force reflow
+        void progressFill.offsetWidth;
+        
+        progressFill.style.transition = 'width 1s linear';
+        
+        clearInterval(readTimerInterval);
+        readTimerInterval = setInterval(() => {
+            readTime--;
+            document.getElementById('read-timer-text').innerText = readTime;
+            progressFill.style.width = `${(readTime/10)*100}%`;
+            
+            if(readTime <= 0) {
+                clearInterval(readTimerInterval);
+                showQuestion();
+            }
+        }, 1000);
+    }
+
+    function showQuestion() {
+        hideAllScreens();
+        document.getElementById('screen-question').classList.remove('hidden');
+        document.getElementById('question-text').innerText = currentQuestionData.q;
+        
+        const container = document.getElementById('options-container');
+        container.innerHTML = ''; // clear old
+        
+        // Shuffle options
+        let options = [...currentQuestionData.options].sort(() => Math.random() - 0.5);
+
+        options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'paper-btn bg-white p-4 flex items-center justify-start gap-4 hover:bg-gray-50';
+            btn.innerHTML = `
+                <div class="text-5xl w-16 h-16 flex items-center justify-center bg-gray-100 rounded-xl border-2 border-stroke">${opt.img}</div>
+                <span class="text-2xl font-bold">${opt.label}</span>
+            `;
+            btn.onclick = () => checkAnswer(opt.correct, btn);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(isCorrect, btnElement) {
+        if(isAnswering) return;
+        isAnswering = true;
+
+        // Disable all buttons
+        const allBtns = document.getElementById('options-container').querySelectorAll('button');
+        allBtns.forEach(b => b.disabled = true);
+
+        if(isCorrect) {
+            // Correct logic
+            playSound('correct');
+            score += 15;
+            btnElement.classList.remove('bg-white');
+            btnElement.classList.add('bg-mint', 'text-white');
+            
+            // Confetti
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#A2E4B8', '#FFDAB9', '#B0E0E6', '#FFFACD']
+            });
+        } else {
+            // Wrong logic
+            playSound('wrong');
+            score -= 5;
+            btnElement.classList.remove('bg-white');
+            btnElement.classList.add('bg-red-200');
+            btnElement.classList.add('wiggle');
+            
+            // Show correct answer visually
+            allBtns.forEach(b => {
+                const label = b.querySelector('span').innerText;
+                const correctOpt = currentQuestionData.options.find(o => o.correct);
+                if(label === correctOpt.label) {
+                    b.classList.remove('bg-white');
+                    b.classList.add('bg-mint', 'border-mint', 'border-4');
+                }
+            });
+        }
+
+        updateScoreDisplay();
+
+        // Wait 2 seconds before next round
+        setTimeout(() => {
+            if(timeRemaining > 0) {
+                nextRound();
+            }
+        }, 2000);
+    }
+
+    // Init select
+    selectDifficulty('easy');
+
+</script>
+</body>
+</html>

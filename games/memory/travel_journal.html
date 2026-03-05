@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Memory Lane - เกมฝึกความจำสำหรับผู้สูงอายุ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px; 
+            height: 100%;
+            max-height: 900px;
+            background: #fff;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            border-radius: 0;
+        }
+
+        /* สำหรับหน้าจอใหญ่กว่ามือถือ ให้มีความโค้งมนเหมือนจอโทรศัพท์ */
+        @media (min-width: 480px) {
+            #game-container {
+                border-radius: 30px;
+                height: 90vh;
+                border: 8px solid #333;
+            }
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #f0f0f0;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 10;
+            padding: 20px;
+            text-align: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .hidden { 
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 18px 40px;
+            border-radius: 50px;
+            font-size: 26px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 8px 15px rgba(0, 198, 255, 0.3);
+            transition: all 0.2s ease;
+            margin: 12px;
+            min-width: 200px;
+        }
+
+        .btn:active { 
+            transform: scale(0.95) translateY(2px);
+            box-shadow: 0 4px 8px rgba(0, 198, 255, 0.2);
+        }
+
+        .btn-green {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            box-shadow: 0 8px 15px rgba(67, 233, 123, 0.3);
+            color: #064e3b;
+        }
+
+        .btn-red {
+            background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
+            box-shadow: 0 8px 15px rgba(255, 8, 68, 0.3);
+            color: white;
+        }
+
+        .instruction {
+            font-size: 24px;
+            color: #374151;
+            margin-bottom: 40px;
+            line-height: 1.6;
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        #quiz-item-canvas {
+            background: #fff;
+            border-radius: 50%;
+            border: 6px solid #4facfe;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+            margin: 20px 0 40px 0;
+            width: 160px;
+            height: 160px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- หน้าแรก -->
+    <div id="start-screen" class="overlay">
+        <h1 class="text-5xl font-bold mb-6 text-gray-800 drop-shadow-sm">บันทึกทางเดิน</h1>
+        <div class="instruction" id="start-instruction">
+            <div class="text-blue-600 font-bold mb-2 text-2xl">⭐ ระดับความยากที่ 1 ⭐</div>
+            มองดูสิ่งของทางขวามือ<br>
+            <strong>จำสิ่งที่ <span class="text-blue-500">"มีสีสัน"</span> ให้ดี</strong><br>
+            แล้วตอบคำถาม <span class="text-red-500 font-bold">1</span> ข้อเมื่อถึงจุดหมาย
+        </div>
+        <button class="btn" onclick="startGame()">เริ่มเดินเล่น</button>
+    </div>
+
+    <!-- หน้าคำถาม -->
+    <div id="quiz-screen" class="overlay hidden">
+        <h2 class="text-3xl font-bold mb-4 text-gray-800">เมื่อสักครู่...<br>คุณเห็นสิ่งนี้หรือไม่?</h2>
+        <canvas id="quiz-item-canvas" width="160" height="160"></canvas>
+        <div class="flex flex-col w-full items-center gap-4">
+            <button class="btn btn-green w-72" onclick="checkAnswer(true)">✓ เห็น</button>
+            <button class="btn btn-red w-72" onclick="checkAnswer(false)">✗ ไม่เห็น</button>
+        </div>
+    </div>
+
+    <!-- หน้าสรุปผล -->
+    <div id="result-screen" class="overlay hidden">
+        <h2 class="text-5xl font-bold mb-4" id="result-title">เก่งมาก!</h2>
+        <div class="bg-white p-6 rounded-3xl shadow-lg mb-8 text-center">
+            <p class="text-3xl font-bold text-gray-700 mb-2">คะแนนของคุณ</p>
+            <p class="text-4xl font-bold text-blue-500" id="result-score"></p>
+        </div>
+        <button class="btn" id="next-btn" onclick="prepareNextRound()">เล่นอีกครั้ง</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // ตัวแปรเก็บขนาดจริงเพื่อใช้เรนเดอร์ให้คมชัดบนมือถือ (High DPI)
+    let cw = 0;
+    let ch = 0;
+
+    function resize() {
+        const container = document.getElementById('game-container');
+        cw = container.clientWidth;
+        ch = container.clientHeight;
+        
+        // ปรับสเกลภาพให้ชัดเจนบนหน้าจอที่มีความละเอียดสูง
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = cw * dpr;
+        canvas.height = ch * dpr;
+        ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // เปลี่ยนระบบจากการใช้ Emoji เป็น iconId เพื่อนำไปวาดภาพกราฟิกแบบละเอียด
+    const itemsPool = [
+        { name: 'รถสีแดง', iconId: 'car', color: '#ef4444', type: 'vehicle', subType: 'car' },
+        { name: 'ผลไม้สีเหลือง', iconId: 'banana', color: '#eab308', type: 'shop', subType: 'fruit' },
+        { name: 'ดอกไม้สีชมพู', iconId: 'flower', color: '#f472b6', type: 'shop', subType: 'flower' },
+        { name: 'จักรยานสีฟ้า', iconId: 'bike', color: '#3b82f6', type: 'vehicle', subType: 'bike' },
+        { name: 'แมวสีส้ม', iconId: 'cat', color: '#f97316', type: 'prop', subType: 'wall' },
+        { name: 'ร่มสีม่วง', iconId: 'umbrella', color: '#a855f7', type: 'person', subType: 'umbrella' },
+        { name: 'ไอศกรีม', iconId: 'icecream', color: '#fbcfe8', type: 'prop', subType: 'cart' },
+        { name: 'นกสีน้ำเงิน', iconId: 'bird', color: '#3b82f6', type: 'prop', subType: 'lamp' }
+    ];
+
+    let gameState = 'start';
+    let scrollX = 0;
+    let spawnTimer = 0;
+    let entities = []; 
+    let seenItems = [];
+    let walkDuration = 25000;
+    let startTime = 0;
+    let groundY = 0;
+    let lastTimestamp = 0; // สำหรับแก้กระตุก
+
+    let currentLevel = 1; // ตัวแปรระดับความยาก
+
+    const buildings = [];
+    const clouds = [];
+
+    function createEnvironment() {
+        buildings.length = 0;
+        clouds.length = 0;
+        let currentX = 0;
+        
+        while(currentX < 2000) {
+            let w = 120 + Math.random() * 150; // ปรับให้ตึกกว้างขึ้น
+            buildings.push({
+                x: currentX,
+                width: w,
+                height: 250 + Math.random() * 250, // ปรับให้ตึกสูงสมจริง
+                shade: 120 + Math.random() * 60,
+                windows: Math.floor(Math.random() * 4) + 2
+            });
+            currentX += w + (Math.random() * 10);
+        }
+
+        for(let i=0; i<6; i++) {
+            clouds.push({
+                x: Math.random() * 1000,
+                y: 40 + Math.random() * 80,
+                size: 30 + Math.random() * 30,
+                speed: 0.2 + Math.random() * 0.3
+            });
+        }
+    }
+
+    function startGame() {
+        groundY = ch * 0.75;
+        createEnvironment();
+        document.getElementById('start-screen').classList.add('hidden');
+        gameState = 'walking';
+        startTime = Date.now();
+        lastTimestamp = performance.now();
+        entities = [];
+        seenItems = [];
+        spawnTimer = 0;
+        scrollX = 0;
+        totalQuestions = currentLevel; // ตั้งจำนวนคำถามตามระดับความยาก
+        requestAnimationFrame(animate);
+    }
+
+    function spawnEntity() {
+        const hasActiveTarget = entities.some(e => e.isTarget);
+        let isTarget = false;
+        let itemData = null;
+
+        if (!hasActiveTarget && Math.random() > 0.3) { // ปรับให้ของออกง่ายขึ้นเล็กน้อยเพื่อรองรับระดับสูง
+            const unseen = itemsPool.filter(i => !seenItems.some(s => s.name === i.name));
+            if (unseen.length > 0) {
+                itemData = unseen[Math.floor(Math.random() * unseen.length)];
+                isTarget = true;
+                seenItems.push(itemData);
+            }
+        }
+
+        let type, layer, yPos, speed;
+        
+        if (isTarget) {
+            type = itemData.type;
+        } else {
+            const types = ['shop', 'prop', 'person', 'vehicle'];
+            type = types[Math.floor(Math.random() * types.length)];
+        }
+
+        const globalSpeed = 1.2;
+        if (type === 'shop' || type === 'prop') {
+            layer = 'back'; 
+            yPos = groundY;
+            speed = globalSpeed; 
+        } else if (type === 'person') {
+            layer = 'mid'; 
+            yPos = groundY;
+            speed = globalSpeed + 0.5 + (Math.random() * 0.5);
+        } else if (type === 'vehicle') {
+            layer = 'front'; 
+            yPos = groundY + 30; 
+            speed = globalSpeed + 2.5 + (Math.random() * 1.5);
+        }
+
+        if (entities.some(e => e.layer === layer && e.x > cw - 80) && type !== 'vehicle') return;
+
+        entities.push({
+            id: Math.random() * 1000, // Seed ลดอาการกระตุกแอนิเมชัน
+            x: cw + 50,
+            y: yPos,
+            speed: speed,
+            type: type,
+            layer: layer,
+            isTarget: isTarget,
+            data: itemData
+        });
+    }
+
+    // ฟังก์ชันวาดภาพสิ่งของแบบสมจริง (Vector Art) 
+    function drawIcon(ctx, id, x, y, scale = 1) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        
+        // เพิ่มเงาให้ดูมีมิติ 3D
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetY = 3;
+
+        if (id === 'car') {
+            let grad = ctx.createLinearGradient(0, -20, 0, 10);
+            grad.addColorStop(0, '#f87171');
+            grad.addColorStop(1, '#dc2626');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(-35, 10); ctx.lineTo(35, 10); ctx.lineTo(35, -5); 
+            ctx.quadraticCurveTo(25, -20, 5, -20); ctx.lineTo(-15, -20); 
+            ctx.quadraticCurveTo(-30, -5, -35, 0); ctx.fill();
+            
+            ctx.fillStyle = '#bae6fd';
+            ctx.beginPath();
+            ctx.moveTo(-12, -18); ctx.lineTo(2, -18); ctx.lineTo(8, -5); ctx.lineTo(-18, -5); ctx.fill();
+            
+            ctx.shadowColor = 'transparent'; // ปิดเงาในส่วนละเอียด
+            ctx.fillStyle = '#1f2937';
+            ctx.beginPath(); ctx.arc(-20, 10, 10, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(20, 10, 10, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#cbd5e1';
+            ctx.beginPath(); ctx.arc(-20, 10, 5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(20, 10, 5, 0, Math.PI*2); ctx.fill();
+            
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath(); ctx.arc(32, -2, 4, 0, Math.PI*2); ctx.fill();
+        } 
+        else if (id === 'banana') {
+            let grad = ctx.createLinearGradient(-15, -15, 15, 15);
+            grad.addColorStop(0, '#fef08a');
+            grad.addColorStop(0.5, '#facc15');
+            grad.addColorStop(1, '#eab308');
+            ctx.fillStyle = grad;
+            
+            ctx.beginPath();
+            ctx.moveTo(-25, -20);
+            ctx.quadraticCurveTo(-5, 30, 25, 5);
+            ctx.quadraticCurveTo(10, 40, -22, -10);
+            ctx.fill();
+            
+            ctx.shadowColor = 'transparent';
+            ctx.strokeStyle = '#a16207'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(-20, -12); ctx.quadraticCurveTo(-2, 25, 20, 6); ctx.stroke();
+            
+            ctx.fillStyle = '#4ade80';
+            ctx.fillRect(-28, -23, 6, 8);
+        }
+        else if (id === 'flower') {
+            ctx.fillStyle = '#f472b6';
+            for(let i=0; i<12; i++) {
+                ctx.rotate(Math.PI/6);
+                ctx.beginPath(); ctx.ellipse(0, -15, 6, 18, 0, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.shadowColor = 'transparent';
+            let centerGrad = ctx.createRadialGradient(0,0,0, 0,0,10);
+            centerGrad.addColorStop(0, '#fef08a');
+            centerGrad.addColorStop(1, '#eab308');
+            ctx.fillStyle = centerGrad;
+            ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ca8a04';
+            for(let i=0; i<5; i++) {
+                ctx.beginPath(); ctx.arc(Math.random()*10-5, Math.random()*10-5, 1.5, 0, Math.PI*2); ctx.fill();
+            }
+        }
+        else if (id === 'bike') {
+            ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(-15, -5); ctx.lineTo(15, -5); ctx.lineTo(25, 15); ctx.lineTo(-20, 15); ctx.closePath(); ctx.stroke();
+            
+            ctx.beginPath(); ctx.moveTo(15, -5); ctx.lineTo(10, -20); ctx.lineTo(20, -20); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-15, -5); ctx.lineTo(-18, -20); ctx.lineTo(-10, -20); ctx.stroke();
+            
+            ctx.shadowColor = 'transparent';
+            ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.arc(-20, 15, 12, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(25, 15, 12, 0, Math.PI*2); ctx.stroke();
+            ctx.lineWidth = 1; ctx.strokeStyle = '#9ca3af';
+            for(let i=0; i<4; i++) {
+                ctx.beginPath(); ctx.moveTo(-20, 3); ctx.lineTo(-20, 27); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-32, 15); ctx.lineTo(-8, 15); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(25, 3); ctx.lineTo(25, 27); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(13, 15); ctx.lineTo(37, 15); ctx.stroke();
+            }
+        }
+        else if (id === 'cat') {
+            let grad = ctx.createRadialGradient(0,0,5, 0,0,20);
+            grad.addColorStop(0, '#fb923c');
+            grad.addColorStop(1, '#ea580c');
+            ctx.fillStyle = grad;
+            
+            ctx.beginPath(); ctx.arc(0, 5, 20, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(-18, -5); ctx.lineTo(-22, -22); ctx.lineTo(-5, -12); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(18, -5); ctx.lineTo(22, -22); ctx.lineTo(5, -12); ctx.fill();
+            
+            ctx.shadowColor = 'transparent';
+            ctx.fillStyle = '#fbcfe8';
+            ctx.beginPath(); ctx.moveTo(-16, -8); ctx.lineTo(-19, -18); ctx.lineTo(-8, -12); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(16, -8); ctx.lineTo(19, -18); ctx.lineTo(8, -12); ctx.fill();
+            
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(-8, 2, 6, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(8, 2, 6, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(-8, 2, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(8, 2, 3, 0, Math.PI*2); ctx.fill();
+            
+            ctx.fillStyle = '#fbcfe8';
+            ctx.beginPath(); ctx.arc(0, 10, 4, 0, Math.PI*2); ctx.fill();
+            
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(-10, 10); ctx.lineTo(-25, 8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-10, 12); ctx.lineTo(-25, 14); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(10, 10); ctx.lineTo(25, 8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(10, 12); ctx.lineTo(25, 14); ctx.stroke();
+        }
+        else if (id === 'umbrella') {
+            let grad = ctx.createLinearGradient(0,-20,0,0);
+            grad.addColorStop(0, '#d8b4fe');
+            grad.addColorStop(1, '#9333ea');
+            ctx.fillStyle = grad;
+            
+            ctx.beginPath(); ctx.arc(0, 0, 25, Math.PI, Math.PI*2);
+            ctx.quadraticCurveTo(-12, -5, -25, 0); 
+            ctx.fill();
+            
+            ctx.shadowColor = 'transparent';
+            ctx.strokeStyle = '#f3f4f6'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(-10, 0); ctx.quadraticCurveTo(-5, -15, 0, -25); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(10, 0); ctx.quadraticCurveTo(5, -15, 0, -25); ctx.stroke();
+            
+            ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 20); ctx.stroke();
+            ctx.strokeStyle = '#1f2937';
+            ctx.beginPath(); ctx.arc(-4, 20, 4, 0, Math.PI); ctx.stroke();
+        }
+        else if (id === 'icecream') {
+            ctx.fillStyle = '#d97706';
+            ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(15, 0); ctx.lineTo(0, 30); ctx.fill();
+            
+            ctx.shadowColor = 'transparent';
+            ctx.strokeStyle = '#b45309'; ctx.lineWidth = 1.5;
+            for(let i=-10; i<=10; i+=5) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(0, 30); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-15, i+15); ctx.lineTo(15, i+5); ctx.stroke();
+            }
+            
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            let grad = ctx.createRadialGradient(-5,-15,2, 0,-10,15);
+            grad.addColorStop(0, '#fce7f3');
+            grad.addColorStop(1, '#f472b6');
+            ctx.fillStyle = grad;
+            
+            ctx.beginPath(); ctx.arc(0, -10, 16, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-12, -2, 8, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, -2, 8, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(12, -2, 8, 0, Math.PI*2); ctx.fill();
+            
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath(); ctx.arc(0, -28, 6, 0, Math.PI*2); ctx.fill();
+        }
+        else if (id === 'bird') {
+            let grad = ctx.createLinearGradient(0,-10,0,15);
+            grad.addColorStop(0, '#60a5fa');
+            grad.addColorStop(1, '#2563eb');
+            ctx.fillStyle = grad;
+            
+            ctx.beginPath(); ctx.ellipse(0, 5, 20, 14, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(16, -5, 12, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(-15, 5); ctx.lineTo(-30, -5); ctx.lineTo(-20, 15); ctx.fill();
+            
+            ctx.shadowColor = 'transparent';
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath(); ctx.moveTo(25, -8); ctx.lineTo(35, -5); ctx.lineTo(25, -2); ctx.fill();
+            
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(18, -6, 4, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(19, -6, 2, 0, Math.PI*2); ctx.fill();
+            
+            ctx.fillStyle = '#93c5fd';
+            ctx.beginPath(); ctx.ellipse(-2, 5, 12, 6, Math.PI/8, 0, Math.PI*2); ctx.fill();
+        }
+        
+        ctx.restore();
+    }
+
+    function drawHighlight(x, y, data) {
+        let grad = ctx.createRadialGradient(x, y, 10, x, y, 40);
+        grad.addColorStop(0, 'rgba(255,255,255,1)');
+        grad.addColorStop(0.7, 'rgba(255,255,255,0.9)');
+        grad.addColorStop(1, data.color);
+        
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(x, y, 38, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = data.color; ctx.lineWidth = 4; ctx.stroke();
+        
+        // เรียกใช้วาดภาพสมจริงแทน Emoji
+        drawIcon(ctx, data.iconId, x, y, 1.2);
+    }
+
+    function drawEntity(entity, time) {
+        const { x, y, type, isTarget, data, id } = entity;
+        
+        ctx.fillStyle = '#888';
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 2;
+
+        if (type === 'shop') {
+            ctx.fillRect(x, y - 160, 200, 160);
+            ctx.fillStyle = '#666'; 
+            ctx.beginPath(); ctx.moveTo(x-15, y-160); ctx.lineTo(x+215, y-160); ctx.lineTo(x+195, y-120); ctx.lineTo(x+5, y-120); ctx.fill();
+            ctx.fillStyle = '#444'; 
+            ctx.fillRect(x+20, y-90, 60, 90);
+            ctx.fillRect(x+110, y-90, 70, 60);
+
+            if (isTarget) drawHighlight(x + 145, y - 60, data);
+        } 
+        else if (type === 'prop') {
+            let subType = isTarget ? data.subType : (id > 500 ? 'wall' : 'lamp');
+            if (subType === 'wall') {
+                ctx.fillRect(x, y - 60, 140, 60);
+                ctx.strokeRect(x, y - 60, 140, 60);
+                ctx.beginPath(); ctx.moveTo(x, y-30); ctx.lineTo(x+140, y-30); ctx.stroke();
+                if (isTarget) drawHighlight(x + 70, y - 90, data);
+            } else if (subType === 'lamp') {
+                ctx.fillRect(x + 15, y - 220, 8, 220);
+                ctx.fillRect(x + 5, y - 220, 35, 20);
+                if (isTarget) drawHighlight(x + 19, y - 240, data);
+            } else if (subType === 'cart') {
+                ctx.fillRect(x, y - 70, 100, 60);
+                ctx.beginPath(); ctx.arc(x+25, y-10, 15, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x+75, y-10, 15, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#aaa'; ctx.fillRect(x+10, y-120, 8, 50);
+                ctx.beginPath(); ctx.arc(x+50, y-120, 45, Math.PI, 0); ctx.fill();
+                if (isTarget) drawHighlight(x + 50, y - 80, data);
+            }
+        }
+        else if (type === 'person') {
+            const bob = Math.abs(Math.sin(time*0.005 + id))*4;
+            const legSwing = Math.sin(time*0.005 + id) * 18;
+            ctx.strokeStyle = '#777'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(x, y-55+bob); ctx.lineTo(x, y-25); ctx.stroke(); 
+            ctx.fillStyle = '#777'; ctx.beginPath(); ctx.arc(x, y-70+bob, 15, 0, Math.PI*2); ctx.fill(); 
+            ctx.beginPath(); ctx.moveTo(x, y-25); ctx.lineTo(x-legSwing, y); ctx.stroke(); 
+            ctx.beginPath(); ctx.moveTo(x, y-25); ctx.lineTo(x+legSwing, y); ctx.stroke(); 
+
+            if (isTarget) drawHighlight(x, y - 110 + bob, data);
+        }
+        else if (type === 'vehicle') {
+            let subType = isTarget ? data.subType : 'car';
+            if (subType === 'car') {
+                ctx.fillStyle = '#999';
+                ctx.fillRect(x, y-35, 180, 35); 
+                ctx.fillRect(x+30, y-65, 100, 30); 
+                ctx.beginPath(); ctx.arc(x+30, y-35, 30, Math.PI, Math.PI*1.5); ctx.fill();
+                ctx.beginPath(); ctx.arc(x+130, y-35, 30, -Math.PI/2, 0); ctx.fill();
+                
+                ctx.fillStyle = '#333'; 
+                ctx.beginPath(); ctx.arc(x+40, y-5, 20, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x+140, y-5, 20, 0, Math.PI*2); ctx.fill();
+                
+                if (isTarget) drawHighlight(x + 90, y - 50, data);
+            } else if (subType === 'bike') {
+                ctx.strokeStyle = '#888'; ctx.lineWidth = 5;
+                ctx.beginPath(); ctx.moveTo(x+25, y-15); ctx.lineTo(x+55, y-55); ctx.lineTo(x+105, y-55); ctx.lineTo(x+80, y-15); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(x+25, y-15, 20, 0, Math.PI*2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(x+105, y-15, 20, 0, Math.PI*2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x+105, y-55); ctx.lineTo(x+100, y-75); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x+55, y-55); ctx.lineTo(x+50, y-70); ctx.stroke();
+                if (isTarget) drawHighlight(x + 65, y - 70, data);
+            }
+        }
+    }
+
+    function drawScene() {
+        let skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+        skyGrad.addColorStop(0, '#e5e7eb');
+        skyGrad.addColorStop(1, '#ffffff');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, cw, ch);
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        clouds.forEach(c => {
+            let cx = (c.x - (scrollX * c.speed)) % (cw + 200);
+            if (cx < -100) cx += cw + 200;
+            ctx.beginPath();
+            ctx.arc(cx, c.y, c.size, 0, Math.PI * 2);
+            ctx.arc(cx + c.size * 0.8, c.y - c.size * 0.2, c.size * 0.8, 0, Math.PI * 2);
+            ctx.arc(cx + c.size * 1.5, c.y + c.size * 0.1, c.size * 0.9, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        buildings.forEach(b => {
+            let bx = (b.x - (scrollX * 0.4)) % 2000;
+            if (bx < -200) bx += 2000;
+            
+            ctx.fillStyle = `rgb(${b.shade},${b.shade},${b.shade})`;
+            ctx.fillRect(bx, groundY - b.height, b.width, b.height);
+            
+            ctx.strokeStyle = `rgb(${b.shade - 20},${b.shade - 20},${b.shade - 20})`;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(bx, groundY - b.height, b.width, b.height);
+            
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            for(let j=0; j<b.windows; j++) {
+                ctx.fillRect(bx + b.width/2 - 15, groundY - b.height + 30 + (j*45), 30, 25);
+            }
+        });
+
+        // ถนนและฟุตบาท
+        ctx.fillStyle = '#9ca3af';
+        ctx.fillRect(0, groundY, cw, ch - groundY);
+        
+        ctx.strokeStyle = '#d1d5db';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([30, 40]);
+        ctx.beginPath();
+        ctx.moveTo(0 - (scrollX % 70), groundY + 40);
+        ctx.lineTo(cw, groundY + 40);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#e5e7eb';
+        ctx.fillRect(0, groundY, cw, 15);
+        ctx.strokeStyle = '#d1d5db';
+        ctx.lineWidth = 2;
+        for(let i = 0; i < cw + 50; i += 50) {
+            let lx = i - (scrollX % 50);
+            ctx.beginPath();
+            ctx.moveTo(lx, groundY);
+            ctx.lineTo(lx, groundY + 15);
+            ctx.stroke();
+        }
+    }
+
+    function drawCharacter(time) {
+        const charX = 100;
+        const charY = groundY - 5;
+        
+        const walkCycle = time * 0.003;
+        const bob = Math.abs(Math.sin(walkCycle)) * 4;
+        const legSwing = Math.sin(walkCycle) * 16;
+        const armSwing = Math.cos(walkCycle) * 12;
+
+        ctx.fillStyle = '#4b5563'; 
+        ctx.strokeStyle = '#4b5563';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        ctx.strokeStyle = '#6b7280';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(charX + 20 + armSwing, charY - 40 + bob);
+        ctx.lineTo(charX + 30 + armSwing, charY);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#4b5563';
+
+        ctx.lineWidth = 12;
+        ctx.beginPath(); ctx.moveTo(charX - 5, charY - 40 + bob); ctx.lineTo(charX - 5 - legSwing, charY - 5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(charX - 5, charY - 40 + bob); ctx.lineTo(charX - 5 + legSwing, charY - 5); ctx.stroke();
+
+        ctx.lineWidth = 26;
+        ctx.beginPath(); ctx.moveTo(charX, charY - 80 + bob); ctx.lineTo(charX - 5, charY - 40 + bob); ctx.stroke();
+
+        ctx.lineWidth = 10;
+        ctx.beginPath(); ctx.moveTo(charX + 2, charY - 70 + bob); ctx.lineTo(charX + 20 + armSwing, charY - 40 + bob); ctx.stroke();
+
+        ctx.beginPath(); ctx.arc(charX + 5, charY - 95 + bob, 18, 0, Math.PI * 2); ctx.fill();
+        
+        ctx.fillStyle = '#374151';
+        ctx.beginPath(); ctx.ellipse(charX + 5, charY - 110 + bob, 26, 7, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(charX + 5, charY - 110 + bob, 16, Math.PI, 0); ctx.fill();
+    }
+
+    // ฟังก์ชันวาดตัวจับเวลาและแถบ Progress Bar
+    function drawTimerUI(now) {
+        const progress = Math.min((now - startTime) / walkDuration, 1);
+        const timeLeft = Math.ceil((walkDuration - (now - startTime)) / 1000);
+        
+        const padding = 20;
+        const barWidth = cw - (padding * 2);
+        const barHeight = 16;
+        const yPos = 30;
+
+        // วาดเงากล่องเวลา
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.beginPath();
+        ctx.roundRect(padding - 10, yPos - 20, barWidth + 20, 70, 15);
+        ctx.fill();
+
+        // หลอดพื้นหลัง (สีเทา)
+        ctx.fillStyle = '#e5e7eb';
+        ctx.beginPath();
+        ctx.roundRect(padding, yPos + 30, barWidth, barHeight, 8);
+        ctx.fill();
+
+        // หลอดความคืบหน้า (สีเขียว-ฟ้า)
+        let grad = ctx.createLinearGradient(padding, 0, padding + barWidth, 0);
+        grad.addColorStop(0, '#38f9d7');
+        grad.addColorStop(1, '#43e97b');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.roundRect(padding, yPos + 30, barWidth * progress, barHeight, 8);
+        ctx.fill();
+
+        // ตัวหนังสือจับเวลา
+        ctx.fillStyle = '#374151';
+        ctx.font = 'bold 22px Sarabun';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('กำลังเดิน...', padding, yPos + 5);
+
+        // แสดงระดับความยาก
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillText(`ระดับ: ${currentLevel}`, padding + 110, yPos + 5);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = timeLeft <= 5 ? '#ef4444' : '#3b82f6'; // เปลี่ยนสีแดงเมื่อเหลือน้อยกว่า 5 วิ
+        ctx.fillText(`เหลือเวลา: ${Math.max(0, timeLeft)} วินาที`, cw - padding, yPos + 5);
+    }
+
+    function animate(timestamp) {
+        if (gameState !== 'walking') return;
+
+        // แก้กระตุก: ใช้ DeltaTime ควบคุมความเร็วตามเฟรมเรทที่แท้จริง
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const deltaTime = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
+        
+        // ป้องกันค่า Delta มากเกินไปกรณีสลับแท็บ
+        const cappedDelta = Math.min(deltaTime, 50);
+        const timeMultiplier = cappedDelta / 16.666; // เทียบสัดส่วนกับ 60fps
+
+        ctx.clearRect(0, 0, cw, ch);
+        
+        const now = Date.now();
+        scrollX += 1.2 * timeMultiplier; 
+        
+        drawScene();
+
+        // สปอว์นของอ้างอิงจากเวลาจริง (deltaTime) ไม่ใช่จำนวนเฟรมแล้ว
+        spawnTimer += cappedDelta;
+        if (spawnTimer > 1800) {  // ประมาณ 1.8 วินาที
+            spawnEntity();
+            spawnTimer = 0;
+        }
+
+        for (let i = entities.length - 1; i >= 0; i--) {
+            entities[i].x -= entities[i].speed * timeMultiplier;
+            if (entities[i].x < -300) { // ขยายระยะลบให้พ้นจอแน่นอน เพราะสิ่งของชิ้นใหญ่ขึ้น
+                entities.splice(i, 1);
+            }
+        }
+
+        entities.filter(e => e.layer === 'back').forEach(e => drawEntity(e, now));
+        entities.filter(e => e.layer === 'mid').forEach(e => drawEntity(e, now));
+        
+        drawCharacter(now); 
+
+        entities.filter(e => e.layer === 'front').forEach(e => drawEntity(e, now)); 
+
+        drawTimerUI(now); // เรียกใช้วาดตัวจับเวลา
+
+        if (now - startTime > walkDuration) {
+            gameState = 'quiz';
+            setTimeout(startQuiz, 800); 
+            return;
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    let currentQuestionItem = null;
+    let quizCount = 0;
+    let score = 0;
+    let totalQuestions = 1; // อัปเดตเป็น let เพราะจำนวนคำถามเปลี่ยนตามระดับ
+
+    function startQuiz() {
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        if (quizCount >= totalQuestions) {
+            showResult();
+            return;
+        }
+
+        const isReal = Math.random() > 0.5;
+        if (isReal && seenItems.length > 0) {
+            currentQuestionItem = seenItems[Math.floor(Math.random() * seenItems.length)];
+            currentQuestionItem.wasSeen = true;
+        } else {
+            const unseen = itemsPool.filter(i => !seenItems.some(s => s.name === i.name));
+            currentQuestionItem = unseen[Math.floor(Math.random() * unseen.length)];
+            currentQuestionItem.wasSeen = false;
+        }
+
+        // วาดภาพสมจริงลงบน Canvas ใหม่ในหน้าตอบคำถาม
+        const quizCanvas = document.getElementById('quiz-item-canvas');
+        const qCtx = quizCanvas.getContext('2d');
+        qCtx.clearRect(0, 0, quizCanvas.width, quizCanvas.height);
+        drawIcon(qCtx, currentQuestionItem.iconId, 80, 80, 2.5); // ขยายใหญ่ 2.5 เท่าเพื่อให้ออกมาเต็มตา
+
+        quizCount++;
+    }
+
+    function checkAnswer(userSaidSeen) {
+        const isCorrect = userSaidSeen === currentQuestionItem.wasSeen;
+        if (isCorrect) score++;
+
+        const screen = document.getElementById('quiz-screen');
+        screen.style.backgroundColor = isCorrect ? 'rgba(212, 237, 218, 0.95)' : 'rgba(248, 215, 218, 0.95)';
+        
+        setTimeout(() => {
+            screen.style.backgroundColor = 'rgba(255, 255, 255, 0.85)';
+            nextQuestion();
+        }, 800);
+    }
+
+    function showResult() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        
+        const title = document.getElementById('result-title');
+        const scoreText = document.getElementById('result-score');
+        const nextBtn = document.getElementById('next-btn');
+        
+        // ตรรกะการปรับระดับความยาก
+        if (score === totalQuestions) {
+            title.innerText = "ยอดเยี่ยมมาก! 🎉";
+            title.className = "text-5xl font-bold mb-4 text-green-500 drop-shadow";
+            if (currentLevel < 5) {
+                currentLevel++;
+                nextBtn.innerText = "เล่นระดับถัดไป ➔";
+            } else {
+                nextBtn.innerText = "เล่นอีกครั้ง (ระดับสูงสุด) 🌟";
+            }
+        } else if (score >= Math.ceil(totalQuestions / 2) && totalQuestions > 1) {
+            title.innerText = "เก่งมากครับ! 👍";
+            title.className = "text-5xl font-bold mb-4 text-blue-500 drop-shadow";
+            nextBtn.innerText = "ลองใหม่ระดับเดิม ⟳";
+        } else {
+            title.innerText = "สู้ต่อไปนะ! ✌️";
+            title.className = "text-5xl font-bold mb-4 text-red-500 drop-shadow";
+            if (currentLevel > 1) {
+                currentLevel--;
+                nextBtn.innerText = "เล่นระดับที่ง่ายขึ้น ⬇️";
+            } else {
+                nextBtn.innerText = "ลองใหม่อีกครั้ง ⟳";
+            }
+        }
+        
+        scoreText.innerText = `${score} / ${totalQuestions}`;
+    }
+
+    function prepareNextRound() {
+        document.getElementById('result-screen').classList.add('hidden');
+        
+        quizCount = 0;
+        score = 0;
+        
+        // อัปเดตข้อความบนหน้าเริ่มให้สอดคล้องกับระดับใหม่
+        const instruction = document.getElementById('start-instruction');
+        instruction.innerHTML = `
+            <div class="text-blue-600 font-bold mb-2 text-2xl">⭐ ระดับความยากที่ ${currentLevel} ⭐</div>
+            มองดูสิ่งของทางขวามือ<br>
+            <strong>จำสิ่งที่ <span class="text-blue-500">"มีสีสัน"</span> ให้ดี</strong><br>
+            แล้วตอบคำถาม <span class="text-red-500 font-bold">${currentLevel}</span> ข้อเมื่อถึงจุดหมาย
+        `;
+        
+        document.getElementById('start-screen').classList.remove('hidden');
+    }
+</script>
+
+</body>
+</html>

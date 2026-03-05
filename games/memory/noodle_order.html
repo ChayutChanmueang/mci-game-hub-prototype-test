@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Noodle Order - ออเดอร์ก๋วยเตี๋ยว</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #FFFBF0;
+            --pastel-peach: #FFD3B6;
+            --pastel-mint: #A8E6CF;
+            --pastel-sky: #BAE1FF;
+            --pastel-yellow: #FFFFB5;
+            --pastel-pink: #FFB7B2;
+            --text-dark: #2D3748;
+            --stroke-color: #4A5568;
+        }
+
+        body {
+            font-family: 'Mali', sans-serif;
+            background-color: #e2e8f0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* 9:18 Aspect Ratio Container */
+        #game-container {
+            width: 100%;
+            height: 100%;
+            max-width: 400px; /* limits width on desktop */
+            aspect-ratio: 9 / 18;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Paper Cut Styles */
+        .paper-panel {
+            background: linear-gradient(135deg, #ffffff 0%, #fdfbf7 100%);
+            border: 3px solid var(--stroke-color);
+            border-radius: 24px;
+            box-shadow: 4px 4px 0px 0px var(--stroke-color);
+            padding: 1.5rem;
+        }
+
+        .paper-btn {
+            border: 3px solid var(--stroke-color);
+            border-radius: 20px;
+            box-shadow: 4px 4px 0px 0px var(--stroke-color);
+            transition: all 0.1s ease;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text-dark);
+        }
+
+        .paper-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px 0px var(--stroke-color);
+        }
+
+        .btn-peach { background: linear-gradient(135deg, var(--pastel-peach), #ffc19e); }
+        .btn-mint { background: linear-gradient(135deg, var(--pastel-mint), #8ee0c2); }
+        .btn-sky { background: linear-gradient(135deg, var(--pastel-sky), #a0d4ff); }
+        .btn-yellow { background: linear-gradient(135deg, var(--pastel-yellow), #ffff99); }
+        .btn-pink { background: linear-gradient(135deg, var(--pastel-pink), #ffa39e); }
+        .btn-white { background: linear-gradient(135deg, #ffffff, #f0f0f0); }
+
+        .ingredient-tag {
+            border: 2px solid var(--stroke-color);
+            border-radius: 12px;
+            padding: 4px 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            box-shadow: 2px 2px 0px 0px var(--stroke-color);
+            display: inline-block;
+            margin: 4px;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Animations */
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+            75% { transform: rotate(-5deg); }
+        }
+        .wiggle { animation: wiggle 0.4s ease-in-out; }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .floating { animation: float 3s ease-in-out infinite; }
+
+        /* Confetti */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            border-radius: 2px;
+            z-index: 100;
+        }
+
+        /* Screen Management */
+        .screen {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            padding: 1.5rem;
+            box-sizing: border-box;
+        }
+        .screen.active {
+            display: flex;
+        }
+
+        /* Scrollbar hide */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <!-- MENU SCREEN -->
+    <div id="screen-menu" class="screen active justify-center items-center">
+        <div class="paper-panel w-full flex flex-col items-center mb-6 btn-white floating">
+            <h1 class="text-3xl font-bold text-center mb-2" style="color: var(--text-dark);">🍜 ออเดอร์ก๋วยเตี๋ยว</h1>
+            <p class="text-center text-lg leading-tight mb-4 text-gray-700">จำคำสั่งซื้อของลูกค้าให้แม่นๆ แล้วปรุงให้ถูกต้องนะ!</p>
+            <div class="w-full border-t-2 border-dashed border-gray-400 my-2"></div>
+            <p class="text-sm text-center text-gray-600 mt-2">เวลาเล่น: 3 นาที</p>
+        </div>
+
+        <div class="w-full flex flex-col gap-4">
+            <h2 class="text-xl font-bold text-center">เลือกระดับความยาก</h2>
+            <button class="paper-btn btn-mint py-3 px-4 w-full text-left" onclick="startGame('easy')">
+                🟢 ง่าย (Easy)
+                <div class="text-sm font-normal mt-1">สั่งแค่ 2 อย่าง (เส้น + น้ำ)</div>
+            </button>
+            <button class="paper-btn btn-yellow py-3 px-4 w-full text-left" onclick="startGame('medium')">
+                🟡 ปานกลาง (Medium)
+                <div class="text-sm font-normal mt-1">สั่ง 3-4 อย่าง + มีเงื่อนไข "ไม่ใส่..."</div>
+            </button>
+            <button class="paper-btn btn-peach py-3 px-4 w-full text-left" onclick="startGame('hard')">
+                🔴 ยาก (Hard)
+                <div class="text-sm font-normal mt-1">ลูกค้า 2 คนสั่งพร้อมกัน! (จำ 2 ชาม)</div>
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="screen-game" class="screen relative">
+        <!-- Header: Timer, Score, Back -->
+        <div class="flex justify-between items-center mb-4">
+            <button class="paper-btn btn-white px-3 py-1 text-sm" onclick="showMenu()">🔙 ออก</button>
+            <div class="paper-panel py-1 px-4 text-lg font-bold">⏱ <span id="timer">180</span>s</div>
+            <div class="paper-panel py-1 px-4 text-lg font-bold">⭐ <span id="score">0</span></div>
+        </div>
+
+        <!-- Memorize Phase: Customer Speech Bubble -->
+        <div id="memorize-phase" class="flex-1 flex flex-col justify-center items-center">
+            <div class="text-6xl mb-4 floating">🙋🏻‍♀️</div>
+            <div id="speech-bubble" class="paper-panel w-full bg-white relative">
+                <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[10px] border-r-[10px] border-b-[15px] border-transparent border-b-gray-800"></div>
+                <div class="absolute -top-[11px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[7px] border-r-[7px] border-b-[12px] border-transparent border-b-white"></div>
+                <p id="customer-order-text" class="text-2xl font-bold text-center leading-relaxed">เส้นเล็ก น้ำตก ไม่ใส่กระเทียมเจียว</p>
+                
+                <div class="mt-4 bg-gray-200 rounded-full h-2 w-full overflow-hidden">
+                    <div id="memorize-progress" class="bg-blue-400 h-full w-full origin-left"></div>
+                </div>
+            </div>
+            <p class="mt-6 text-gray-500 font-bold animate-pulse">ตั้งใจจำนะ!</p>
+        </div>
+
+        <!-- Build Phase: Bowl and Ingredients -->
+        <div id="build-phase" class="flex-1 flex flex-col hidden h-full">
+            <div id="customer-feedback" class="text-center font-bold text-xl h-8 text-red-500 mb-2 transition-opacity duration-300 opacity-0">
+                "ป้าทำผิดจ้า ขอใหม่นะ"
+            </div>
+            
+            <h3 id="bowl-indicator" class="text-center font-bold text-xl mb-2 text-gray-700">ปรุงชามที่ 1</h3>
+
+            <!-- The Bowl -->
+            <div id="noodle-bowl" class="paper-panel btn-white flex-1 min-h-[120px] mb-4 flex flex-col items-center justify-center relative transition-transform duration-300">
+                <div class="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSI0Ii8+PC9zdmc+')] bg-center bg-no-repeat bg-contain m-4"></div>
+                <p id="empty-bowl-text" class="text-gray-400 font-bold z-10">ชามเปล่า...</p>
+                <div id="current-ingredients" class="flex flex-wrap justify-center gap-2 z-10 w-full">
+                    <!-- Ingredients go here -->
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button class="paper-btn btn-mint py-3 w-full mb-4" onclick="submitBowl()">🛎️ เสิร์ฟก๋วยเตี๋ยว</button>
+
+            <!-- Ingredient Buttons (Scrollable) -->
+            <div class="h-[45%] overflow-y-auto no-scrollbar pb-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Noodles -->
+                    <button class="paper-btn btn-white py-2 text-lg" onclick="addIngredient('เส้นเล็ก')">เส้นเล็ก</button>
+                    <button class="paper-btn btn-white py-2 text-lg" onclick="addIngredient('เส้นใหญ่')">เส้นใหญ่</button>
+                    <button class="paper-btn btn-white py-2 text-lg" onclick="addIngredient('บะหมี่')">บะหมี่</button>
+                    <!-- Soups -->
+                    <button class="paper-btn btn-sky py-2 text-lg" onclick="addIngredient('น้ำใส')">น้ำใส</button>
+                    <button class="paper-btn btn-pink py-2 text-lg" onclick="addIngredient('น้ำตก')">น้ำตก</button>
+                    <button class="paper-btn btn-peach py-2 text-lg" onclick="addIngredient('ต้มยำ')">ต้มยำ</button>
+                    <!-- Toppings -->
+                    <button class="paper-btn btn-yellow py-2 text-lg" onclick="addIngredient('ลูกชิ้น')">ลูกชิ้น</button>
+                    <button class="paper-btn btn-yellow py-2 text-lg" onclick="addIngredient('หมูตุ๋น')">หมูตุ๋น</button>
+                    <button class="paper-btn btn-mint py-2 text-lg" onclick="addIngredient('ถั่วงอก')">ถั่วงอก</button>
+                    <button class="paper-btn btn-mint py-2 text-lg" onclick="addIngredient('กระเทียมเจียว')">กระเทียมเจียว</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESULT SCREEN -->
+    <div id="screen-result" class="screen justify-center items-center">
+        <div class="paper-panel w-full flex flex-col items-center mb-6 btn-white floating text-center">
+            <h1 class="text-4xl font-bold mb-4">หมดเวลา! ⏰</h1>
+            <p class="text-xl mb-2">คุณทำคะแนนได้</p>
+            <div class="text-6xl font-bold text-yellow-500 mb-6 drop-shadow-md" id="final-score">0</div>
+            <p class="text-gray-600 font-bold" id="rank-text">ยอดเยี่ยมมาก!</p>
+        </div>
+        <button class="paper-btn btn-peach py-4 w-full text-xl" onclick="showMenu()">🏠 กลับหน้าหลัก</button>
+    </div>
+
+</div>
+
+<script>
+    // --- Audio System (Web Audio API) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+        }
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        if (type === 'pop') {
+            // Soft UI Click
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'success') {
+            // Soft chime (Confetti)
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+            osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        } else if (type === 'error') {
+            // Wiggle sound
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+    }
+
+    // --- Game Data ---
+    const data = {
+        noodles: ['เส้นเล็ก', 'เส้นใหญ่', 'บะหมี่'],
+        soups: ['น้ำใส', 'น้ำตก', 'ต้มยำ'],
+        toppings: ['ลูกชิ้น', 'หมูตุ๋น', 'ถั่วงอก', 'กระเทียมเจียว']
+    };
+
+    const INGREDIENT_COLORS = {
+        'เส้นเล็ก': 'bg-white', 'เส้นใหญ่': 'bg-white', 'บะหมี่': 'bg-yellow-100',
+        'น้ำใส': 'bg-blue-200', 'น้ำตก': 'bg-pink-200', 'ต้มยำ': 'bg-orange-200',
+        'ลูกชิ้น': 'bg-yellow-200', 'หมูตุ๋น': 'bg-amber-700 text-white',
+        'ถั่วงอก': 'bg-green-100', 'กระเทียมเจียว': 'bg-yellow-300'
+    };
+
+    // --- State ---
+    let currentLevel = 'easy';
+    let score = 0;
+    let timeLeft = 180;
+    let timerInterval;
+    let phaseTimeout;
+    
+    let targetOrders = []; // Array of arrays (each sub-array is a list of required ingredients)
+    let currentBowlIndex = 0;
+    let playerCurrentBowl = [];
+
+    // --- DOM Elements ---
+    const screens = {
+        menu: document.getElementById('screen-menu'),
+        game: document.getElementById('screen-game'),
+        result: document.getElementById('screen-result')
+    };
+    
+    // --- Helper Functions ---
+    function switchScreen(screenName) {
+        Object.values(screens).forEach(s => s.classList.remove('active'));
+        screens[screenName].classList.add('active');
+    }
+
+    function getRandomItem(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    // --- Game Logic ---
+    function generateOrder(level) {
+        let n = getRandomItem(data.noodles);
+        let s = getRandomItem(data.soups);
+        let requiredIngredients = [n, s];
+        let text = `${n} ${s}`;
+
+        if (level === 'easy') {
+            return { text, required: requiredIngredients };
+        }
+
+        if (level === 'medium' || level === 'hard') {
+            // Add 1 or 2 toppings
+            let t1 = getRandomItem(data.toppings);
+            requiredIngredients.push(t1);
+            text += ` ใส่${t1}`;
+
+            // 50% chance to add a negative condition
+            if (Math.random() > 0.5) {
+                let availableExcludes = data.toppings.filter(t => t !== t1);
+                let t2 = getRandomItem(availableExcludes);
+                text += ` ไม่ใส่${t2}`;
+                // We don't add t2 to requiredIngredients, player just shouldn't add it.
+            } else {
+                let availableToppings = data.toppings.filter(t => t !== t1);
+                let t2 = getRandomItem(availableToppings);
+                requiredIngredients.push(t2);
+                text += ` และ${t2}`;
+            }
+            return { text, required: requiredIngredients };
+        }
+    }
+
+    function createConfetti() {
+        const colors = ['#A8E6CF', '#FFD3B6', '#FFB7B2', '#BAE1FF', '#FFFFB5'];
+        const container = document.getElementById('game-container');
+        for(let i=0; i<30; i++) {
+            const confetti = document.createElement('div');
+            confetti.classList.add('confetti');
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.top = '50%';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            const tx = (Math.random() - 0.5) * 200;
+            const ty = (Math.random() - 1) * 200;
+            
+            confetti.style.transition = 'all 1s cubic-bezier(0.1, 0.8, 0.3, 1)';
+            
+            container.appendChild(confetti);
+            
+            // Trigger layout to apply transition
+            setTimeout(() => {
+                confetti.style.transform = `translate(${tx}px, ${ty}px) rotate(${Math.random() * 360}deg)`;
+                confetti.style.opacity = '0';
+            }, 10);
+
+            setTimeout(() => { confetti.remove(); }, 1000);
+        }
+    }
+
+    // --- Flow ---
+    function startGame(level) {
+        initAudio();
+        playSound('pop');
+        currentLevel = level;
+        score = 0;
+        timeLeft = 180; // 3 minutes
+        document.getElementById('score').innerText = score;
+        document.getElementById('timer').innerText = timeLeft;
+        
+        switchScreen('game');
+        
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timer').innerText = timeLeft;
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+
+        nextRound();
+    }
+
+    function nextRound() {
+        targetOrders = [];
+        playerCurrentBowl = [];
+        currentBowlIndex = 0;
+        
+        let displayTexts = [];
+
+        if (currentLevel === 'easy' || currentLevel === 'medium') {
+            let order = generateOrder(currentLevel);
+            targetOrders.push(order.required);
+            displayTexts.push(order.text);
+        } else if (currentLevel === 'hard') {
+            let order1 = generateOrder('medium');
+            let order2 = generateOrder('medium');
+            targetOrders.push(order1.required);
+            targetOrders.push(order2.required);
+            displayTexts.push(`ชามที่ 1: ${order1.text}`);
+            displayTexts.push(`ชามที่ 2: ${order2.text}`);
+        }
+
+        startMemorizePhase(displayTexts.join('<br><br>'));
+    }
+
+    function startMemorizePhase(text) {
+        document.getElementById('memorize-phase').classList.remove('hidden');
+        document.getElementById('build-phase').classList.add('hidden');
+        
+        document.getElementById('customer-order-text').innerHTML = text;
+        
+        // Progress bar animation
+        const bar = document.getElementById('memorize-progress');
+        bar.style.transition = 'none';
+        bar.style.transform = 'scaleX(1)';
+        
+        // Duration: 5s for easy/med, 8s for hard
+        const duration = currentLevel === 'hard' ? 8000 : 5000;
+        
+        setTimeout(() => {
+            bar.style.transition = `transform ${duration}ms linear`;
+            bar.style.transform = 'scaleX(0)';
+        }, 50);
+
+        clearTimeout(phaseTimeout);
+        phaseTimeout = setTimeout(() => {
+            startBuildPhase();
+        }, duration);
+    }
+
+    function startBuildPhase() {
+        document.getElementById('memorize-phase').classList.add('hidden');
+        document.getElementById('build-phase').classList.remove('hidden');
+        
+        updateBowlUI();
+        updateBowlIndicator();
+    }
+
+    function updateBowlIndicator() {
+        const ind = document.getElementById('bowl-indicator');
+        if (targetOrders.length > 1) {
+            ind.style.display = 'block';
+            ind.innerText = `ปรุงชามที่ ${currentBowlIndex + 1} / ${targetOrders.length}`;
+        } else {
+            ind.style.display = 'none';
+        }
+    }
+
+    function addIngredient(item) {
+        playSound('pop');
+        if (playerCurrentBowl.includes(item)) return; // Prevent duplicates for simplicity
+        playerCurrentBowl.push(item);
+        updateBowlUI();
+    }
+
+    function updateBowlUI() {
+        const container = document.getElementById('current-ingredients');
+        const emptyText = document.getElementById('empty-bowl-text');
+        
+        container.innerHTML = '';
+        
+        if (playerCurrentBowl.length === 0) {
+            emptyText.style.display = 'block';
+        } else {
+            emptyText.style.display = 'none';
+            playerCurrentBowl.forEach(item => {
+                const tag = document.createElement('div');
+                let colorClass = INGREDIENT_COLORS[item] || 'bg-white';
+                tag.className = `ingredient-tag ${colorClass}`;
+                tag.innerText = item;
+                
+                // Allow removing by clicking
+                tag.onclick = () => {
+                    playSound('pop');
+                    playerCurrentBowl = playerCurrentBowl.filter(i => i !== item);
+                    updateBowlUI();
+                };
+                
+                container.appendChild(tag);
+            });
+        }
+    }
+
+    function submitBowl() {
+        const target = targetOrders[currentBowlIndex];
+        
+        // Check if player's bowl matches target exactly (order doesn't matter)
+        const isCorrect = target.length === playerCurrentBowl.length && target.every(val => playerCurrentBowl.includes(val));
+        
+        const feedback = document.getElementById('customer-feedback');
+        const bowl = document.getElementById('noodle-bowl');
+
+        if (isCorrect) {
+            // Correct
+            score += 20;
+            document.getElementById('score').innerText = score;
+            playSound('success');
+            createConfetti();
+            
+            feedback.innerText = "อร่อยมากจ้า!";
+            feedback.className = "text-center font-bold text-xl h-8 text-green-500 mb-2 transition-opacity duration-300 opacity-100";
+            
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                currentBowlIndex++;
+                playerCurrentBowl = [];
+                
+                if (currentBowlIndex < targetOrders.length) {
+                    updateBowlUI();
+                    updateBowlIndicator();
+                } else {
+                    nextRound();
+                }
+            }, 1000);
+
+        } else {
+            // Incorrect
+            score -= 5;
+            document.getElementById('score').innerText = score;
+            playSound('error');
+            
+            bowl.classList.add('wiggle');
+            setTimeout(() => bowl.classList.remove('wiggle'), 400);
+
+            feedback.innerText = "ป้าทำผิดจ้า ขอใหม่นะ!";
+            feedback.className = "text-center font-bold text-xl h-8 text-red-500 mb-2 transition-opacity duration-300 opacity-100";
+            
+            // Empty bowl so they try again
+            playerCurrentBowl = [];
+            updateBowlUI();
+            
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+            }, 2000);
+        }
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        clearTimeout(phaseTimeout);
+        switchScreen('result');
+        document.getElementById('final-score').innerText = score;
+        
+        let rank = "";
+        if (score > 200) rank = "🏆 ระดับปรมาจารย์ร้านก๋วยเตี๋ยว!";
+        else if (score > 100) rank = "👍 พ่อครัวแม่ครัวมือโปร!";
+        else if (score > 50) rank = "มือใหม่หัดลวกเส้น";
+        else rank = "ต้องฝึกความจำอีกนิดนะจ๊ะ";
+        
+        document.getElementById('rank-text').innerText = rank;
+    }
+
+    function showMenu() {
+        playSound('pop');
+        clearInterval(timerInterval);
+        clearTimeout(phaseTimeout);
+        switchScreen('menu');
+    }
+
+</script>
+</body>
+</html>

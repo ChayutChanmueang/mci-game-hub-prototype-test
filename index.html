@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brain Boost - Cognitive Games</title>
+    <!-- นำเข้า Tailwind CSS ผ่าน CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&display=swap');
+
+        body {
+            margin: 0;
+            background-color: #E8E5DF;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Mali', sans-serif;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .paper-cut-shadow { box-shadow: 2px 4px 12px rgba(109, 100, 90, 0.2); }
+        .paper-cut-shadow-sm { box-shadow: 1px 3px 8px rgba(109, 100, 90, 0.15); }
+        .paper-cut-shadow-solid { box-shadow: 3px 5px 0px rgba(109, 100, 90, 0.15); }
+    </style>
+</head>
+<body>
+
+    <!-- กรอบหน้าจอหลัก -->
+    <div id="app" class="w-full h-screen sm:h-[850px] sm:aspect-[9/16] sm:w-auto bg-[#FFFDF7] sm:rounded-[48px] border-0 sm:border-[6px] border-[#6D645A] sm:shadow-[0_12px_40px_rgba(0,0,0,0.2)] relative overflow-hidden text-[#4A433B] flex flex-col">
+        <!-- เนื้อหาจะถูกแทรกที่นี่ด้วย JavaScript -->
+    </div>
+
+    <script>
+        // ข้อมูลหมวดหมู่
+        const categories = [
+            { id: 'Memory', nameTh: 'ความจำ', nameEn: 'Memory', gradient: 'from-[#FFDAB9] to-[#FFCBA4]' },
+            { id: 'Visuospatial', nameTh: 'มิติสัมพันธ์', nameEn: 'Visuospatial', gradient: 'from-[#AEEEEE] to-[#98E2E2]' },
+            { id: 'Attention', nameTh: 'สมาธิ', nameEn: 'Attention', gradient: 'from-[#FFF68F] to-[#FFEDA6]' },
+            { id: 'Language', nameTh: 'ภาษา', nameEn: 'Language', gradient: 'from-[#A2E4B8] to-[#8FDFAC]' },
+            { id: 'Executive', nameTh: 'บริหารสมอง', nameEn: 'Executive', gradient: 'from-[#FADADD] to-[#F1C3C8]' }
+        ];
+
+        // ข้อมูลเกม
+        const gamesData = {
+            'Memory': [
+                { id: 'm1', name: 'Bead Necklace', icon: '📿', url: './games/memory/bead_necklace.html' },
+                { id: 'm2', name: 'Noodle Order', icon: '🍜', url: './games/memory/noodle_order.html' },
+                { id: 'm3', name: 'Postcard Reader', icon: '✉️', url: './games/memory/postcard_reader.html' },
+                { id: 'm4', name: 'Travel Journal', icon: '🗺️', url: './games/memory/travel_journal.html' },
+                { id: 'm5', name: 'Zoo Memory', icon: '🐨', url: './games/memory/zoo_memory.html' }
+            ],
+            'Visuospatial': [
+                { id: 'v1', name: 'Carnival Master', icon: '🏹', url: './games/visuospatial/carnival_master.html' },
+                { id: 'v2', name: 'Symmetry Decor', icon: '🛋️', url: './games/visuospatial/symmetry_decor.html' },
+                { id: 'v3', name: 'Water Flow', icon: '🌊', url: './games/visuospatial/water_flow.html' },
+                { id: 'v4', name: 'Zoo Symmetry', icon: '🦓', url: './games/visuospatial/zoo_symmetry.html' }
+            ],
+            'Attention': [
+                { id: 'a1', name: 'Dial-a-Friend', icon: '☎️', url: './games/attention/dial_a_friend/index.html' },
+                { id: 'a2', name: 'Stay On Lane', icon: '🚘', url: './games/attention/stay_on_lane.html' },
+                { id: 'a3', name: 'Travel Hunter', icon: '🧳', url: './games/attention/travel_hunter.html' },
+                { id: 'a4', name: 'Zoo Feeder', icon: '🧳', url: './games/attention/zoo_feeder.html' }
+            ],
+            'Language': [
+                { id: 'l1', name: 'Word Matching', icon: '❓', url: './games/language/word_matching.html' },
+                { id: 'l2', name: 'Word Relation', icon: '❓', url: './games/language/word_relation.html' }
+            ],
+            'Executive': [
+                { id: 'e1', name: 'Market Balance', icon: '🧺', url: './games/executive/market_balance.html' },
+                { id: 'e2', name: 'Master Chef', icon: '🍳', url: './games/executive/master_chef.html' },
+                { id: 'e3', name: 'Senior Chef', icon: '🧑‍🍳', url: './games/executive/senior_chef.html' },
+                { id: 'e4', name: 'Zoo Detective', icon: '🐼', url: './games/executive/zoo_detective.html' }
+            ]
+        };
+
+        // สถานะของแอพ
+        let currentScene = 'menu';
+        let activeCat = 'Memory';
+        let isDragging = false;
+
+        // ไอคอน SVG
+        const iconPlayLarge = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#4A433B" stroke="#4A433B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>`;
+        const iconPlaySmall = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#4A433B" stroke="#4A433B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1"><polygon points="6 3 20 12 6 21 6 3"/></svg>`;
+        const iconChevron = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4A433B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
+
+        // ฟังก์ชันหลักสำหรับ Render หน้าจอ
+        function render() {
+            const app = document.getElementById('app');
+            
+            if (currentScene === 'menu') {
+                app.innerHTML = `
+                    <div class="flex flex-col items-center justify-center flex-1 w-full h-full relative bg-gradient-to-br from-[#FFFDF7] to-[#F5EFE6] p-8">
+                        <div class="absolute top-12 left-6 text-[72px] opacity-30 drop-shadow-md">🧩</div>
+                        <div class="absolute bottom-32 right-8 text-[72px] opacity-30 drop-shadow-md">💡</div>
+                        <div class="absolute top-1/4 right-6 text-[60px] opacity-30 drop-shadow-md">🧠</div>
+
+                        <div class="flex flex-col items-center z-10 text-center mb-20">
+                            <div class="w-[140px] h-[140px] rounded-[40px] bg-gradient-to-br from-[#FFDAB9] to-[#FFF68F] border-[4px] border-[#6D645A] paper-cut-shadow flex items-center justify-center mb-8">
+                                <span class="text-[72px] drop-shadow-sm">🧠</span>
+                            </div>
+                            <h1 class="text-[48px] font-bold leading-tight mb-4 text-[#4A433B]">Brain<br/>Boost</h1>
+                            <p class="text-[26px] font-semibold text-[#8C8276] bg-white px-6 py-2 rounded-full border-[2px] border-[#D1C9C0]">
+                                เกมฝึกทักษะสมอง
+                            </p>
+                        </div>
+
+                        <button id="btn-play" class="w-full max-w-[320px] min-h-[90px] rounded-[40px] bg-gradient-to-r from-[#A2E4B8] to-[#8FDFAC] border-[4px] border-[#6D645A] paper-cut-shadow-solid flex items-center justify-center gap-4 active:scale-95 transition-transform duration-200">
+                            ${iconPlayLarge}
+                            <span class="text-[32px] font-bold text-[#4A433B] leading-none mt-1">เริ่มเล่นเลย</span>
+                        </button>
+                    </div>
+                `;
+
+                document.getElementById('btn-play').addEventListener('click', () => {
+                    currentScene = 'selection';
+                    render();
+                });
+
+            } else if (currentScene === 'selection') {
+                const currentCategory = categories.find(c => c.id === activeCat);
+                const games = gamesData[activeCat] || [];
+
+                let categoriesHTML = categories.map(cat => {
+                    const isActive = activeCat === cat.id;
+                    const styleClass = isActive 
+                        ? `bg-gradient-to-br ${cat.gradient} border-[3px] border-[#6D645A] paper-cut-shadow-solid scale-105 z-10 text-[#4A433B]`
+                        : `bg-[#F5F0E6] border-[2px] border-[#C4BDB5] text-[#8C847A] scale-100 hover:bg-[#EBE5DA]`;
+                    
+                    return `
+                        <button onclick="handleCategoryClick('${cat.id}')" class="cat-btn flex flex-col items-center justify-center shrink-0 min-w-[160px] min-h-[96px] px-4 py-3 rounded-[28px] transition-all duration-300 select-none ${styleClass}">
+                            <span class="text-[26px] font-bold leading-tight pointer-events-none">${cat.nameTh}</span>
+                            <span class="text-[20px] font-semibold leading-tight mt-1 opacity-80 pointer-events-none">${cat.nameEn}</span>
+                        </button>
+                    `;
+                }).join('');
+
+                let gamesHTML = games.length > 0 ? games.map(game => `
+                    <button onclick="handleGameClick('${game.url}')" class="game-btn w-full flex items-center min-h-[110px] p-5 rounded-[32px] bg-[#FFFDF7] border-[3px] border-[#6D645A] paper-cut-shadow-solid active:scale-95 active:shadow-none active:translate-y-1 transition-all duration-150 select-none">
+                        <div class="text-[52px] w-[70px] flex justify-center items-center drop-shadow-sm shrink-0 pointer-events-none">
+                            ${game.icon}
+                        </div>
+                        <div class="h-[60px] w-[3px] bg-[#E8E5DF] mx-4 shrink-0 rounded-full pointer-events-none"></div>
+                        <div class="flex-1 text-left pl-2 overflow-hidden pointer-events-none">
+                            <span class="text-[26px] font-bold text-[#4A433B] leading-snug block truncate">
+                                ${game.name}
+                            </span>
+                        </div>
+                        <div class="w-[52px] h-[52px] rounded-[18px] bg-gradient-to-br from-[#A2E4B8] to-[#8FDFAC] border-[3px] border-[#6D645A] flex items-center justify-center shrink-0 ml-2 shadow-sm pointer-events-none">
+                            ${iconPlaySmall}
+                        </div>
+                    </button>
+                `).join('') : `
+                    <div class="flex flex-col items-center justify-center py-16 text-center">
+                        <span class="text-[64px] mb-4 opacity-50">🛠️</span>
+                        <p class="text-[26px] text-[#8C8276] font-bold">กำลังพัฒนาเกมในหมวดนี้</p>
+                    </div>
+                `;
+
+                app.innerHTML = `
+                    <div class="flex flex-col w-full h-full bg-[#FFFDF7]">
+                        <!-- Header -->
+                        <div class="flex items-center px-6 pt-10 pb-4 shrink-0">
+                            <button id="btn-back" class="w-[64px] h-[64px] flex items-center justify-center rounded-[20px] bg-white border-[3px] border-[#6D645A] paper-cut-shadow-sm active:scale-95 transition-transform shrink-0">
+                                ${iconChevron}
+                            </button>
+                            <h2 class="ml-5 text-[32px] font-bold text-[#4A433B] leading-none mt-1">เลือกหมวดหมู่</h2>
+                        </div>
+
+                        <!-- Category Scroll -->
+                        <div class="w-full shrink-0">
+                            <div id="scroll-cat" class="flex gap-4 overflow-x-auto px-6 pb-6 pt-2 hide-scrollbar cursor-grab">
+                                ${categoriesHTML}
+                            </div>
+                        </div>
+
+                        <!-- Games List Panel -->
+                        <div id="scroll-game" class="flex-1 bg-white rounded-t-[48px] border-t-[4px] border-[#6D645A] paper-cut-shadow-sm p-6 overflow-y-auto hide-scrollbar flex flex-col cursor-grab">
+                            <div class="flex items-center gap-4 mb-6 shrink-0 px-2 pt-2">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br ${currentCategory.gradient} border-[3px] border-[#6D645A] paper-cut-shadow-sm"></div>
+                                <h3 class="text-[28px] font-bold text-[#4A433B] mt-1 pointer-events-none">เกม${currentCategory.nameTh}</h3>
+                            </div>
+                            <div class="flex flex-col gap-5 pb-10">
+                                ${gamesHTML}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('btn-back').addEventListener('click', () => {
+                    currentScene = 'menu';
+                    render();
+                });
+
+                setupDragScroll('scroll-cat', true);
+                setupDragScroll('scroll-game', false);
+            }
+        }
+
+        // ฟังก์ชันระบบลากหน้าจอ (Drag to Scroll) สำหรับ Vanilla JS
+        function setupDragScroll(elementId, isHorizontal) {
+            const slider = document.getElementById(elementId);
+            if (!slider) return;
+
+            let isDown = false;
+            let startPos;
+            let scrollPos;
+
+            slider.addEventListener('mousedown', (e) => {
+                isDown = true;
+                isDragging = false;
+                slider.classList.add('cursor-grabbing');
+                slider.classList.remove('cursor-grab');
+                startPos = isHorizontal ? e.pageX - slider.offsetLeft : e.pageY - slider.offsetTop;
+                scrollPos = isHorizontal ? slider.scrollLeft : slider.scrollTop;
+            });
+
+            slider.addEventListener('mouseleave', () => {
+                isDown = false;
+                slider.classList.remove('cursor-grabbing');
+                slider.classList.add('cursor-grab');
+            });
+
+            slider.addEventListener('mouseup', () => {
+                isDown = false;
+                slider.classList.remove('cursor-grabbing');
+                slider.classList.add('cursor-grab');
+                // รีเซ็ตสถานะ drag หลังจากคลิกเสร็จแป๊บนึง
+                setTimeout(() => isDragging = false, 50);
+            });
+
+            slider.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const currentPosition = isHorizontal ? e.pageX - slider.offsetLeft : e.pageY - slider.offsetTop;
+                const walk = (currentPosition - startPos) * 1.5;
+                
+                if (Math.abs(walk) > 10) {
+                    isDragging = true; // ลากเกิน 10px ถือว่าตั้งใจสไลด์หน้าจอ (ไม่นับว่าคลิก)
+                }
+
+                if (isHorizontal) {
+                    slider.scrollLeft = scrollPos - walk;
+                } else {
+                    slider.scrollTop = scrollPos - walk;
+                }
+            });
+        }
+
+        // Action เมื่อคลิกหมวดหมู่
+        window.handleCategoryClick = function(id) {
+            if (isDragging) return; // ถ้าเป็นการสไลด์หน้าจอ ให้ยกเลิกการกดปุ่ม
+            activeCat = id;
+            render();
+        };
+
+        // Action เมื่อคลิกเกม
+        window.handleGameClick = function(url) {
+            if (isDragging) return; // ถ้าเป็นการสไลด์หน้าจอ ให้ยกเลิกการกดปุ่ม
+            
+            // เปลี่ยนหน้าไปยัง URL ของเกมนั้นๆ
+            window.location.href = url;
+        };
+
+        // โหลดหน้าแรกตอนเปิดเว็บ
+        render();
+    </script>
+</body>
+</html>

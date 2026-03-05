@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>สวนสัตว์แห่งความทรงจำ (Zoo Memory Quest)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Custom Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        .animate-zoom-in { animation: zoomIn 0.5s ease-out; }
+        .animate-slide-up { animation: slideUp 0.5s ease-out forwards; }
+        
+        /* Hide Scrollbar */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-800 text-slate-800 font-sans select-none">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const APP_VERSION = "v1.1.0";
+
+        // --- Icons (SVG Components) ---
+        const Icon = ({ path, size = 24, className = "" }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width={size} 
+                height={size} 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={className}
+            >
+                {path}
+            </svg>
+        );
+
+        const Icons = {
+            Play: <polygon points="5 3 19 12 5 21 5 3"></polygon>,
+            RefreshCw: <><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></>,
+            CheckCircle2: <><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></>,
+            XCircle: <><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></>,
+            ArrowRight: <><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></>,
+            Trees: <><path d="M10 10v.2A3 3 0 0 1 8.9 16v0H5v0h0a3 3 0 0 1-1-5.8V10a3 3 0 0 1 5.3-2.1"/><path d="M7 16v6"/><path d="M13 19v3"/><path d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .6-1.7L13 2.6a1 1 0 0 0-1.4 0L8.2 7.3a1 1 0 0 0 .6 1.7H9l-2.4 3.4A1 1 0 0 0 7.3 14h.3a1 1 0 0 0 .7 1.7l1.4 3.3"/></>,
+            PawPrint: <><circle cx="12" cy="17" r="5"/><circle cx="5" cy="10" r="3"/><circle cx="9" cy="5" r="3"/><circle cx="15" cy="5" r="3"/><circle cx="19" cy="10" r="3"/></>,
+            HelpCircle: <><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></>,
+            Star: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>,
+            Trophy: <><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></>,
+            Home: <><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
+            ListChecks: <><path d="M10 6h11"/><path d="M10 12h11"/><path d="M10 18h11"/><path d="M3 6h1"/><path d="M3 12h1"/><path d="M3 18h1"/></>,
+            Brain: <><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></>,
+            ClipboardCheck: <><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></>
+        };
+
+        // --- Game Data ---
+        const MEMORY_ITEMS = [
+            { id: 'lion', name: 'สิงโต', icon: '🦁' },
+            { id: 'elephant', name: 'ช้าง', icon: '🐘' },
+            { id: 'monkey', name: 'ลิง', icon: '🐵' },
+            { id: 'penguin', name: 'เพนกวิน', icon: '🐧' },
+            { id: 'giraffe', name: 'ยีราฟ', icon: '🦒' },
+            { id: 'zebra', name: 'ม้าลาย', icon: '🦓' },
+            { id: 'panda', name: 'แพนด้า', icon: '🐼' },
+            { id: 'tiger', name: 'เสือ', icon: '🐯' },
+            { id: 'koala', name: 'โคอาล่า', icon: '🐨' },
+            { id: 'cow', name: 'วัว', icon: '🐮' },
+            { id: 'pig', name: 'หมู', icon: '🐷' },
+            { id: 'frog', name: 'กบ', icon: '🐸' },
+        ];
+
+        const DISTRACTION_QUIZ_POOL = [
+            { q: "สัตว์ตัวไหน 'คอยาว' ที่สุด?", a: '🦒', options: ['🦁', '🦒', '🐧'] },
+            { q: "สัตว์ตัวไหนชอบกิน 'กล้วย'?", a: '🐵', options: ['🐵', '🐯', '🦓'] },
+            { q: "สัตว์ตัวไหนมี 'งวง'?", a: '🐘', options: ['🐼', '🐘', '🦁'] },
+            { q: "สัตว์ตัวไหนมีลาย 'ขาว-ดำ'?", a: '🦓', options: ['🦓', '🐘', '🐯'] },
+            { q: "สัตว์ตัวไหนเป็น 'เจ้าป่า'?", a: '🦁', options: ['🐧', '🦁', '🦓'] },
+            { q: "สัตว์ตัวไหนกิน 'ไผ่' เป็นอาหาร?", a: '🐼', options: ['🐵', '🐼', '🦁'] },
+            { q: "สัตว์ตัวไหนอยู่บน 'น้ำแข็ง'?", a: '🐧', options: ['🐧', '🦒', '🐘'] },
+            { q: "สัตว์ตัวไหนร้อง 'อู๊ดๆ'?", a: '🐷', options: ['🐷', '🐮', '🐸'] },
+            { q: "สัตว์ตัวไหนชอบกิน 'นม'?", a: '🐮', options: ['🐮', '🐸', '🐨'] },
+            { q: "สัตว์ตัวไหน 'กระโดด' เก่ง?", a: '🐸', options: ['🐸', '🐷', '🐮'] },
+        ];
+
+        const TOTAL_ROUNDS = 10;
+        const INITIAL_LEADERBOARD = [
+            { id: 1, mode: 'training', difficulty: 'Easy', correct: 10, total: 10, time: '3:30' },
+            { id: 2, mode: 'testing', difficulty: 'Medium', correct: 8, total: 10, time: '5:45' },
+        ];
+
+        // --- Common Components ---
+        const BigButton = ({ onClick, children, colorClass = "bg-green-600 hover:bg-green-700", disabled = false, className = "" }) => (
+            <button
+                onClick={onClick}
+                disabled={disabled}
+                className={`w-full py-4 px-6 rounded-2xl text-xl font-bold text-white transition-transform active:scale-95 shadow-lg flex items-center justify-center gap-3 border-b-4 border-black/20 ${colorClass} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
+            >
+                {children}
+            </button>
+        );
+
+        const Card = ({ children, className = "" }) => (
+            <div className={`bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-6 w-full mx-auto text-center border-4 border-amber-100 ${className}`}>
+                {children}
+            </div>
+        );
+
+        // --- Main App Component ---
+        function App() {
+            // States: 'menu', 'difficulty', 'leaderboard', 'memorize', 'distract', 'recall', 'feedback', 'summary'
+            const [gameState, setGameState] = useState('menu');
+            const [targetItem, setTargetItem] = useState(null);
+            const [distractionStep, setDistractionStep] = useState(0);
+            const [currentQuiz, setCurrentQuiz] = useState(null);
+            const [quizPool, setQuizPool] = useState([]);
+            const [recallOptions, setRecallOptions] = useState([]);
+            
+            // Session State
+            const [gameMode, setGameMode] = useState('training'); // 'training' | 'testing'
+            const [isCorrect, setIsCorrect] = useState(false);
+            const [fixedLevel, setFixedLevel] = useState(3);
+            const [currentRound, setCurrentRound] = useState(1);
+            const [correctCount, setCorrectCount] = useState(0);
+            const [currentDifficulty, setCurrentDifficulty] = useState('Easy');
+            const [gameStartTime, setGameStartTime] = useState(null);
+            
+            // Load leaderboard from Local Storage
+            const [leaderboard, setLeaderboard] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('zooMemoryLeaderboard');
+                    return saved ? JSON.parse(saved) : INITIAL_LEADERBOARD;
+                } catch (error) {
+                    console.error('Error loading leaderboard:', error);
+                    return INITIAL_LEADERBOARD;
+                }
+            });
+            
+            const [leaderboardTab, setLeaderboardTab] = useState('Easy');
+            const [leaderboardMode, setLeaderboardMode] = useState('training');
+
+            // Save leaderboard to Local Storage whenever it changes
+            useEffect(() => {
+                try {
+                    localStorage.setItem('zooMemoryLeaderboard', JSON.stringify(leaderboard));
+                } catch (error) {
+                    console.error('Error saving leaderboard:', error);
+                }
+            }, [leaderboard]);
+
+            const formatTime = (ms) => {
+                const totalSeconds = Math.floor(ms / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            };
+
+            const getElapsedTime = () => {
+                if (!gameStartTime) return "0:00";
+                const now = Date.now();
+                return formatTime(now - gameStartTime);
+            };
+
+            const getQuestionsCount = () => Math.min(fixedLevel, 10);
+
+            // Step 1: Select Mode (from Menu)
+            const selectModeAndGoToDifficulty = (mode) => {
+                setGameMode(mode);
+                setGameState('difficulty');
+            };
+
+            // Step 2: Select Difficulty and Start
+            const startGameFromDifficulty = (level, difficultyName) => {
+                setFixedLevel(level);
+                setCurrentDifficulty(difficultyName);
+                
+                // Init Game
+                setCurrentRound(1);
+                setCorrectCount(0);
+                setGameStartTime(Date.now());
+                
+                // Start First Round
+                startRound(gameMode);
+            };
+
+            const startRound = (mode) => {
+                const shuffledQuiz = [...DISTRACTION_QUIZ_POOL].sort(() => Math.random() - 0.5);
+                setQuizPool(shuffledQuiz);
+                setDistractionStep(0);
+
+                if (mode === 'training') {
+                    // Training Mode: Random target -> Memorize -> Distract
+                    const randomItem = MEMORY_ITEMS[Math.floor(Math.random() * MEMORY_ITEMS.length)];
+                    setTargetItem(randomItem);
+                    setGameState('memorize');
+                } else {
+                    // Test Mode: Target is answer to 1st question -> Distract
+                    const firstQuizAnswer = shuffledQuiz[0].a;
+                    const target = MEMORY_ITEMS.find(item => item.icon === firstQuizAnswer);
+                    setTargetItem(target || MEMORY_ITEMS[0]);
+                    
+                    setCurrentQuiz(shuffledQuiz[0]);
+                    setGameState('distract');
+                }
+            };
+
+            const nextRoundOrFinish = () => {
+                if (currentRound < TOTAL_ROUNDS) {
+                    setCurrentRound(prev => prev + 1);
+                    startRound(gameMode);
+                } else {
+                    saveScore();
+                }
+            };
+
+            const saveScore = () => {
+                const finalTime = getElapsedTime();
+                const newEntry = {
+                    id: Date.now(),
+                    mode: gameMode,
+                    difficulty: currentDifficulty,
+                    correct: correctCount,
+                    total: TOTAL_ROUNDS,
+                    time: finalTime
+                };
+                
+                const updatedLeaderboard = [...leaderboard, newEntry].sort((a, b) => {
+                    if (b.correct !== a.correct) return b.correct - a.correct;
+                    return a.time.localeCompare(b.time);
+                });
+                
+                setLeaderboard(updatedLeaderboard);
+                setGameState('summary');
+            };
+
+            const loadNextDistraction = () => {
+                const totalQuestions = getQuestionsCount();
+                if (distractionStep < totalQuestions) {
+                    const quizIndex = distractionStep % quizPool.length;
+                    setCurrentQuiz(quizPool[quizIndex]);
+                    setGameState('distract');
+                } else {
+                    setupRecall();
+                }
+            };
+
+            const handleDistractionAnswer = (selectedAnswer) => {
+                setTimeout(() => {
+                    const nextStep = distractionStep + 1;
+                    const totalQuestions = getQuestionsCount();
+                    setDistractionStep(nextStep);
+                    if (nextStep >= totalQuestions) {
+                        setupRecall();
+                    } else {
+                        const quizIndex = nextStep % quizPool.length;
+                        setCurrentQuiz(quizPool[quizIndex]);
+                    }
+                }, 200);
+            };
+
+            const setupRecall = () => {
+                let options = [targetItem];
+                let numDistractors = 2;
+                if (fixedLevel >= 3 && fixedLevel <= 5) numDistractors = 3;
+                if (fixedLevel >= 6) numDistractors = 5;
+
+                const distractors = MEMORY_ITEMS.filter(item => item.id !== targetItem.id);
+                const randomDistractors = distractors.sort(() => Math.random() - 0.5).slice(0, numDistractors);
+                
+                options = [...options, ...randomDistractors].sort(() => Math.random() - 0.5);
+                setRecallOptions(options);
+                setGameState('recall');
+            };
+
+            const checkRecall = (selectedItem) => {
+                const correct = selectedItem.id === targetItem.id;
+                setIsCorrect(correct);
+                if (correct) setCorrectCount(prev => prev + 1);
+                setGameState('feedback');
+            };
+
+            // --- Sub-Screens ---
+            
+            const MenuScreen = () => (
+                <div className="flex flex-col items-center justify-center h-full p-6 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] relative">
+                    <Card className="py-8 border-green-200 relative overflow-hidden animate-zoom-in">
+                        <div className="absolute top-[-50px] left-[-50px] w-32 h-32 bg-green-100 rounded-full opacity-50 z-0"></div>
+                        <div className="relative z-10">
+                            <div className="flex justify-center mb-4">
+                                <div className="bg-green-100 p-5 rounded-full shadow-inner">
+                                    <Icon path={Icons.Trees} size={64} className="text-green-600" />
+                                </div>
+                            </div>
+                            <h1 className="text-3xl font-bold text-green-800 mb-2">สวนสัตว์<br/>แห่งความทรงจำ</h1>
+                            <p className="text-base text-green-600 mb-6">ฝึกสมองประลองปัญญา</p>
+                            <div className="flex flex-col gap-3">
+                                <BigButton onClick={() => selectModeAndGoToDifficulty('training')} colorClass="bg-blue-500 hover:bg-blue-600">
+                                    <Icon path={Icons.Brain} size={28} /> โหมดฝึกฝน
+                                </BigButton>
+                                <BigButton onClick={() => selectModeAndGoToDifficulty('testing')} colorClass="bg-purple-500 hover:bg-purple-600">
+                                    <Icon path={Icons.ClipboardCheck} size={28} /> โหมดทดสอบ
+                                </BigButton>
+                                <BigButton onClick={() => setGameState('leaderboard')} colorClass="bg-amber-500 hover:bg-amber-600">
+                                    <Icon path={Icons.Trophy} size={28} /> ดูคะแนนสูงสุด
+                                </BigButton>
+                            </div>
+                        </div>
+                    </Card>
+                    <div className="absolute bottom-4 right-6 text-slate-400 text-sm font-bold opacity-70">
+                        {APP_VERSION}
+                    </div>
+                </div>
+            );
+
+            const DifficultyScreen = () => (
+                <div className="flex flex-col items-center justify-center h-full p-6 relative">
+                    <Card className="py-6 border-blue-200 animate-slide-up">
+                        <h2 className="text-2xl font-bold text-slate-800 mb-6">
+                            เลือกระดับ ({gameMode === 'training' ? 'ฝึกฝน' : 'ทดสอบ'})
+                        </h2>
+                        <div className="flex flex-col gap-4">
+                            <button onClick={() => startGameFromDifficulty(3, 'Easy')} className="p-4 bg-green-100 border-2 border-green-400 rounded-2xl flex items-center gap-4 hover:bg-green-200 transition-all">
+                                <div className="bg-green-500 text-white p-3 rounded-xl"><Icon path={Icons.Star} size={24} /></div>
+                                <div className="text-left">
+                                    <div className="text-xl font-bold text-green-800">ระดับง่าย</div>
+                                    <div className="text-sm text-green-700">คำถามคั่น 3 ข้อ</div>
+                                </div>
+                            </button>
+                            <button onClick={() => startGameFromDifficulty(6, 'Medium')} className="p-4 bg-yellow-100 border-2 border-yellow-400 rounded-2xl flex items-center gap-4 hover:bg-yellow-200 transition-all">
+                                <div className="bg-yellow-500 text-white p-3 rounded-xl flex gap-1">
+                                    <Icon path={Icons.Star} size={16} /><Icon path={Icons.Star} size={16} />
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-xl font-bold text-yellow-800">ระดับกลาง</div>
+                                    <div className="text-sm text-yellow-700">คำถามคั่น 6 ข้อ</div>
+                                </div>
+                            </button>
+                            <button onClick={() => startGameFromDifficulty(10, 'Hard')} className="p-4 bg-red-100 border-2 border-red-400 rounded-2xl flex items-center gap-4 hover:bg-red-200 transition-all">
+                                <div className="bg-red-500 text-white p-3 rounded-xl flex gap-1">
+                                    <Icon path={Icons.Star} size={12} /><Icon path={Icons.Star} size={12} /><Icon path={Icons.Star} size={12} />
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-xl font-bold text-red-800">ระดับยาก</div>
+                                    <div className="text-sm text-red-700">คำถามคั่น 10 ข้อ</div>
+                                </div>
+                            </button>
+                        </div>
+                        <button onClick={() => setGameState('menu')} className="mt-6 text-slate-500 underline text-sm">ย้อนกลับ</button>
+                    </Card>
+                </div>
+            );
+
+            const MemorizeScreen = () => (
+                <div className="flex flex-col items-center justify-center h-full p-6 relative">
+                    <div className="absolute top-4 right-4 bg-white/80 px-3 py-1 rounded-full text-slate-600 font-bold shadow-sm z-10">ด่าน {currentRound}/{TOTAL_ROUNDS}</div>
+                    <h2 className="text-xl text-center text-green-700 mb-6 font-semibold bg-white/80 px-6 py-2 rounded-full shadow-sm">ขั้นตอนที่ 1: จำสัตว์ตัวนี้</h2>
+                    <Card className="py-10 border-green-200 animate-zoom-in">
+                        <div className="flex flex-col items-center gap-6">
+                            <div className="text-[100px] leading-none filter drop-shadow-md transform hover:scale-110 transition-transform cursor-default">{targetItem.icon}</div>
+                            <h3 className="text-4xl font-bold text-slate-800">{targetItem.name}</h3>
+                            <p className="text-base text-slate-500 mt-2">จำให้แม่น แล้วกดปุ่มสีส้มเลย!</p>
+                        </div>
+                    </Card>
+                    <div className="w-full mt-8">
+                        <BigButton onClick={() => loadNextDistraction()} colorClass="bg-amber-500 hover:bg-amber-600">จำได้แล้วครับ <Icon path={Icons.ArrowRight} size={28} /></BigButton>
+                    </div>
+                </div>
+            );
+
+            const DistractionScreen = () => (
+                <div className="flex flex-col items-center justify-center h-full p-6 relative">
+                    <div className="absolute top-4 right-4 bg-white/80 px-3 py-1 rounded-full text-slate-600 font-bold shadow-sm z-10">ด่าน {currentRound}/{TOTAL_ROUNDS}</div>
+                    <div className="w-full flex justify-between items-center mb-6">
+                        <h2 className="text-lg text-amber-800 font-semibold flex items-center gap-2"><Icon path={Icons.PawPrint} size={18} /> กิจกรรมคั่นเวลา</h2>
+                        <span className="bg-amber-200 text-amber-800 px-3 py-1 rounded-full text-base font-bold shadow-inner">ข้อที่ {distractionStep + 1} / {getQuestionsCount()}</span>
+                    </div>
+                    <Card className="py-8 border-amber-200 animate-fade-in">
+                        <div className="mb-6"><p className="text-xl font-bold text-slate-700 mb-4 min-h-[3.5rem] flex items-center justify-center">{currentQuiz?.q}</p></div>
+                        <div className="grid grid-cols-3 gap-3">
+                            {currentQuiz?.options.map((opt, idx) => (
+                                <button key={idx} onClick={() => handleDistractionAnswer(opt)} className="aspect-square flex flex-col items-center justify-center bg-orange-50 text-5xl rounded-2xl hover:bg-orange-200 active:scale-95 transition-all shadow-md border-b-4 border-orange-200/50">{opt}</button>
+                            ))}
+                        </div>
+                    </Card>
+                </div>
+            );
+
+            const RecallScreen = () => (
+                <div className="flex flex-col items-center justify-center h-full p-6 relative">
+                    <div className="absolute top-4 right-4 bg-white/80 px-3 py-1 rounded-full text-slate-600 font-bold shadow-sm z-10">ด่าน {currentRound}/{TOTAL_ROUNDS}</div>
+                    <h2 className="text-xl text-center text-green-700 mb-6 font-semibold bg-white/80 px-6 py-2 rounded-full">ขั้นตอนที่ 3: ทดสอบความจำ</h2>
+                    <Card className="py-6 border-green-200 animate-slide-up">
+                        <div className="flex flex-col items-center gap-3 mb-6">
+                            <div className="p-3 bg-green-100 rounded-full text-green-600 animate-pulse"><Icon path={Icons.HelpCircle} size={40} /></div>
+                            <h3 className="text-xl font-bold text-slate-800">
+                                {gameMode === 'training' 
+                                    ? 'สัตว์ตัวแรกสุด คือตัวไหน?' 
+                                    : 'คำตอบของคำถามข้อแรก คือตัวไหน?'}
+                            </h3>
+                        </div>
+                        <div className={`grid gap-3 w-full ${recallOptions.length > 4 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                            {recallOptions.map((item, idx) => (
+                                <button key={idx} onClick={() => checkRecall(item)} className={`flex items-center gap-4 p-3 w-full bg-white border-2 border-slate-100 rounded-2xl hover:border-green-500 hover:bg-green-50 hover:shadow-md transition-all group ${recallOptions.length > 4 ? 'flex-col text-center p-2' : 'text-left'}`}>
+                                    <div className="w-14 h-14 flex-shrink-0 flex items-center justify-center bg-slate-50 rounded-xl text-3xl shadow-sm group-hover:scale-110 transition-transform">{item.icon}</div>
+                                    <span className="text-xl font-bold text-slate-700">{item.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </Card>
+                </div>
+            );
+
+            const FeedbackScreen = () => (
+                <div className="flex flex-col items-center justify-center h-full p-6 relative overflow-hidden">
+                    <Card className="py-8 border-green-200 animate-zoom-in">
+                        <div className="flex justify-center mb-4">
+                            {isCorrect ? <div className="relative"><Icon path={Icons.CheckCircle2} size={80} className="text-green-500 relative z-10" /></div> : <Icon path={Icons.XCircle} size={80} className="text-red-500" />}
+                        </div>
+                        <h2 className="text-3xl font-bold text-slate-800 mb-2">{isCorrect ? 'เก่งมากครับ!' : 'ยังไม่ถูกครับ'}</h2>
+                        <div className="text-base text-slate-600 mb-6">
+                            {isCorrect ? 'ความจำแม่นยำสุดๆ เลย' : <div className="flex flex-col items-center gap-2"><span>คำตอบที่ถูกคือ</span><div className="bg-green-50 px-4 py-2 rounded-xl border border-green-100 flex items-center gap-2 mt-1"><span className="text-2xl">{targetItem.icon}</span><span className="text-lg font-bold text-green-700">{targetItem.name}</span></div></div>}
+                        </div>
+                        <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100 flex justify-between items-center">
+                            <span className="font-bold text-slate-500">คะแนนปัจจุบัน</span>
+                            <span className="text-xl font-bold text-green-600">{correctCount} / {TOTAL_ROUNDS}</span>
+                        </div>
+                        <BigButton onClick={nextRoundOrFinish} colorClass="bg-green-600 hover:bg-green-700">
+                            <Icon path={Icons.RefreshCw} size={24} /> {currentRound < TOTAL_ROUNDS ? 'ไปด่านต่อไป' : 'ดูสรุปผล'}
+                        </BigButton>
+                    </Card>
+                </div>
+            );
+
+            const SummaryScreen = () => (
+                <div className="flex flex-col items-center justify-center h-full p-6 relative">
+                    <Card className="py-8 border-green-200 animate-zoom-in">
+                        <div className="flex justify-center mb-6"><Icon path={Icons.Trophy} size={80} className="text-yellow-500" /></div>
+                        <h2 className="text-3xl font-bold text-slate-800 mb-2">จบเกมแล้ว!</h2>
+                        <p className="text-lg text-slate-600 mb-8">
+                            โหมด: {gameMode === 'training' ? 'ฝึกฝน' : 'ทดสอบ'}<br/>
+                            ระดับ: {currentDifficulty === 'Easy' ? 'ง่าย' : currentDifficulty === 'Medium' ? 'กลาง' : 'ยาก'}
+                        </p>
+                        <div className="grid grid-cols-2 gap-4 mb-8">
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div className="text-slate-400 text-sm mb-1">คะแนน</div>
+                                <div className="text-3xl font-bold text-green-600">{correctCount}/{TOTAL_ROUNDS}</div>
+                            </div>
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div className="text-slate-400 text-sm mb-1">เวลาที่ใช้</div>
+                                <div className="text-3xl font-bold text-blue-600">{getElapsedTime()}</div>
+                            </div>
+                        </div>
+                        <BigButton onClick={() => { setLeaderboardMode(gameMode); setLeaderboardTab(currentDifficulty); setGameState('leaderboard'); }} colorClass="bg-green-600 hover:bg-green-700">ดูอันดับคะแนน</BigButton>
+                    </Card>
+                </div>
+            );
+
+            const LeaderboardScreen = () => {
+                const filteredLeaderboard = leaderboard.filter(entry => 
+                    entry.difficulty === leaderboardTab && 
+                    (entry.mode === leaderboardMode || (!entry.mode && leaderboardMode === 'training')) 
+                );
+                
+                return (
+                    <div className="flex flex-col items-center h-full p-6 relative">
+                        <div className="w-full mb-4 flex items-center justify-between">
+                            <h2 className="text-2xl font-bold text-amber-500 flex items-center gap-2"><Icon path={Icons.ListChecks} size={28} /> Leaderboard</h2>
+                            <button onClick={() => setGameState('menu')} className="p-2 bg-slate-200 rounded-full"><Icon path={Icons.Home} size={20} className="text-slate-600" /></button>
+                        </div>
+                        
+                        {/* Mode Toggle */}
+                        <div className="w-full flex p-1 bg-slate-200 rounded-xl mb-3">
+                            <button onClick={() => setLeaderboardMode('training')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${leaderboardMode === 'training' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>โหมดฝึกฝน</button>
+                            <button onClick={() => setLeaderboardMode('testing')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${leaderboardMode === 'testing' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500'}`}>โหมดทดสอบ</button>
+                        </div>
+
+                        {/* Difficulty Tabs */}
+                        <div className="w-full grid grid-cols-3 gap-2 mb-4 p-1 bg-slate-100 rounded-xl">
+                            {['Easy', 'Medium', 'Hard'].map(tab => (
+                                <button key={tab} onClick={() => setLeaderboardTab(tab)} className={`py-2 rounded-lg text-sm font-bold transition-all ${leaderboardTab === tab ? (tab==='Easy'?'bg-white text-green-600 shadow-sm':tab==='Medium'?'bg-white text-yellow-600 shadow-sm':'bg-white text-red-600 shadow-sm') : 'text-slate-400'}`}>
+                                    {tab === 'Easy' ? 'ง่าย' : tab === 'Medium' ? 'กลาง' : 'ยาก'}
+                                </button>
+                            ))}
+                        </div>
+                        
+                        <div className="w-full flex-1 overflow-y-auto pr-1">
+                            <div className="grid grid-cols-12 text-xs text-slate-400 font-bold px-4 mb-2">
+                                <div className="col-span-2">#</div>
+                                <div className="col-span-5 text-center">คะแนน</div>
+                                <div className="col-span-5 text-right">เวลา</div>
+                            </div>
+                            {filteredLeaderboard.length === 0 ? <div className="text-center py-10 text-slate-400"><p>ยังไม่มีสถิติในระดับนี้</p></div> : 
+                                filteredLeaderboard.map((entry, index) => (
+                                <div key={entry.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-3 grid grid-cols-12 items-center animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
+                                    <div className="col-span-2 flex justify-center">
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs text-white ${index === 0 ? 'bg-yellow-400' : index === 1 ? 'bg-slate-400' : index === 2 ? 'bg-orange-400' : 'bg-slate-200 text-slate-500'}`}>{index + 1}</div>
+                                    </div>
+                                    <div className="col-span-5 text-center font-bold text-slate-700 text-lg">{entry.correct}/{entry.total}</div>
+                                    <div className="col-span-5 text-right text-sm text-slate-500 font-mono">{entry.time}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8">
+                    <div className="relative w-full max-w-[400px] aspect-[9/16] bg-green-50 shadow-2xl rounded-[3rem] overflow-hidden ring-8 ring-slate-900 flex flex-col">
+                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-xl z-50"></div>
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden pt-8 pb-4 no-scrollbar">
+                            {gameState === 'menu' && <MenuScreen />}
+                            {gameState === 'difficulty' && <DifficultyScreen />}
+                            {gameState === 'leaderboard' && <LeaderboardScreen />}
+                            {gameState === 'summary' && <SummaryScreen />}
+                            {gameState === 'memorize' && <MemorizeScreen />}
+                            {gameState === 'distract' && <DistractionScreen />}
+                            {gameState === 'recall' && <RecallScreen />}
+                            {gameState === 'feedback' && <FeedbackScreen />}
+                        </div>
+                        <div className="h-4 w-full flex justify-center items-center pb-2">
+                            <div className="w-32 h-1 bg-slate-300 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

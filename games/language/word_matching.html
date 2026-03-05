@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>เกมฝึกสมองประลองปัญญา</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for compiling JSX in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Google Fonts: Sarabun -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background-color: #1e293b; 
+            margin: 0; 
+            padding: 0; 
+            overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
+            touch-action: none; /* Prevent unwanted scrolling during drag/draw */
+        }
+        
+        .animate-fade-in {
+            animation: fade-in 0.5s ease-out forwards;
+        }
+        
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="react,env">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Custom SVG Icons to replace external lucide-react dependency ---
+        const Icon = ({ children, className, size = 24, fill = "none", stroke = "currentColor", strokeWidth = 2 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+        const Trophy = (props) => <Icon {...props}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7c0 3.31 2.69 6 6 6s6-2.69 6-6V2Z"/></Icon>;
+        const Clock = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
+        const Play = (props) => <Icon {...props}><polygon points="6 3 20 12 6 21 6 3"/></Icon>;
+        const Home = (props) => <Icon {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Icon>;
+        const Hand = (props) => <Icon {...props}><path d="M18 11V6a2 2 0 0 0-4 0v4"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V3a2 2 0 0 0-4 0v9"/><path d="M16 13h2.5a2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5h-11a5.5 5.5 0 0 1-5.5-5.5V11a2 2 0 0 1 2-2h1.5"/></Icon>;
+        const Heart = (props) => <Icon {...props}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></Icon>;
+        const ArrowRight = (props) => <Icon {...props}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></Icon>;
+        const CheckCircle = (props) => <Icon {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Icon>;
+        const Crown = (props) => <Icon {...props}><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></Icon>;
+        const GripVertical = (props) => <Icon {...props}><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></Icon>;
+
+
+        const ElderlyCognitiveGame = () => {
+          // --- Game State ---
+          const [gameState, setGameState] = useState('menu'); // menu, playing, stage_clear, summary, leaderboard
+          const [difficulty, setDifficulty] = useState('easy');
+          const [gameMode, setGameMode] = useState('drag'); // 'drag' (ลากวาง) or 'line' (ลากเส้น)
+          const [currentStage, setCurrentStage] = useState(1);
+          const [totalStages, setTotalStages] = useState(3);
+          const [score, setScore] = useState(0);
+          const [timeLeft, setTimeLeft] = useState(0);
+          const [totalTimeUsed, setTotalTimeUsed] = useState(0);
+          
+          // Data State
+          const [sessionDeck, setSessionDeck] = useState([]);
+          const [targets, setTargets] = useState([]); // Used for Drag Mode (Drop Zones) & Line Mode (Left Col)
+          const [sources, setSources] = useState([]); // Used for Drag Mode (Draggables) & Line Mode (Right Col)
+          const [isGameOver, setIsGameOver] = useState(false);
+          
+          // --- Line Game State ---
+          const [lines, setLines] = useState([]); // { startId, endId, color }
+          const [drawingLine, setDrawingLine] = useState(null); // { startId, startX, startY, endX, endY }
+          const lineContainerRef = useRef(null); // The scrollable container
+          const lineContentRef = useRef(null);   // The content wrapper (where SVG lives)
+          const pointRefs = useRef({});
+
+          // --- Leaderboard State ---
+          const [activeLeaderboardTab, setActiveLeaderboardTab] = useState('easy');
+          const [leaderboardData, setLeaderboardData] = useState({
+            easy: [
+              { name: "คุณยายสมศรี", time: 45, score: 120 },
+              { name: "คุณตาบุญมี", time: 52, score: 100 },
+              { name: "ป้าแดง", time: 60, score: 90 },
+            ],
+            medium: [
+              { name: "ลุงพล", time: 80, score: 150 },
+              { name: "ป้าน้อย", time: 95, score: 130 },
+            ],
+            hard: [
+              { name: "ดร.วิชัย", time: 110, score: 200 },
+            ]
+          });
+
+          // --- Dragging Logic State (Existing Mode) ---
+          const [dragInfo, setDragInfo] = useState({
+            isDragging: false,
+            draggedItem: null,
+            x: 0,
+            y: 0
+          });
+
+          const dropZonesRef = useRef({});
+
+          // --- Vocabulary Data ---
+          const vocabData = {
+            easy: [
+              { id: 1, word: "แมว", emoji: "🐱" }, { id: 2, word: "สุนัข", emoji: "🐶" },
+              { id: 3, word: "แอปเปิ้ล", emoji: "🍎" }, { id: 4, word: "บ้าน", emoji: "🏠" },
+              { id: 5, word: "ปลา", emoji: "🐟" }, { id: 6, word: "นก", emoji: "🐦" },
+              { id: 7, word: "หมู", emoji: "🐷" }, { id: 8, word: "วัว", emoji: "🐮" },
+              { id: 9, word: "ไก่", emoji: "🐔" }, { id: 10, word: "กล้วย", emoji: "🍌" },
+              { id: 11, word: "ส้ม", emoji: "🍊" }, { id: 12, word: "แตงโม", emoji: "🍉" },
+            ],
+            medium: [
+              { id: 101, word: "จักรยาน", emoji: "🚲" }, { id: 102, word: "ร่ม", emoji: "☂️" },
+              { id: 103, word: "แว่นตา", emoji: "👓" }, { id: 104, word: "นาฬิกา", emoji: "⏰" },
+              { id: 105, word: "หนังสือ", emoji: "📚" }, { id: 106, word: "รถยนต์", emoji: "🚗" },
+              { id: 107, word: "เก้าอี้", emoji: "🪑" }, { id: 108, word: "เตียง", emoji: "🛏️" },
+              { id: 109, word: "เสื้อ", emoji: "👕" }, { id: 110, word: "รองเท้า", emoji: "👟" },
+              { id: 111, word: "หมวก", emoji: "🧢" }, { id: 112, word: "กระเป๋า", emoji: "🎒" },
+              { id: 113, word: "ปากกา", emoji: "🖊️" }, { id: 114, word: "โทรทัศน์", emoji: "📺" },
+              { id: 115, word: "จาน", emoji: "🍽️" },
+            ],
+            hard: [
+              { id: 201, word: "กล้องถ่ายรูป", emoji: "📷" }, { id: 202, word: "เครื่องบิน", emoji: "✈️" },
+              { id: 203, word: "โทรศัพท์", emoji: "📱" }, { id: 204, word: "กีตาร์", emoji: "🎸" },
+              { id: 205, word: "หลอดไฟ", emoji: "💡" }, { id: 206, word: "กุญแจ", emoji: "🔑" },
+              { id: 207, word: "คอมพิวเตอร์", emoji: "💻" }, { id: 208, word: "พยาบาล", emoji: "👩‍⚕️" },
+              { id: 209, word: "ตำรวจ", emoji: "👮" }, { id: 210, word: "เงิน", emoji: "💰" },
+              { id: 211, word: "หัวใจ", emoji: "❤️" }, { id: 212, word: "สมอง", emoji: "🧠" },
+              { id: 213, word: "โลก", emoji: "🌍" }, { id: 214, word: "พระอาทิตย์", emoji: "☀️" },
+              { id: 215, word: "ดวงจันทร์", emoji: "🌙" }, { id: 216, word: "จรวด", emoji: "🚀" },
+              { id: 217, word: "กล้องจุลทรรศน์", emoji: "🔬" }, { id: 218, word: "แม่เหล็ก", emoji: "🧲" },
+            ]
+          };
+
+          const gameSettings = {
+            easy: { 
+                time: 60, bonus: 10, stages: 3, pairsPerStage: 4, 
+                label: "ระดับง่าย", color: "from-green-400 to-teal-500", text: "text-teal-700", bg: "bg-green-50" 
+            },
+            medium: { 
+                time: 90, bonus: 20, stages: 3, pairsPerStage: 5, 
+                label: "ระดับกลาง", color: "from-orange-400 to-amber-500", text: "text-orange-700", bg: "bg-orange-50"
+            },
+            hard: { 
+                time: 120, bonus: 30, stages: 3, pairsPerStage: 6, 
+                label: "ระดับยาก", color: "from-rose-400 to-red-500", text: "text-rose-700", bg: "bg-rose-50"
+            }
+          };
+
+          // --- Logic Functions ---
+
+          const initGameSession = (level) => {
+            setDifficulty(level);
+            setScore(0);
+            setCurrentStage(1);
+            setTotalTimeUsed(0);
+            setIsGameOver(false);
+            
+            const settings = gameSettings[level];
+            setTotalStages(settings.stages);
+            
+            let rawVocab = [...vocabData[level]];
+            const needed = settings.stages * settings.pairsPerStage;
+            while (rawVocab.length < needed) {
+                rawVocab = [...rawVocab, ...vocabData[level]];
+            }
+
+            const shuffledDeck = rawVocab.sort(() => Math.random() - 0.5);
+            setSessionDeck(shuffledDeck);
+            startStage(1, shuffledDeck, level);
+          };
+
+          const startStage = (stageNum, deck = sessionDeck, level = difficulty) => {
+            const settings = gameSettings[level];
+            setTimeLeft(settings.time);
+            setGameState('playing');
+            setLines([]); // Reset lines for line mode
+            setDrawingLine(null);
+            pointRefs.current = {}; // Clear refs for new stage
+            
+            const startIndex = (stageNum - 1) * settings.pairsPerStage;
+            const stageVocab = deck.slice(startIndex, startIndex + settings.pairsPerStage);
+            
+            const newTargets = stageVocab.map(item => ({ ...item, matched: false, matchedWord: null })).sort(() => Math.random() - 0.5);
+            const newSources = stageVocab.map(item => ({ id: item.id, word: item.word })).sort(() => Math.random() - 0.5);
+
+            setTargets(newTargets);
+            setSources(newSources);
+          };
+
+          const handleStageClear = () => {
+              if (currentStage < totalStages) {
+                  setGameState('stage_clear');
+              } else {
+                  saveScoreToLeaderboard();
+                  setGameState('summary');
+              }
+          };
+
+          const nextStage = () => {
+              const nextStageNum = currentStage + 1;
+              setCurrentStage(nextStageNum);
+              startStage(nextStageNum);
+          };
+
+          const saveScoreToLeaderboard = () => {
+            const newEntry = { name: "คุณ (ผู้เล่นปัจจุบัน)", time: totalTimeUsed, score: score };
+            setLeaderboardData(prev => {
+                const currentList = [...prev[difficulty], newEntry];
+                const sortedList = currentList.sort((a, b) => b.score - a.score || a.time - b.time);
+                return { ...prev, [difficulty]: sortedList };
+            });
+          };
+
+          // --- LINE DRAWING Logic (Updated for Scrolling) ---
+
+          const getPointCoordinates = (id, type) => {
+              const key = `${type}-${id}`;
+              const el = pointRefs.current[key];
+              const contentWrapper = lineContentRef.current;
+              
+              if (el && contentWrapper) {
+                  // Get rect relative to viewport
+                  const elRect = el.getBoundingClientRect();
+                  const wrapperRect = contentWrapper.getBoundingClientRect();
+                  
+                  // Calculate position relative to the wrapper's top-left corner
+                  // This ensures lines move with the content when scrolling
+                  return {
+                      x: elRect.left - wrapperRect.left + elRect.width / 2,
+                      y: elRect.top - wrapperRect.top + elRect.height / 2
+                  };
+              }
+              return { x: 0, y: 0 };
+          };
+
+          const handleLineStart = (e, id, type) => {
+              e.preventDefault();
+              e.stopPropagation(); // Stop scrolling when touching a dot
+              
+              // Prevent starting if already matched
+              if (gameMode === 'line' && !lines.find(l => l.startId === id || l.endId === id)) {
+                  const coords = getPointCoordinates(id, type);
+                  setDrawingLine({
+                      startId: id,
+                      startType: type,
+                      startX: coords.x,
+                      startY: coords.y,
+                      endX: coords.x,
+                      endY: coords.y
+                  });
+              }
+          };
+
+          const handleLineMove = (e) => {
+              if (drawingLine) {
+                  e.preventDefault(); // Prevent scrolling while drawing
+                  const touch = e.touches ? e.touches[0] : e;
+                  const contentWrapper = lineContentRef.current;
+                  
+                  if (contentWrapper) {
+                      const wrapperRect = contentWrapper.getBoundingClientRect();
+                      setDrawingLine(prev => ({
+                          ...prev,
+                          endX: touch.clientX - wrapperRect.left,
+                          endY: touch.clientY - wrapperRect.top
+                      }));
+                  }
+              } else if (dragInfo.isDragging) {
+                  // Keep existing drag move logic
+                  handleDragMove(e);
+              }
+          };
+
+          const handleLineEnd = (e) => {
+              if (drawingLine) {
+                  // Check collision with opposite points
+                  const touch = e.changedTouches ? e.changedTouches[0] : e;
+                  const x = touch.clientX;
+                  const y = touch.clientY;
+                  
+                  let matchedId = null;
+                  const targetType = drawingLine.startType === 'img' ? 'word' : 'img';
+                  
+                  // Check against all opposite points
+                  Object.keys(pointRefs.current).forEach(key => {
+                      if (key.startsWith(targetType)) {
+                          const el = pointRefs.current[key];
+                          // IMPORTANT FIX: Check if el exists before calling getBoundingClientRect
+                          if (el) {
+                            const rect = el.getBoundingClientRect();
+                            // Hit test with larger margin
+                            if (x >= rect.left - 30 && x <= rect.right + 30 && y >= rect.top - 30 && y <= rect.bottom + 30) {
+                                const id = parseInt(key.split('-')[1]);
+                                matchedId = id;
+                            }
+                          }
+                      }
+                  });
+
+                  if (matchedId === drawingLine.startId) {
+                      // Correct Match
+                      const endCoords = getPointCoordinates(matchedId, targetType);
+                      setLines(prev => [...prev, {
+                          startId: drawingLine.startId,
+                          startType: drawingLine.startType,
+                          endId: matchedId,
+                          endType: targetType,
+                          startX: drawingLine.startX,
+                          startY: drawingLine.startY,
+                          endX: endCoords.x,
+                          endY: endCoords.y,
+                          color: '#22c55e' // Green
+                      }]);
+                      setScore(prev => prev + gameSettings[difficulty].bonus);
+                  }
+                  setDrawingLine(null);
+              } else if (dragInfo.isDragging) {
+                  handleDragEnd(e);
+              }
+          };
+
+          // --- DRAG Logic (Existing) ---
+          const handleDragStart = (e, item) => {
+              e.preventDefault();
+              const touch = e.touches ? e.touches[0] : e;
+              setDragInfo({ isDragging: true, draggedItem: item, x: touch.clientX, y: touch.clientY });
+          };
+          const handleDragMove = (e) => {
+            e.preventDefault();
+            const touch = e.touches ? e.touches[0] : e;
+            setDragInfo(prev => ({ ...prev, x: touch.clientX, y: touch.clientY }));
+          };
+          const handleDragEnd = (e) => {
+            const touch = e.changedTouches ? e.changedTouches[0] : e;
+            const x = touch.clientX;
+            const y = touch.clientY;
+
+            let matchedId = null;
+            Object.keys(dropZonesRef.current).forEach(targetId => {
+              const element = dropZonesRef.current[targetId];
+              if (element) {
+                const rect = element.getBoundingClientRect();
+                if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                  matchedId = parseInt(targetId);
+                }
+              }
+            });
+
+            if (matchedId && matchedId === dragInfo.draggedItem.id) {
+                 setTargets(prev => prev.map(t => t.id === matchedId ? { ...t, matched: true, matchedWord: dragInfo.draggedItem.word } : t));
+                 setSources(prev => prev.filter(s => s.id !== dragInfo.draggedItem.id));
+                 setScore(prev => prev + gameSettings[difficulty].bonus);
+            }
+            setDragInfo({ isDragging: false, draggedItem: null, x: 0, y: 0 });
+          };
+
+          // --- Effects ---
+          useEffect(() => {
+            const isInteracting = dragInfo.isDragging || drawingLine;
+            if (isInteracting) {
+                window.addEventListener('pointermove', handleLineMove, { passive: false });
+                window.addEventListener('pointerup', handleLineEnd);
+                window.addEventListener('touchmove', handleLineMove, { passive: false });
+                window.addEventListener('touchend', handleLineEnd);
+            } else {
+                window.removeEventListener('pointermove', handleLineMove);
+                window.removeEventListener('pointerup', handleLineEnd);
+                window.removeEventListener('touchmove', handleLineMove);
+                window.removeEventListener('touchend', handleLineEnd);
+            }
+            return () => {
+                window.removeEventListener('pointermove', handleLineMove);
+                window.removeEventListener('pointerup', handleLineEnd);
+                window.removeEventListener('touchmove', handleLineMove);
+                window.removeEventListener('touchend', handleLineEnd);
+            };
+          }, [dragInfo.isDragging, drawingLine]);
+
+          useEffect(() => {
+            let timer;
+            if (gameState === 'playing' && timeLeft > 0 && !isGameOver) {
+              timer = setInterval(() => {
+                setTimeLeft(prev => prev - 1);
+                setTotalTimeUsed(prev => prev + 1);
+              }, 1000);
+            } else if (timeLeft === 0 && gameState === 'playing') {
+              setIsGameOver(true);
+              setTimeout(() => setGameState('summary'), 1500);
+            }
+            
+            // Check Win Condition
+            if (gameState === 'playing') {
+                if (gameMode === 'drag' && sources.length === 0 && targets.length > 0) {
+                    setTimeout(() => handleStageClear(), 800);
+                } else if (gameMode === 'line' && lines.length === targets.length && targets.length > 0) {
+                    setTimeout(() => handleStageClear(), 800);
+                }
+            }
+            
+            return () => clearInterval(timer);
+          }, [gameState, timeLeft, isGameOver, sources.length, lines.length]);
+
+
+          // --- Render Components ---
+
+          const renderMainMenu = () => (
+            <div className="flex flex-col items-center justify-center h-full w-full px-6 bg-gradient-to-br from-blue-50 to-indigo-50 animate-fade-in relative overflow-y-auto pb-6">
+              <div className="text-center mt-4 mb-4 relative z-10 shrink-0">
+                <div className="bg-white p-4 rounded-full shadow-lg inline-block mb-2">
+                    <Heart className="w-12 h-12 text-rose-500" strokeWidth={1.5} />
+                </div>
+                <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">ฝึกสมอง</h1>
+                <h2 className="text-xl text-slate-500 font-medium">ประลองปัญญา</h2>
+              </div>
+
+              {/* Mode Selector Switch */}
+              <div className="bg-white p-1 rounded-2xl shadow-sm border border-slate-200 w-full mb-6 flex shrink-0">
+                  <button 
+                     onClick={() => setGameMode('drag')}
+                     className={`flex-1 py-3 rounded-xl flex items-center justify-center font-bold text-sm transition-all
+                     ${gameMode === 'drag' ? 'bg-indigo-100 text-indigo-700 shadow-sm' : 'text-slate-400 hover:bg-slate-50'}`}
+                  >
+                      <Hand className="w-4 h-4 mr-2" /> ลากวางคำศัพท์
+                  </button>
+                  <button 
+                     onClick={() => setGameMode('line')}
+                     className={`flex-1 py-3 rounded-xl flex items-center justify-center font-bold text-sm transition-all
+                     ${gameMode === 'line' ? 'bg-indigo-100 text-indigo-700 shadow-sm' : 'text-slate-400 hover:bg-slate-50'}`}
+                  >
+                      <GripVertical className="w-4 h-4 mr-2" /> ลากเส้นจับคู่
+                  </button>
+              </div>
+
+              <div className="w-full space-y-3 z-10">
+                {['easy', 'medium', 'hard'].map((level) => (
+                    <button 
+                      key={level}
+                      onClick={() => initGameSession(level)}
+                      className={`w-full p-4 rounded-2xl flex items-center justify-between transition-all transform active:scale-95 shadow-lg border-b-4 
+                        bg-gradient-to-r ${gameSettings[level].color} text-white border-white/20`}
+                    >
+                      <div className="flex items-center">
+                        <span className="text-3xl mr-4 bg-white/20 w-12 h-12 flex items-center justify-center rounded-xl backdrop-blur-sm">
+                            {level === 'easy' ? '🌱' : level === 'medium' ? '🌟' : '🔥'}
+                        </span>
+                        <div className="text-left">
+                          <div className="text-lg font-bold">{gameSettings[level].label}</div>
+                          <div className="text-xs opacity-90 font-light">
+                              {gameSettings[level].stages} ด่าน • {gameSettings[level].time} วิ
+                          </div>
+                        </div>
+                      </div>
+                      <Play size={24} fill="currentColor" />
+                    </button>
+                ))}
+
+                <button 
+                    onClick={() => { setActiveLeaderboardTab('easy'); setGameState('leaderboard'); }}
+                    className="w-full p-4 mt-2 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-slate-50 transition-colors shrink-0"
+                >
+                    <Crown className="mr-2 text-yellow-500" /> อันดับผู้เล่น
+                </button>
+              </div>
+            </div>
+          );
+
+          const renderGameHeader = () => (
+              <div className="flex justify-between items-center bg-white px-5 py-3 rounded-b-[2rem] shadow-sm z-20 shrink-0 border-b border-slate-100">
+                <div className="flex flex-col">
+                    <div className="flex items-center text-amber-500">
+                        <Trophy className="w-6 h-6 mr-1" />
+                        <span className="text-2xl font-bold">{score}</span>
+                    </div>
+                    <div className="text-xs text-slate-400 font-semibold mt-1 bg-slate-100 px-2 py-0.5 rounded-full inline-flex items-center">
+                        ด่าน {currentStage}/{totalStages}
+                    </div>
+                </div>
+                
+                <div className={`flex flex-col items-end`}>
+                    <div className={`flex items-center px-3 py-1 rounded-full ${timeLeft < 20 ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-blue-50 text-blue-600'}`}>
+                        <Clock className="w-4 h-4 mr-2" />
+                        <span className="text-xl font-mono font-bold">
+                            {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+                        </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1">เวลา</div>
+                </div>
+              </div>
+          );
+
+          const renderDragGame = () => (
+              <>
+                {/* Drop Zones (Images) */}
+                <div className={`flex-1 overflow-y-auto p-4 ${gameSettings[difficulty].bg} min-h-0`}>
+                    <div className="grid grid-cols-2 gap-3 pb-20">
+                        {targets.map((target) => (
+                            <div 
+                                key={target.id}
+                                ref={el => dropZonesRef.current[target.id] = el}
+                                className={`
+                                    relative flex flex-col items-center p-3 rounded-2xl border-[3px] transition-all shadow-sm
+                                    ${target.matched 
+                                        ? 'bg-green-50 border-green-400 scale-95 opacity-80' 
+                                        : 'bg-white border-slate-200 border-dashed'}
+                                `}
+                            >
+                                <div className="text-5xl mb-2 filter drop-shadow-sm">{target.emoji}</div>
+                                <div className={`
+                                    w-full h-10 rounded-xl flex items-center justify-center text-base font-bold transition-colors
+                                    ${target.matched ? 'bg-green-500 text-white shadow-sm' : 'bg-slate-100 text-slate-300'}
+                                `}>
+                                    {target.matched ? target.matchedWord : <div className="w-2 h-2 bg-slate-300 rounded-full"></div>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Draggable Sources (Words) */}
+                <div className="h-[25%] min-h-[140px] bg-white rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-20 flex flex-col shrink-0 relative">
+                    <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-3 mb-2 shrink-0"></div>
+                    <div className="text-center text-xs text-slate-400 mb-2 font-medium">ลากคำศัพท์ขึ้นไปวาง</div>
+                    <div className="flex-1 overflow-y-auto px-4 pb-4">
+                        <div className="flex flex-wrap gap-2 justify-center content-start">
+                            {sources.map((source) => (
+                                <div
+                                    key={source.id}
+                                    onPointerDown={(e) => handleDragStart(e, source)}
+                                    className={`
+                                        px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-[0_2px_0_rgb(226,232,240)] 
+                                        text-slate-700 font-bold text-lg cursor-grab active:cursor-grabbing touch-none select-none
+                                        transform transition-all active:scale-90 active:bg-blue-50 active:border-blue-200 active:shadow-none
+                                        ${dragInfo.draggedItem?.id === source.id ? 'opacity-0' : 'opacity-100'} 
+                                    `}
+                                >
+                                    {source.word}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+              </>
+          );
+
+          const renderLineGame = () => (
+              <div className={`flex-1 relative flex flex-col ${gameSettings[difficulty].bg}`}>
+                  
+                  {/* Scrollable Container */}
+                  <div className="flex-1 overflow-y-auto relative" ref={lineContainerRef}>
+                      
+                      {/* Content Wrapper - SVG lives inside here to scroll with content */}
+                      <div className="min-h-full flex flex-row w-full p-4 relative" ref={lineContentRef}>
+                          
+                          {/* SVG Overlay */}
+                          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                              {lines.map((line, i) => (
+                                  <line 
+                                    key={i} 
+                                    x1={line.startX} y1={line.startY} x2={line.endX} y2={line.endY} 
+                                    stroke={line.color} strokeWidth="6" strokeLinecap="round" strokeOpacity="0.6"
+                                  />
+                              ))}
+                              {drawingLine && (
+                                  <line 
+                                    x1={drawingLine.startX} y1={drawingLine.startY} x2={drawingLine.endX} y2={drawingLine.endY} 
+                                    stroke="#6366f1" strokeWidth="6" strokeLinecap="round" strokeDasharray="10,10"
+                                  />
+                              )}
+                          </svg>
+
+                          {/* Left Column: Images */}
+                          <div className="flex flex-col gap-6 w-1/2 z-20 py-4 pr-2">
+                              {targets.map(item => {
+                                  const isMatched = lines.some(l => l.startId === item.id || l.endId === item.id);
+                                  return (
+                                    <div key={item.id} className="relative flex items-center justify-end h-24">
+                                        <div className={`
+                                            w-full h-full max-w-[120px] bg-white rounded-3xl shadow-sm border-[3px] flex items-center justify-center text-5xl
+                                            transition-all duration-300
+                                            ${isMatched ? 'border-green-400 bg-green-50 scale-95 opacity-90' : 'border-slate-200'}
+                                        `}>
+                                            {item.emoji}
+                                        </div>
+                                        {/* Connector Dot */}
+                                        <div 
+                                            ref={el => pointRefs.current[`img-${item.id}`] = el}
+                                            onPointerDown={(e) => handleLineStart(e, item.id, 'img')}
+                                            className={`
+                                                absolute -right-4 w-8 h-8 rounded-full border-4 z-30 flex items-center justify-center shadow-md bg-white cursor-pointer active:scale-125 transition-transform
+                                                ${isMatched ? 'border-green-500' : 'border-indigo-400'}
+                                            `}
+                                        >
+                                            <div className={`w-3 h-3 rounded-full ${isMatched ? 'bg-green-500' : 'bg-indigo-400'}`}></div>
+                                        </div>
+                                    </div>
+                                  );
+                              })}
+                          </div>
+
+                          {/* Center Space for Lines */}
+                          <div className="w-12 shrink-0"></div>
+
+                          {/* Right Column: Words */}
+                          <div className="flex flex-col gap-6 w-1/2 z-20 py-4 pl-2">
+                              {sources.map(item => {
+                                  const isMatched = lines.some(l => l.startId === item.id || l.endId === item.id);
+                                  return (
+                                    <div key={item.id} className="relative flex items-center justify-start h-24">
+                                         {/* Connector Dot */}
+                                         <div 
+                                            ref={el => pointRefs.current[`word-${item.id}`] = el}
+                                            onPointerDown={(e) => handleLineStart(e, item.id, 'word')}
+                                            className={`
+                                                absolute -left-4 w-8 h-8 rounded-full border-4 z-30 flex items-center justify-center shadow-md bg-white cursor-pointer active:scale-125 transition-transform
+                                                ${isMatched ? 'border-green-500' : 'border-indigo-400'}
+                                            `}
+                                        >
+                                            <div className={`w-3 h-3 rounded-full ${isMatched ? 'bg-green-500' : 'bg-indigo-400'}`}></div>
+                                        </div>
+
+                                        <div className={`
+                                            w-full h-full max-w-[120px] bg-white rounded-3xl shadow-sm border-[3px] flex items-center justify-center font-bold text-xl
+                                            transition-all duration-300
+                                            ${isMatched ? 'border-green-400 bg-green-50 text-green-800 scale-95 opacity-90' : 'border-slate-200 text-slate-700'}
+                                        `}>
+                                            {item.word}
+                                        </div>
+                                    </div>
+                                  );
+                              })}
+                          </div>
+
+                      </div>
+                  </div>
+                  
+                  <div className="text-center text-slate-500 text-sm py-3 font-medium bg-white/60 backdrop-blur-md shrink-0 z-30 border-t border-slate-100 shadow-sm">
+                      ลากเส้นจากจุดสี <span className="inline-block w-3 h-3 rounded-full bg-indigo-400 mx-1"></span> ไปยังคู่ที่ถูกต้อง
+                  </div>
+              </div>
+          );
+
+          const renderGame = () => (
+            <div className="flex flex-col h-full bg-slate-50 w-full">
+              {renderGameHeader()}
+              
+              {/* Container ensures no overflow outside */}
+              <div className="flex-1 flex flex-col overflow-hidden relative w-full">
+                  {gameMode === 'drag' ? renderDragGame() : renderLineGame()}
+              
+                  {/* Drag Ghost Layer */}
+                  {dragInfo.isDragging && (
+                    <div 
+                        className="fixed pointer-events-none z-50 px-5 py-2.5 bg-blue-600 text-white font-bold text-lg rounded-xl shadow-2xl border-2 border-white/50 transform -translate-x-1/2 -translate-y-1/2 backdrop-blur-sm whitespace-nowrap"
+                        style={{ left: dragInfo.x, top: dragInfo.y }}
+                    >
+                        {dragInfo.draggedItem.word}
+                    </div>
+                )}
+              </div>
+
+              <div className="bg-white px-4 pb-4 pt-2 shrink-0 border-t border-slate-100">
+                <button onClick={() => setGameState('menu')} className="w-full py-3 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 text-sm font-medium transition-colors">
+                  ยกเลิกเกม
+                </button>
+              </div>
+            </div>
+          );
+
+          const renderStageClear = () => (
+            <div className="flex flex-col h-full w-full bg-white animate-fade-in items-center justify-center p-8 text-center space-y-8 relative overflow-hidden">
+                <div className="absolute inset-0 bg-green-50 z-0"></div>
+                <div className="relative z-10 flex flex-col items-center">
+                    <div className="bg-white p-6 rounded-full shadow-xl mb-6 ring-4 ring-green-100">
+                        <CheckCircle className="w-24 h-24 text-green-500" />
+                    </div>
+                    <h2 className="text-3xl font-extrabold text-slate-800 mb-2">ผ่านด่าน {currentStage}!</h2>
+                    <p className="text-slate-500 text-lg">ยอดเยี่ยมมาก</p>
+                </div>
+                
+                <button 
+                  onClick={nextStage}
+                  className="relative z-10 w-full max-w-xs bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xl font-bold p-5 rounded-2xl flex items-center justify-center shadow-lg active:scale-95"
+                >
+                  ไปด่านต่อไป <ArrowRight className="ml-2 w-6 h-6" />
+                </button>
+            </div>
+          );
+
+          const renderSummary = () => (
+            <div className="flex flex-col h-full w-full bg-white animate-fade-in">
+              <div className={`bg-gradient-to-br ${gameSettings[difficulty].color} p-8 rounded-b-[3rem] text-center shadow-lg mb-6 relative shrink-0`}>
+                <div className="relative z-10">
+                    <h2 className="text-3xl font-bold text-white mb-2">จบเกมแล้ว!</h2>
+                    <div className="text-white/80 text-lg font-medium">{gameSettings[difficulty].label}</div>
+                    
+                    <div className="mt-8 flex justify-center gap-4">
+                        <div className="bg-white/20 backdrop-blur-md rounded-2xl p-4 min-w-[100px]">
+                            <div className="text-xs font-bold text-white/70 uppercase">คะแนน</div>
+                            <div className="text-4xl font-extrabold text-white mt-1">{score}</div>
+                        </div>
+                    </div>
+                </div>
+              </div>
+
+              <div className="flex-1 px-8 flex flex-col items-center justify-center space-y-4">
+                <button 
+                  onClick={() => { setActiveLeaderboardTab(difficulty); setGameState('leaderboard'); }}
+                  className="w-full bg-white border-2 border-slate-100 text-slate-600 text-lg font-bold p-4 rounded-2xl flex items-center justify-center shadow-sm"
+                >
+                  <Crown className="mr-3 w-5 h-5 text-yellow-500" /> ดูอันดับคะแนน
+                </button>
+
+                <button 
+                  onClick={() => setGameState('menu')}
+                  className="w-full bg-indigo-600 text-white text-lg font-bold p-4 rounded-2xl flex items-center justify-center shadow-lg active:scale-95"
+                >
+                  <Home className="mr-3 w-5 h-5" /> กลับหน้าหลัก
+                </button>
+              </div>
+            </div>
+          );
+
+          const renderLeaderboard = () => {
+            const data = leaderboardData[activeLeaderboardTab];
+            return (
+                <div className="flex flex-col h-full w-full bg-slate-50 animate-fade-in">
+                    <div className="bg-white px-6 pt-6 pb-4 rounded-b-[2rem] shadow-sm z-10 shrink-0">
+                        <div className="flex items-center justify-between mb-4">
+                            <button onClick={() => setGameState('menu')} className="p-2 bg-slate-100 rounded-full">
+                                <Home className="w-5 h-5 text-slate-600" />
+                            </button>
+                            <h2 className="text-xl font-bold text-slate-800">กระดานผู้นำ</h2>
+                            <div className="w-9"></div>
+                        </div>
+                        <div className="flex bg-slate-100 p-1 rounded-xl">
+                            {['easy', 'medium', 'hard'].map(tab => (
+                                <button key={tab} onClick={() => setActiveLeaderboardTab(tab)}
+                                    className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeLeaderboardTab === tab ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}>
+                                    {gameSettings[tab].label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {data.map((player, index) => (
+                            <div key={index} className="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                     <div className={`w-8 h-8 flex items-center justify-center rounded-full font-bold ${index < 3 ? 'bg-yellow-100 text-yellow-600' : 'bg-slate-100 text-slate-500'}`}>{index + 1}</div>
+                                     <div className="font-bold text-slate-700">{player.name}</div>
+                                </div>
+                                <div className="font-bold text-indigo-600">{player.score}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+          };
+
+          return (
+            <div className="bg-gray-800 min-h-screen flex items-center justify-center font-sans select-none p-0 md:p-4">
+              {/* Main Container - Mobile Sized */}
+              <div className="relative w-full h-[100dvh] md:h-[800px] md:w-[400px] bg-white md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border-0 md:border-[8px] border-slate-800 ring-1 ring-white/20">
+                <div className="flex-1 bg-slate-50 overflow-hidden relative flex flex-col">
+                      {gameState === 'menu' && renderMainMenu()}
+                      {gameState === 'playing' && renderGame()}
+                      {gameState === 'stage_clear' && renderStageClear()}
+                      {gameState === 'summary' && renderSummary()}
+                      {gameState === 'leaderboard' && renderLeaderboard()}
+                </div>
+                {/* Mobile Home Bar Indicator */}
+                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-slate-300 rounded-full opacity-50 pointer-events-none md:hidden"></div>
+              </div>
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ElderlyCognitiveGame />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Market Balance - ตาชั่งตราชู (Mobile)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #fdfbf7;
+            --pastel-peach: #ffcba4;
+            --pastel-mint: #aaffc3;
+            --pastel-sky: #bae1ff;
+            --pastel-yellow: #ffffba;
+            --text-dark: #475569;
+            --border-color: #cbd5e1;
+        }
+
+        body {
+            font-family: 'Mitr', sans-serif;
+            background-color: #334155; /* Dark background outside the mobile frame */
+            color: var(--text-dark);
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100dvh;
+            margin: 0;
+        }
+
+        /* Mobile Container (9:16 Aspect Ratio emulation on desktop, full screen on mobile) */
+        #app-container {
+            width: 100%;
+            max-width: 430px; /* iPhone Pro Max width approx */
+            height: 100dvh;
+            max-height: 932px;
+            background-color: var(--bg-cream);
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Paper Cut Effects */
+        .paper-panel {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 3px solid var(--border-color);
+            border-radius: 24px;
+            box-shadow: 4px 6px 0px rgba(0, 0, 0, 0.08);
+        }
+
+        .paper-btn {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+            border: 3px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: 3px 5px 0px rgba(0, 0, 0, 0.1);
+            transition: all 0.1s ease;
+            cursor: pointer;
+        }
+
+        .paper-btn:active {
+            transform: translate(2px, 4px);
+            box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.1);
+        }
+
+        .paper-btn-primary {
+            background: linear-gradient(135deg, var(--pastel-sky) 0%, #99ccff 100%);
+            border-color: #6ba8ff;
+        }
+
+        .item-svg {
+            filter: drop-shadow(2px 4px 0px rgba(0,0,0,0.15));
+            cursor: grab;
+            transition: transform 0.2s;
+        }
+        
+        .item-svg:active {
+            cursor: grabbing;
+        }
+
+        /* Animations */
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-8deg); }
+            50% { transform: rotate(8deg); }
+            75% { transform: rotate(-8deg); }
+        }
+
+        .wiggle-anim {
+            animation: wiggle 0.4s ease-in-out;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            animation: fall 2s linear forwards;
+            z-index: 50;
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(800px) rotate(360deg); opacity: 0; }
+        }
+
+        /* Scale Visuals */
+        .scale-base {
+            fill: #e2e8f0;
+            stroke: var(--text-dark);
+            stroke-width: 4;
+            stroke-linejoin: round;
+        }
+        .scale-beam {
+            fill: var(--pastel-yellow);
+            stroke: var(--text-dark);
+            stroke-width: 4;
+            stroke-linecap: round;
+            transform-origin: 300px 200px;
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .scale-pan {
+            fill: #ffffff;
+            stroke: var(--text-dark);
+            stroke-width: 4;
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .item-container {
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Responsive UI hiding for height */
+        @media (max-height: 700px) {
+            .hide-on-short { display: none; }
+            .reduce-pad-on-short { padding: 0.5rem !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <!-- Screen: Main Menu -->
+        <div id="screen-start" class="w-full h-full p-6 flex flex-col items-center justify-center space-y-4 text-center z-10 relative">
+            <!-- BG Elements -->
+            <div class="absolute top-10 left-[-20px] opacity-20 transform rotate-12 scale-150 pointer-events-none">🍍</div>
+            <div class="absolute bottom-20 right-[-10px] opacity-20 transform -rotate-12 scale-150 pointer-events-none">🍉</div>
+            
+            <h1 class="text-4xl sm:text-5xl font-semibold mb-1" style="color: #ff9a76; text-shadow: 2px 2px 0px #fff;">Market Balance</h1>
+            <h2 class="text-xl font-medium text-slate-500 mb-2 bg-white/50 px-4 py-1 rounded-full">(ตาชั่งตราชู)</h2>
+            
+            <div class="paper-panel p-4 mb-4 w-full bg-white/90">
+                <p class="text-base sm:text-lg leading-relaxed text-slate-600">
+                    วางสิ่งของบนตาชั่งฝั่งขวา<br>ให้สมดุลพอดีกับฝั่งซ้าย เพื่อผ่านด่าน!
+                </p>
+            </div>
+            
+            <div class="w-full flex flex-col gap-3">
+                <button class="paper-btn p-3 flex flex-col items-center bg-gradient-to-r from-green-50 to-green-100" onclick="startGame('easy')">
+                    <span class="text-xl font-semibold text-green-700">🟢 ง่าย (Easy)</span>
+                    <span class="text-sm text-slate-600 mt-1">กะน้ำหนักด้วยสิ่งของที่ต่างกัน</span>
+                </button>
+                <button class="paper-btn p-3 flex flex-col items-center bg-gradient-to-r from-orange-50 to-orange-100" onclick="startGame('medium')">
+                    <span class="text-xl font-semibold text-orange-600">🟠 ปานกลาง (Medium)</span>
+                    <span class="text-sm text-slate-600 mt-1">สิ่งของผสมกัน ของเล่น/ผลไม้</span>
+                </button>
+                <button class="paper-btn p-3 flex flex-col items-center bg-gradient-to-r from-red-50 to-red-100" onclick="startGame('hard')">
+                    <span class="text-xl font-semibold text-red-600">🔴 ยาก (Hard)</span>
+                    <span class="text-sm text-slate-600 mt-1">บวกลบตุ้มน้ำหนัก และพัสดุ</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Screen: GamePlay -->
+        <div id="screen-game" class="hidden w-full h-full flex flex-col relative">
+            
+            <!-- Top Bar -->
+            <div class="flex justify-between items-center p-3 bg-white/80 backdrop-blur-sm border-b-2 border-slate-200 z-30">
+                <button class="paper-btn px-3 py-2 text-lg font-medium text-slate-600 flex items-center gap-1 active:bg-slate-100" onclick="backToMenu()">
+                    🔙 <span class="hidden sm:inline">หน้าหลัก</span>
+                </button>
+                <div class="paper-panel px-4 py-1 text-lg font-semibold text-orange-500 flex items-center gap-1">
+                    ⭐ <span id="score-display">0</span>
+                </div>
+                <div class="paper-panel px-4 py-1 text-lg font-semibold text-sky-500 flex items-center gap-1">
+                    ⏱️ <span id="time-display">03:00</span>
+                </div>
+            </div>
+
+            <!-- Hint text -->
+            <div class="text-center text-sm text-slate-500 font-medium py-2 bg-slate-50 border-b border-slate-200 z-20">
+                ลากของจากด้านล่าง ไปใส่จานขวา (สีฟ้า)
+            </div>
+
+            <!-- Scale Area -->
+            <div id="scale-area" class="flex-1 relative flex items-center justify-center -mt-4 z-10">
+                <svg id="scale-svg" class="w-full max-h-[350px]" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid meet">
+                    <!-- Base -->
+                    <path d="M 220 450 L 380 450 L 330 200 L 270 200 Z" class="scale-base" />
+                    <circle cx="300" cy="200" r="15" fill="#475569" />
+                    
+                    <!-- Rotating Part -->
+                    <g id="scale-beam-group">
+                        <!-- Beam -->
+                        <rect x="80" y="190" width="440" height="20" rx="10" class="scale-beam" />
+                        
+                        <!-- Left Pan Group (Pivot at 100, 200) -->
+                        <g id="pan-left-group" style="transform-origin: 100px 200px;">
+                            <line x1="100" y1="200" x2="40" y2="380" stroke="#475569" stroke-width="4" />
+                            <line x1="100" y1="200" x2="160" y2="380" stroke="#475569" stroke-width="4" />
+                            <path d="M 20 380 Q 100 440 180 380 Z" fill="#ffcba4" stroke="#475569" stroke-width="4" />
+                        </g>
+                        
+                        <!-- Right Pan Group (Pivot at 500, 200) -->
+                        <g id="pan-right-group" style="transform-origin: 500px 200px;">
+                            <line x1="500" y1="200" x2="440" y2="380" stroke="#475569" stroke-width="4" />
+                            <line x1="500" y1="200" x2="560" y2="380" stroke="#475569" stroke-width="4" />
+                            <path d="M 420 380 Q 500 440 580 380 Z" fill="#bae1ff" stroke="#475569" stroke-width="4" />
+                        </g>
+                    </g>
+                </svg>
+
+                <!-- Items on Left Pan (Absolute over SVG) -->
+                <!-- x-position based on SVG viewBox (100/600 = 16.66%) -->
+                <div id="left-pan-items" class="absolute flex flex-wrap-reverse justify-center items-end item-container w-28 h-28 sm:w-32 sm:h-32 pointer-events-none" style="left: calc(16.66% - 56px); bottom: 25%;">
+                    <!-- Left items generated by JS -->
+                </div>
+
+                <!-- Items on Right Pan (Absolute over SVG) -->
+                <!-- x-position based on SVG viewBox (500/600 = 83.33%) -->
+                <div id="right-pan-items" class="absolute flex flex-wrap-reverse justify-center items-end item-container w-28 h-28 sm:w-32 sm:h-32 z-20" style="left: calc(83.33% - 56px); bottom: 25%;">
+                    <!-- Right items dropped here -->
+                </div>
+            </div>
+
+            <!-- Controls & Check Button -->
+            <div class="flex justify-center -mt-6 mb-2 z-30">
+                <button class="paper-btn paper-btn-primary px-8 py-3 text-xl font-bold flex items-center gap-2" onclick="checkBalance()">
+                    ⚖️ ชั่งน้ำหนัก
+                </button>
+            </div>
+
+            <!-- Inventory Area -->
+            <div class="h-44 sm:h-52 bg-slate-100 border-t-4 border-slate-300 p-2 sm:p-4 pb-6 flex flex-col z-20">
+                <div class="text-sm text-slate-500 font-medium mb-1 text-center bg-white rounded-full py-1 mx-4 shadow-sm">
+                    ✨ คลังของ (แตะที่จานฟ้าเพื่อดึงของกลับ)
+                </div>
+                <!-- Wrap in relative for smooth horizontal scroll -->
+                <div class="flex-1 w-full overflow-x-auto touch-pan-x hide-scrollbar mt-1">
+                    <div id="inventory-items" class="flex items-center gap-3 px-2 h-full min-w-max">
+                        <!-- Draggable items generated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen: Game Over -->
+        <div id="screen-end" class="hidden w-full h-full bg-slate-800/90 flex flex-col items-center justify-center space-y-6 text-center z-50 absolute top-0 left-0 p-6">
+            <div class="paper-panel w-full max-w-sm p-8 flex flex-col items-center">
+                <h1 class="text-4xl font-bold text-slate-700">หมดเวลา!</h1>
+                <h2 class="text-xl text-slate-600 mt-2">คะแนนรวมของคุณ</h2>
+                <div class="text-6xl font-bold text-orange-500 my-4 bg-orange-50 px-8 py-4 rounded-3xl border-4 border-orange-100" id="final-score">
+                    0
+                </div>
+                <div class="flex flex-col gap-3 w-full mt-2">
+                    <button class="paper-btn py-3 text-xl font-bold bg-gradient-to-r from-mint-50 to-green-100 text-green-700" onclick="restartGame()">
+                        🔄 เล่นใหม่อีกครั้ง
+                    </button>
+                    <button class="paper-btn py-3 text-lg font-bold text-slate-600" onclick="backToMenu()">
+                        🏠 กลับหน้าหลัก
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Drag Clone container -->
+        <div id="drag-layer" class="fixed top-0 left-0 w-full h-full pointer-events-none z-[100]"></div>
+
+    </div>
+
+    <style>
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+
+    <script>
+        // --- 1. Audio Setup (Web Audio API) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSoftChime() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+            osc.frequency.exponentialRampToValueAtTime(1046.50, audioCtx.currentTime + 0.1); 
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+            
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 1);
+        }
+
+        function playThud() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+            
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function playWiggleSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.frequency.setValueAtTime(250, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(230, audioCtx.currentTime + 0.2);
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.1);
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+            
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.3);
+        }
+
+        // --- 2. SVGs & Items Data ---
+        // Enhanced Item Graphics for more variety
+        const itemGraphics = {
+            // Fruits
+            strawberry: `<svg class="w-12 h-12 item-svg" viewBox="0 0 100 100"><path d="M 30 25 Q 50 95 70 25 Z" fill="#ff4d4d" stroke="#475569" stroke-width="4"/><path d="M 40 15 Q 50 5 60 15 Z" fill="#aaffc3" stroke="#475569" stroke-width="3"/><circle cx="45" cy="40" r="2" fill="#fff"/><circle cx="55" cy="50" r="2" fill="#fff"/><circle cx="50" cy="65" r="2" fill="#fff"/></svg>`,
+            apple: `<svg class="w-14 h-14 item-svg" viewBox="0 0 100 100"><circle cx="50" cy="55" r="35" fill="#ff9999" stroke="#475569" stroke-width="4"/><path d="M 50 20 Q 60 5 70 15" fill="none" stroke="#aaffc3" stroke-width="6" stroke-linecap="round"/></svg>`,
+            orange: `<svg class="w-14 h-14 item-svg" viewBox="0 0 100 100"><circle cx="50" cy="55" r="35" fill="#ffcba4" stroke="#475569" stroke-width="4"/><circle cx="40" cy="45" r="2" fill="#ffb480"/><circle cx="60" cy="55" r="2" fill="#ffb480"/><path d="M 50 20 Q 55 10 65 15" fill="none" stroke="#aaffc3" stroke-width="6" stroke-linecap="round"/></svg>`,
+            banana: `<svg class="w-16 h-16 item-svg" viewBox="0 0 100 100"><path d="M 20 80 Q 40 100 80 20 Q 50 60 20 80 Z" fill="#ffe135" stroke="#475569" stroke-width="4"/><circle cx="80" cy="20" r="4" fill="#475569"/></svg>`,
+            watermelon: `<svg class="w-20 h-20 item-svg" viewBox="0 0 100 100"><path d="M 15 50 A 35 35 0 0 0 85 50 Z" fill="#ff9999" stroke="#475569" stroke-width="4"/><path d="M 15 50 A 35 35 0 0 0 85 50 Z" fill="none" stroke="#aaffc3" stroke-width="8"/><circle cx="35" cy="60" r="2" fill="#475569"/><circle cx="50" cy="70" r="2" fill="#475569"/><circle cx="65" cy="60" r="2" fill="#475569"/></svg>`,
+            pineapple: `<svg class="w-16 h-20 item-svg" viewBox="0 0 100 100"><ellipse cx="50" cy="65" rx="25" ry="30" fill="#f0e68c" stroke="#475569" stroke-width="4"/><path d="M 35 35 L 50 10 L 65 35 Z" fill="#aaffc3" stroke="#475569" stroke-width="3"/><path d="M 45 35 L 50 5 L 55 35 Z" fill="#8fdfa3" stroke="#475569" stroke-width="3"/><line x1="30" y1="50" x2="70" y2="80" stroke="#475569" stroke-width="2"/><line x1="70" y1="50" x2="30" y2="80" stroke="#475569" stroke-width="2"/></svg>`,
+            
+            // Objects
+            book: `<svg class="w-16 h-16 item-svg" viewBox="0 0 100 100"><rect x="25" y="20" width="50" height="60" rx="4" fill="#a0c4ff" stroke="#475569" stroke-width="4"/><line x1="35" y1="20" x2="35" y2="80" stroke="#475569" stroke-width="2"/><rect x="45" y="35" width="20" height="8" fill="#fff" rx="2"/></svg>`,
+            milk: `<svg class="w-14 h-20 item-svg" viewBox="0 0 100 100"><polygon points="30,30 50,15 70,30" fill="#bae1ff" stroke="#475569" stroke-width="4"/><rect x="30" y="30" width="40" height="55" fill="#fff" stroke="#475569" stroke-width="4"/><text x="50" y="65" font-family="Mitr" font-size="16" font-weight="bold" text-anchor="middle" fill="#475569">MILK</text></svg>`,
+            toy_car: `<svg class="w-20 h-16 item-svg" viewBox="0 0 100 100"><path d="M 20 60 L 20 45 L 35 30 L 65 30 L 80 45 L 80 60 Z" fill="#ffadad" stroke="#475569" stroke-width="4"/><circle cx="35" cy="65" r="8" fill="#475569"/><circle cx="65" cy="65" r="8" fill="#475569"/><rect x="40" y="35" width="20" height="10" fill="#bae1ff" stroke="#475569" stroke-width="2"/></svg>`,
+
+            // Weights & Boxes
+            weight1: `<svg class="w-12 h-12 item-svg" viewBox="0 0 100 100"><path d="M 30 30 L 70 30 L 80 90 L 20 90 Z" fill="#bae1ff" stroke="#475569" stroke-width="4"/><path d="M 40 30 L 40 15 A 10 10 0 0 1 60 15 L 60 30" fill="none" stroke="#475569" stroke-width="4"/><text x="50" y="70" font-family="Mitr" font-weight="600" font-size="28" text-anchor="middle" fill="#475569">1</text></svg>`,
+            weight2: `<svg class="w-14 h-14 item-svg" viewBox="0 0 100 100"><path d="M 25 25 L 75 25 L 85 90 L 15 90 Z" fill="#bae1ff" stroke="#475569" stroke-width="4"/><path d="M 40 25 L 40 10 A 10 10 0 0 1 60 10 L 60 25" fill="none" stroke="#475569" stroke-width="4"/><text x="50" y="70" font-family="Mitr" font-weight="600" font-size="28" text-anchor="middle" fill="#475569">2</text></svg>`,
+            weight3: `<svg class="w-16 h-16 item-svg" viewBox="0 0 100 100"><path d="M 20 25 L 80 25 L 90 90 L 10 90 Z" fill="#bae1ff" stroke="#475569" stroke-width="4"/><path d="M 40 25 L 40 10 A 10 10 0 0 1 60 10 L 60 25" fill="none" stroke="#475569" stroke-width="4"/><text x="50" y="70" font-family="Mitr" font-weight="600" font-size="28" text-anchor="middle" fill="#475569">3</text></svg>`,
+            weight5: `<svg class="w-20 h-20 item-svg" viewBox="0 0 100 100"><path d="M 15 25 L 85 25 L 95 90 L 5 90 Z" fill="#bae1ff" stroke="#475569" stroke-width="4"/><path d="M 35 25 L 35 10 A 15 15 0 0 1 65 10 L 65 25" fill="none" stroke="#475569" stroke-width="4"/><text x="50" y="70" font-family="Mitr" font-weight="600" font-size="28" text-anchor="middle" fill="#475569">5</text></svg>`,
+            box5: `<svg class="w-20 h-20 item-svg" viewBox="0 0 100 100"><rect x="15" y="30" width="70" height="55" rx="5" fill="#ffcba4" stroke="#475569" stroke-width="4"/><line x1="15" y1="50" x2="85" y2="50" stroke="#475569" stroke-width="4"/><text x="50" y="75" font-family="Mitr" font-weight="600" font-size="20" text-anchor="middle" fill="#475569">5kg</text></svg>`,
+            box7: `<svg class="w-24 h-24 item-svg" viewBox="0 0 100 100"><rect x="10" y="20" width="80" height="70" rx="5" fill="#ffffba" stroke="#475569" stroke-width="4"/><line x1="10" y1="45" x2="90" y2="45" stroke="#475569" stroke-width="4"/><text x="50" y="75" font-family="Mitr" font-weight="600" font-size="24" text-anchor="middle" fill="#475569">7kg</text></svg>`
+        };
+
+        const itemWeights = {
+            strawberry: 1, orange: 1, apple: 2, book: 2, 
+            banana: 3, milk: 3, toy_car: 4, 
+            watermelon: 5, pineapple: 6,
+            weight1: 1, weight2: 2, weight3: 3, weight5: 5,
+            box5: 5, box7: 7
+        };
+
+        // Categorize for Level Gen
+        const C_FRUITS = ['strawberry', 'orange', 'apple', 'banana', 'watermelon', 'pineapple'];
+        const C_OBJECTS = ['book', 'milk', 'toy_car'];
+        const C_WEIGHTS = ['weight1', 'weight2', 'weight3', 'weight5'];
+        const C_BOXES = ['box5', 'box7'];
+
+        // --- 3. Game State ---
+        let state = {
+            difficulty: 'easy',
+            score: 0,
+            timeLeft: 180, // 3 minutes
+            timerId: null,
+            targetWeight: 0,
+            currentRightWeight: 0,
+            leftPanItems: [],
+            rightPanItems: [],
+            inventoryList: [] 
+        };
+
+        // --- 4. Logic & Setup ---
+        function startGame(difficulty) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            state.difficulty = difficulty;
+            state.score = 0;
+            state.timeLeft = 180;
+            updateScoreUI();
+            updateTimeUI();
+            
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            document.getElementById('screen-end').classList.add('hidden');
+            
+            if(state.timerId) clearInterval(state.timerId);
+            state.timerId = setInterval(tickTimer, 1000);
+            
+            loadLevel();
+        }
+
+        function restartGame() {
+            startGame(state.difficulty);
+        }
+
+        function backToMenu() {
+            if(state.timerId) clearInterval(state.timerId);
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-end').classList.add('hidden');
+            document.getElementById('screen-start').classList.remove('hidden');
+        }
+
+        function tickTimer() {
+            state.timeLeft--;
+            updateTimeUI();
+            if (state.timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function updateTimeUI() {
+            let m = Math.floor(state.timeLeft / 60).toString().padStart(2, '0');
+            let s = (state.timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('time-display').innerText = `${m}:${s}`;
+            
+            let timeSpan = document.getElementById('time-display');
+            if(state.timeLeft <= 30) {
+                timeSpan.parentElement.classList.replace('text-sky-500', 'text-red-500');
+            } else {
+                timeSpan.parentElement.classList.replace('text-red-500', 'text-sky-500');
+            }
+        }
+
+        function updateScoreUI() {
+            document.getElementById('score-display').innerText = state.score;
+        }
+
+        function endGame() {
+            clearInterval(state.timerId);
+            document.getElementById('screen-end').classList.remove('hidden');
+            document.getElementById('final-score').innerText = state.score;
+        }
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function generateLevelContent() {
+            let left = [];
+            let inv = [];
+            let target = 0;
+
+            // 1. Generate Left items
+            if (state.difficulty === 'easy') {
+                // Easy: Target 1-4. 1 item on left.
+                let poolLeft = [...C_FRUITS.slice(0, 4), ...C_OBJECTS].filter(i => itemWeights[i] <= 4); 
+                let item = poolLeft[getRandomInt(0, poolLeft.length-1)];
+                left.push(item);
+                target = itemWeights[item];
+            } 
+            else if (state.difficulty === 'medium') {
+                // Medium: 1-2 items
+                let numLeft = getRandomInt(1, 2);
+                let poolLeft = [...C_FRUITS, ...C_OBJECTS];
+                for(let i=0; i<numLeft; i++) {
+                    let item = poolLeft[getRandomInt(0, poolLeft.length-1)];
+                    left.push(item);
+                    target += itemWeights[item];
+                }
+            } 
+            else if (state.difficulty === 'hard') {
+                // Hard: Base item (box or heavy fruit) + maybe extra
+                let poolLeft = [...C_BOXES, ...C_FRUITS.slice(-2)];
+                let base = poolLeft[getRandomInt(0, poolLeft.length-1)];
+                left.push(base);
+                target += itemWeights[base];
+                
+                if(target < 10) {
+                    let extra = C_OBJECTS[getRandomInt(0, C_OBJECTS.length-1)];
+                    left.push(extra);
+                    target += itemWeights[extra];
+                }
+            }
+
+            // 2. Create pool of available items (EXCLUDING items on the left pan)
+            let availablePool = [...C_FRUITS, ...C_OBJECTS, ...C_WEIGHTS, ...C_BOXES].filter(item => !left.includes(item));
+            
+            // 3. Select items for the solution
+            let solPool = availablePool;
+            if (state.difficulty === 'easy' || state.difficulty === 'medium') {
+                // Keep it visual/fruits/objects for easy/medium
+                solPool = availablePool.filter(i => C_FRUITS.includes(i) || C_OBJECTS.includes(i));
+            }
+
+            let currentSol = 0;
+            let maxTries = 50; // Prevent infinite loops
+            
+            // Find a 1kg item from available pool as fallback to ensure exact weight can be reached
+            const fallback1kg = availablePool.find(i => itemWeights[i] === 1);
+
+            while (currentSol < target && maxTries-- > 0) {
+                let remaining = target - currentSol;
+                // Get valid items that fit exactly or under the remaining weight
+                let validItems = solPool.filter(i => itemWeights[i] <= remaining);
+                
+                if (validItems.length > 0) {
+                    let c = validItems[getRandomInt(0, validItems.length-1)];
+                    inv.push(c);
+                    currentSol += itemWeights[c];
+                } else if (fallback1kg && remaining > 0) {
+                    // Fallback to 1kg items if stuck
+                    inv.push(fallback1kg);
+                    currentSol += 1;
+                } else {
+                    break;
+                }
+            }
+
+            // 4. Add Distractors
+            let numDistractors = state.difficulty === 'easy' ? 3 : (state.difficulty === 'medium' ? 4 : 5);
+            for(let i=0; i<numDistractors; i++) {
+                inv.push(availablePool[getRandomInt(0, availablePool.length-1)]);
+            }
+
+            return { left, target, inv: inv.sort(() => Math.random() - 0.5) };
+        }
+
+        function loadLevel() {
+            // Setup Right Pan
+            state.rightPanItems = [];
+            state.currentRightWeight = 0;
+            renderRightPan();
+            
+            // Generate Data
+            const levelData = generateLevelContent();
+            state.leftPanItems = levelData.left;
+            state.targetWeight = levelData.target;
+            state.inventoryList = levelData.inv;
+
+            renderLeftPan();
+            renderInventory();
+            updateCurrentWeight(); // This handles the tilt calculation
+        }
+
+        function renderLeftPan() {
+            const container = document.getElementById('left-pan-items');
+            container.innerHTML = '';
+            state.leftPanItems.forEach(itemKey => {
+                let div = document.createElement('div');
+                div.className = "transform transition-all duration-300";
+                div.innerHTML = itemGraphics[itemKey];
+                container.appendChild(div);
+            });
+        }
+
+        function renderRightPan() {
+            const container = document.getElementById('right-pan-items');
+            container.innerHTML = '';
+            state.rightPanItems.forEach((item, index) => {
+                let div = document.createElement('div');
+                div.innerHTML = itemGraphics[item.key];
+                div.className = "cursor-pointer active:scale-95 transform transition-all";
+                // Click to return to inventory
+                div.onclick = () => { removeFromRightPan(index); };
+                container.appendChild(div);
+            });
+            updateCurrentWeight();
+        }
+
+        function renderInventory() {
+            const container = document.getElementById('inventory-items');
+            container.innerHTML = '';
+            state.inventoryList.forEach((itemKey, index) => {
+                let wrapper = document.createElement('div');
+                wrapper.className = 'relative touch-none flex-shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200 p-2 flex items-center justify-center';
+                wrapper.style.minWidth = '70px';
+                wrapper.innerHTML = itemGraphics[itemKey];
+                
+                wrapper.addEventListener('pointerdown', (e) => startDrag(e, itemKey, index, wrapper));
+                container.appendChild(wrapper);
+            });
+        }
+
+        // --- 5. Dynamic Physics & Tilt ---
+        function updateCurrentWeight() {
+            state.currentRightWeight = state.rightPanItems.reduce((sum, item) => sum + itemWeights[item.key], 0);
+            animateScale();
+        }
+
+        function animateScale() {
+            let wl = state.targetWeight;
+            let wr = state.currentRightWeight;
+            
+            // Calculate rotational angle based on difference
+            // Max tilt angle = 25 degrees
+            let maxCapacity = Math.max(wl, wr, 5); 
+            let diff = wr - wl; // Positive = right is heavier
+            
+            let rot = (diff / maxCapacity) * 25;
+            rot = Math.max(-25, Math.min(25, rot)); // Clamp to -25..25
+
+            // Apply SVG Rotation
+            document.getElementById('scale-beam-group').style.transform = `rotate(${rot}deg)`;
+            document.getElementById('pan-left-group').style.transform = `rotate(${-rot}deg)`;
+            document.getElementById('pan-right-group').style.transform = `rotate(${-rot}deg)`;
+
+            // Sync HTML Overlay Translation
+            // SVG width = 600, pan radius = 200 (1/3 of viewbox width)
+            // Get actual pixel width of SVG container
+            let svgEl = document.getElementById('scale-svg');
+            let actualWidth = svgEl.getBoundingClientRect().width;
+            let radiusPx = actualWidth * (200 / 600);
+            
+            // Calculate vertical displacement (dy)
+            let dy = Math.sin(rot * Math.PI / 180) * radiusPx;
+
+            // R > 0 (Right Heavy): dy is positive -> Left Pan goes UP (-dy), Right Pan goes DOWN (+dy)
+            document.getElementById('left-pan-items').style.transform = `translateY(${-dy}px)`;
+            document.getElementById('right-pan-items').style.transform = `translateY(${dy}px)`;
+        }
+
+        // Update overlay positions on window resize to keep it aligned
+        window.addEventListener('resize', () => {
+            if(!document.getElementById('screen-game').classList.contains('hidden')) {
+                animateScale();
+            }
+        });
+
+        // --- 6. Custom Drag & Drop (Mobile Safe) ---
+        let dragInfo = null;
+        
+        function startDrag(e, itemKey, index, element) {
+            e.preventDefault();
+            // Create clone
+            const clone = document.createElement('div');
+            clone.innerHTML = itemGraphics[itemKey];
+            clone.className = 'absolute z-[100] pointer-events-none scale-110 opacity-90 drop-shadow-2xl';
+            
+            document.getElementById('drag-layer').appendChild(clone);
+
+            // Center clone on touch point initially
+            const svgEl = clone.querySelector('svg');
+            const w = svgEl.getAttribute('width') || 60; // rough guess
+            const h = svgEl.getAttribute('height') || 60;
+
+            dragInfo = {
+                itemKey: itemKey,
+                index: index,
+                originalElement: element,
+                clone: clone,
+                offsetX: w/2,
+                offsetY: h/2
+            };
+
+            element.style.opacity = '0.3';
+            moveClone(e.clientX, e.clientY);
+
+            document.addEventListener('pointermove', onDragMove);
+            document.addEventListener('pointerup', onDragEnd);
+        }
+
+        function moveClone(x, y) {
+            if(!dragInfo) return;
+            dragInfo.clone.style.left = (x - dragInfo.offsetX) + 'px';
+            dragInfo.clone.style.top = (y - dragInfo.offsetY) + 'px';
+        }
+
+        function onDragMove(e) {
+            moveClone(e.clientX, e.clientY);
+        }
+
+        function onDragEnd(e) {
+            document.removeEventListener('pointermove', onDragMove);
+            document.removeEventListener('pointerup', onDragEnd);
+
+            if(!dragInfo) return;
+
+            // Simplified Drop Zone logic for mobile (Right side of screen, upper area)
+            const cx = e.clientX;
+            const cy = e.clientY;
+            
+            const appContainer = document.getElementById('app-container').getBoundingClientRect();
+            // Drop zone = Right half of app container, above inventory
+            const isRightHalf = cx > (appContainer.left + appContainer.width / 2);
+            const inventoryTop = document.querySelector('.bg-slate-100.border-t-4').getBoundingClientRect().top;
+            const isAboveInventory = cy < inventoryTop;
+
+            if (isRightHalf && isAboveInventory) {
+                // Drop success
+                playThud();
+                state.rightPanItems.push({ key: dragInfo.itemKey, id: Date.now() });
+                state.inventoryList.splice(dragInfo.index, 1);
+                
+                renderRightPan();
+                renderInventory();
+            } else {
+                // Revert
+                dragInfo.originalElement.style.opacity = '1';
+            }
+
+            // Cleanup
+            dragInfo.clone.remove();
+            dragInfo = null;
+        }
+
+        function removeFromRightPan(index) {
+            playThud();
+            const item = state.rightPanItems.splice(index, 1)[0];
+            state.inventoryList.push(item.key);
+            renderRightPan();
+            renderInventory();
+        }
+
+        // --- 7. Checking & Feedback ---
+        function checkBalance() {
+            if (state.currentRightWeight === state.targetWeight) {
+                // WIN Level
+                playSoftChime();
+                createConfetti();
+                state.score += 10;
+                updateScoreUI();
+                
+                // Visual feedback container
+                let btn = document.querySelector('.paper-btn-primary');
+                let oldHtml = btn.innerHTML;
+                btn.innerHTML = '✨ ผ่านด่าน!';
+                btn.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+                
+                setTimeout(() => {
+                    btn.innerHTML = oldHtml;
+                    btn.classList.remove('bg-green-100', 'border-green-400', 'text-green-700');
+                    loadLevel();
+                }, 1500);
+            } else {
+                // FAIL
+                playWiggleSound();
+                let panGroup = document.getElementById('scale-svg');
+                panGroup.classList.remove('wiggle-anim');
+                void panGroup.offsetWidth; // trigger reflow
+                panGroup.classList.add('wiggle-anim');
+            }
+        }
+
+        function createConfetti() {
+            const colors = ['#ffcba4', '#aaffc3', '#bae1ff', '#ffffba', '#ff9999'];
+            const container = document.getElementById('app-container');
+            const rect = container.getBoundingClientRect();
+            
+            for (let i = 0; i < 30; i++) {
+                let div = document.createElement('div');
+                div.className = 'confetti';
+                div.style.left = (Math.random() * rect.width) + 'px';
+                div.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                div.style.animationDelay = (Math.random() * 0.3) + 's';
+                container.appendChild(div);
+                
+                setTimeout(() => div.remove(), 2500);
+            }
+        }
+
+    </script>
+</body>
+</html>

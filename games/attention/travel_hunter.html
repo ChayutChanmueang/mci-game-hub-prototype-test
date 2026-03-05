@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Travel Hunter</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap');
+
+        :root {
+            /* Color Palette */
+            --bg-cream: #FFFDF7;
+            --peach: #FFC0B2;
+            --mint: #B2E5D3;
+            --sky: #B2D8FF;
+            --yellow: #FFF2B2;
+            --text-dark: #5A4A42;
+            --stroke: #D1CFC7;
+            --danger: #FF8A8A;
+            --success: #A8E6CF;
+            
+            --border-rad: 24px;
+            --box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Mali', sans-serif;
+            overflow: hidden;
+        }
+
+        /* 9:18 Aspect Ratio Container */
+        #game-container {
+            position: relative;
+            background-color: var(--bg-cream);
+            width: 100%;
+            max-width: 450px;
+            height: 100%;
+            max-height: 900px;
+            aspect-ratio: 9 / 18;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* UI Panels General */
+        .panel {
+            background-color: var(--bg-cream);
+            border: 3px solid var(--stroke);
+            border-radius: var(--border-rad);
+            padding: 24px;
+            text-align: center;
+            box-shadow: var(--box-shadow);
+            color: var(--text-dark);
+            max-width: 90%;
+            margin: 0 auto;
+        }
+
+        h1 { margin: 0 0 10px 0; font-size: 32px; color: var(--peach); text-shadow: 1px 1px 0px var(--text-dark); }
+        p { margin: 0 0 16px 0; font-size: 18px; line-height: 1.5; }
+
+        /* Buttons */
+        button {
+            background-color: var(--mint);
+            border: 2px solid var(--stroke);
+            border-radius: 100px;
+            padding: 16px 24px;
+            font-size: 20px;
+            font-family: inherit;
+            font-weight: 600;
+            color: var(--text-dark);
+            cursor: pointer;
+            box-shadow: 0 4px 0 var(--stroke);
+            transition: transform 0.1s, box-shadow 0.1s;
+            width: 100%;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        button:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 var(--stroke);
+        }
+        button .subtext {
+            font-size: 14px;
+            font-weight: 400;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        .btn-theme { background-color: var(--sky); }
+        .btn-start { background-color: var(--yellow); font-size: 24px; border-color: var(--text-dark); box-shadow: 0 4px 0 var(--text-dark);}
+        
+        .diff-easy { background-color: var(--mint); }
+        .diff-med { background-color: var(--yellow); }
+        .diff-hard { background-color: var(--peach); }
+        .selected { border: 3px solid var(--text-dark); box-shadow: 0 4px 0 var(--text-dark); font-weight: 700; transform: translateY(2px); }
+
+        /* Screens */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 20px;
+            z-index: 10;
+            background-color: var(--bg-cream);
+            transition: opacity 0.3s;
+        }
+        .hidden { display: none !important; opacity: 0; }
+
+        /* Game UI */
+        #game-ui {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            background-color: transparent;
+            pointer-events: none;
+        }
+
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: linear-gradient(to bottom, var(--bg-cream) 80%, transparent);
+            pointer-events: auto;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .hud-box {
+            background-color: white;
+            border: 2px solid var(--stroke);
+            border-radius: 12px;
+            padding: 6px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: var(--box-shadow);
+            color: var(--text-dark);
+        }
+
+        #btn-back {
+            width: auto; padding: 6px 12px; margin: 0; font-size: 14px; background-color: white; border-radius: 12px;
+        }
+
+        #bottom-panel {
+            margin-top: auto;
+            background-color: white;
+            border-top: 3px solid var(--stroke);
+            border-radius: 32px 32px 0 0;
+            padding: 20px;
+            pointer-events: auto;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+        }
+
+        .target-list {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .target-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .target-icon {
+            width: 45px; height: 45px;
+            background-color: var(--bg-cream);
+            border: 2px solid var(--stroke);
+            border-radius: 12px;
+            margin-bottom: 4px;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .found-count { font-size: 16px; color: var(--text-dark);}
+        .found-count.done { color: #4CAF50; }
+
+        /* Canvas */
+        #game-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            cursor: grab;
+            touch-action: none; 
+        }
+        #game-canvas:active { cursor: grabbing; }
+
+        /* Animations */
+        @keyframes wiggle {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        .wiggle-effect { animation: wiggle 0.3s ease-in-out; }
+        
+        @keyframes popup {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .popup-effect { animation: popup 0.3s ease-out; }
+
+        .floating-text {
+            position: absolute;
+            font-weight: bold;
+            font-size: 24px;
+            pointer-events: none;
+            z-index: 20;
+            animation: floatUp 1s forwards;
+            text-shadow: 1px 1px 2px white;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-30px); opacity: 0; }
+        }
+        .text-plus { color: #4CAF50; }
+        .text-minus { color: var(--danger); }
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <!-- Main Menu Screen -->
+    <div id="main-menu" class="screen">
+        <div class="panel popup-effect" style="margin-bottom: 20px;">
+            <h1>Travel Hunter</h1>
+            <p>นักล่าของที่ระลึก<br><span style="font-size: 14px; opacity: 0.8;">ค้นหาไอเทมที่ซ่อนอยู่ในสถานที่ท่องเที่ยว!</span></p>
+        </div>
+
+        <div class="panel popup-effect" style="animation-delay: 0.1s; padding: 16px;">
+            <p style="margin-bottom: 8px; font-weight: bold;">เลือกสถานที่ (Theme)</p>
+            <button id="btn-theme-1" class="btn-theme selected" onclick="selectTheme(1)">วัดพระแก้ว<div class="subtext">สีทองอร่าม สถาปัตยกรรมไทย</div></button>
+            <button id="btn-theme-2" class="btn-theme" onclick="selectTheme(2)">ตลาดน้ำ<div class="subtext">สายน้ำเย็นฉ่ำ เรือพายคึกคัก</div></button>
+        </div>
+
+        <div class="panel popup-effect" style="animation-delay: 0.2s; padding: 16px; margin-top: 10px;">
+            <p style="margin-bottom: 8px; font-weight: bold;">ระดับความยาก</p>
+            <div style="display: flex; gap: 8px;">
+                <button id="btn-diff-1" class="diff-easy selected" onclick="selectDiff(1)" style="margin-bottom:0;">ง่าย<div class="subtext">สีชัดเจน</div></button>
+                <button id="btn-diff-2" class="diff-med" onclick="selectDiff(2)" style="margin-bottom:0;">กลาง<div class="subtext">สีกลมกลืน</div></button>
+                <button id="btn-diff-3" class="diff-hard" onclick="selectDiff(3)" style="margin-bottom:0;">ยาก<div class="subtext">โดนบัง+สุ่มสี</div></button>
+            </div>
+        </div>
+
+        <button class="btn-start popup-effect" style="margin-top: 20px; animation-delay: 0.3s;" onclick="startGame()">เริ่มค้นหา!</button>
+    </div>
+
+    <!-- Game Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Game UI Overlay -->
+    <div id="game-ui" class="hidden">
+        <div id="top-bar">
+            <button id="btn-back" onclick="showMenu()">กลับ</button>
+            <div class="hud-box">ด่าน: <span id="level-display">1/5</span></div>
+            <div class="hud-box">คะแนน: <span id="score-display">0</span></div>
+            <div class="hud-box">เวลา: <span id="time-display">1:30</span></div>
+        </div>
+        <div id="bottom-panel">
+            <p id="target-header" style="text-align: center; margin-bottom: 12px; font-weight: bold; color: var(--text-dark);">หาของเหล่านี้ให้ครบ!</p>
+            <div class="target-list" id="target-container">
+                <!-- Targets injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- End Screen -->
+    <div id="end-screen" class="screen hidden">
+        <div class="panel popup-effect">
+            <h1 id="end-title">ยอดเยี่ยม!</h1>
+            <p id="end-desc">คุณค้นหาของที่ระลึกครบแล้ว</p>
+            <div style="font-size: 48px; font-weight: bold; color: var(--peach); margin: 20px 0;" id="final-score">0</div>
+            <p>คะแนนรวมของคุณ</p>
+            <button id="btn-next-level" class="btn-start" onclick="nextLevel()" style="margin-top: 20px;">ด่านต่อไป</button>
+            <button id="btn-main-menu" class="btn-theme" onclick="showMenu()" style="margin-top: 10px;">กลับหน้าหลัก</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- State Variables ---
+    let currentTheme = 1; // 1: Temple, 2: Market
+    let currentDiff = 1; // 1: Easy, 2: Medium, 3: Hard
+    let score = 0;
+    let timeLeft = 90; // 90 seconds per level
+    let gameInterval;
+    let isPlaying = false;
+    let currentLevel = 1;
+    const MAX_LEVELS = 5;
+    let previousTargets = []; // To prevent same items in next round
+
+    // --- Canvas & Camera ---
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('game-container');
+    
+    // Virtual world size 
+    const WORLD_WIDTH = 1200;
+    const WORLD_HEIGHT = 1800; // Adjusted for density
+    
+    let camera = { x: 0, y: 0, scale: 1 };
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let cameraStart = { x: 0, y: 0 };
+    let lastTapTime = 0;
+
+    // --- Game Data (Expanded to 8 items for variety) ---
+    const TARGET_TYPES = {
+        UMBRELLA: 'umbrella', HAT: 'hat', CAMERA: 'camera', 
+        GLASSES: 'glasses', BAG: 'bag', MAP: 'map', 
+        COCONUT: 'coconut', FAN: 'fan'
+    };
+
+    const ALL_TARGET_INFO = [
+        { id: TARGET_TYPES.UMBRELLA, total: 2, name: "ร่ม", defaultColor: '#FF8A8A' },
+        { id: TARGET_TYPES.HAT, total: 2, name: "หมวก", defaultColor: '#FFA500' },
+        { id: TARGET_TYPES.CAMERA, total: 1, name: "กล้อง", defaultColor: '#6A5ACD' },
+        { id: TARGET_TYPES.GLASSES, total: 2, name: "แว่นตา", defaultColor: '#FF4500' },
+        { id: TARGET_TYPES.BAG, total: 1, name: "กระเป๋า", defaultColor: '#FF69B4' },
+        { id: TARGET_TYPES.MAP, total: 2, name: "แผนที่", defaultColor: '#F5DEB3' },
+        { id: TARGET_TYPES.COCONUT, total: 2, name: "มะพร้าว", defaultColor: '#8B4513' },
+        { id: TARGET_TYPES.FAN, total: 2, name: "พัด", defaultColor: '#20B2AA' }
+    ];
+
+    let worldObjects = [];
+    let targetsData = {}; 
+    let particles = [];
+
+    // --- Setup UI ---
+    function selectTheme(themeId) {
+        currentTheme = themeId;
+        document.querySelectorAll('.btn-theme').forEach(btn => btn.classList.remove('selected'));
+        document.getElementById('btn-theme-' + themeId).classList.add('selected');
+    }
+
+    function selectDiff(diffId) {
+        currentDiff = diffId;
+        document.querySelectorAll('.diff-easy, .diff-med, .diff-hard').forEach(btn => btn.classList.remove('selected'));
+        document.getElementById('btn-diff-' + diffId).classList.add('selected');
+    }
+
+    function showMenu() {
+        isPlaying = false;
+        clearInterval(gameInterval);
+        document.getElementById('main-menu').classList.remove('hidden');
+        document.getElementById('game-ui').classList.add('hidden');
+        document.getElementById('end-screen').classList.add('hidden');
+        canvas.style.display = 'none';
+    }
+
+    function startGame() {
+        currentLevel = 1;
+        score = 0;
+        previousTargets = [];
+        startLevel();
+    }
+
+    function nextLevel() {
+        currentLevel++;
+        startLevel();
+    }
+
+    function startLevel() {
+        document.getElementById('main-menu').classList.add('hidden');
+        document.getElementById('end-screen').classList.add('hidden');
+        document.getElementById('game-ui').classList.remove('hidden');
+        canvas.style.display = 'block';
+
+        timeLeft = 90; // Reset time for the level
+        updateHUD();
+        
+        initCanvas();
+        generateWorld();
+        setupTargetsUI();
+
+        isPlaying = true;
+        clearInterval(gameInterval);
+        gameInterval = setInterval(() => {
+            timeLeft--;
+            updateHUD();
+            if (timeLeft <= 0) endGame(false);
+        }, 1000);
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function updateHUD() {
+        document.getElementById('level-display').innerText = `${currentLevel}/${MAX_LEVELS}`;
+        document.getElementById('score-display').innerText = score;
+        let m = Math.floor(timeLeft / 60);
+        let s = timeLeft % 60;
+        document.getElementById('time-display').innerText = `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function endGame(isWin) {
+        isPlaying = false;
+        clearInterval(gameInterval);
+        document.getElementById('game-ui').classList.add('hidden');
+        document.getElementById('end-screen').classList.remove('hidden');
+        
+        const endTitle = document.getElementById('end-title');
+        const endDesc = document.getElementById('end-desc');
+        const btnNext = document.getElementById('btn-next-level');
+        const btnMain = document.getElementById('btn-main-menu');
+
+        document.getElementById('final-score').innerText = score;
+
+        if (isWin) {
+            if (currentLevel < MAX_LEVELS) {
+                endTitle.innerText = `ผ่านด่าน ${currentLevel}!`;
+                endDesc.innerText = "เตรียมตัวสำหรับด่านต่อไป";
+                btnNext.classList.remove('hidden');
+                btnMain.classList.add('hidden');
+            } else {
+                endTitle.innerText = "ยอดเยี่ยม! เคลียร์เกม";
+                endDesc.innerText = "คุณคือนักล่าของที่ระลึกตัวจริง!";
+                btnNext.classList.add('hidden');
+                btnMain.classList.remove('hidden');
+            }
+        } else {
+            endTitle.innerText = "หมดเวลา!";
+            endDesc.innerText = "พยายามใหม่อีกครั้งนะ";
+            btnNext.classList.add('hidden');
+            btnMain.classList.remove('hidden');
+        }
+    }
+
+    // --- World Generation ---
+    function initCanvas() {
+        canvas.width = container.clientWidth * window.devicePixelRatio;
+        canvas.height = container.clientHeight * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        
+        camera.scale = Math.max(container.clientWidth / WORLD_WIDTH, container.clientHeight / WORLD_HEIGHT) * 1.5;
+        camera.x = (WORLD_WIDTH * camera.scale - container.clientWidth) / 2;
+        camera.y = (WORLD_HEIGHT * camera.scale - container.clientHeight) / 2;
+    }
+
+    function generateWorld() {
+        worldObjects = [];
+        targetsData = {};
+
+        const themePalette = currentTheme === 1 ? 
+            { bg: '#FFF2B2', dist1: '#F5DEB3', dist2: '#FFD700', dist3: '#FFFFFF' } : // Temple
+            { bg: '#B2E5D3', dist1: '#8FBC8F', dist2: '#DEB887', dist3: '#4682B4' };  // Market
+
+        // Randomize items without immediate repetition
+        let availableItems = ALL_TARGET_INFO.filter(t => !previousTargets.includes(t.id));
+        if (availableItems.length < 3) availableItems = [...ALL_TARGET_INFO]; // Failsafe
+        
+        let shuffled = [...availableItems].sort(() => 0.5 - Math.random());
+        let targetCount = (currentDiff === 3) ? 3 : 1;
+        let selectedItems = shuffled.slice(0, targetCount);
+        
+        previousTargets = selectedItems.map(t => t.id); // Save for next level
+        let activeTypes = previousTargets;
+
+        selectedItems.forEach(t => {
+            targetsData[t.id] = { total: t.total, found: 0, name: t.name, iconColor: t.defaultColor };
+        });
+
+        let targetPositions = [];
+
+        // Generate Targets FIRST
+        const placeTargets = (type, count, baseColor) => {
+            let isHunted = activeTypes.includes(type);
+
+            for(let i=0; i<count; i++) {
+                let color = baseColor;
+                let layer = 2; // Above scenery
+                
+                // Difficulty Logic
+                let isCamouflaged = false;
+
+                if (currentDiff === 2 && isHunted) {
+                    isCamouflaged = true;
+                } else if (currentDiff === 3 && isHunted) {
+                    // Hard Mode: 50% chance for target to be camouflaged, 50% stand out
+                    isCamouflaged = Math.random() > 0.5;
+                }
+
+                if (isCamouflaged) {
+                    color = themePalette.dist1; 
+                    if (isHunted) targetsData[type].iconColor = color; // Update UI Icon
+                }
+
+                // FIX 1: Add padding to spawn bounds so objects aren't unreachable off-screen
+                // Leave 100px padding left/right/top, and 300px padding bottom (for bottom UI)
+                let tx = 100 + Math.random() * (WORLD_WIDTH - 200);
+                let ty = 100 + Math.random() * (WORLD_HEIGHT - 400);
+
+                if (isHunted) targetPositions.push({x: tx, y: ty});
+
+                worldObjects.push({
+                    type: type,
+                    isTarget: isHunted,
+                    x: tx,
+                    y: ty,
+                    color: color,
+                    layer: layer,
+                    found: false,
+                    w: 60, h: 60
+                });
+
+                // Hard Mode: Occlusion logic (partially hide the target)
+                if (currentDiff === 3 && isHunted) {
+                    let offsetX = (Math.random() > 0.5 ? 1 : -1) * (20 + Math.random() * 20); // 20-40px offset
+                    let offsetY = (Math.random() > 0.5 ? 1 : -1) * (20 + Math.random() * 20);
+                    worldObjects.push({
+                        type: 'scenery',
+                        shape: Math.random() > 0.5 ? 'circle' : 'rect',
+                        x: tx + offsetX,
+                        y: ty + offsetY,
+                        w: 60 + Math.random() * 30,
+                        h: 60 + Math.random() * 30,
+                        color: [themePalette.dist1, themePalette.dist2][Math.floor(Math.random()*2)],
+                        layer: 3 // Overlap layer
+                    });
+                }
+            }
+        };
+
+        // Place all object types as distractors
+        ALL_TARGET_INFO.forEach(t => {
+            let spawnCount = activeTypes.includes(t.id) ? t.total : 1 + Math.floor(Math.random()*2);
+            placeTargets(t.id, spawnCount, t.defaultColor);
+        });
+
+        // Generate Scenery (Distractors)
+        for(let i=0; i<150; i++) {
+            worldObjects.push({
+                type: 'scenery',
+                shape: Math.random() > 0.5 ? 'circle' : 'rect',
+                x: Math.random() * WORLD_WIDTH,
+                y: Math.random() * WORLD_HEIGHT,
+                w: 50 + Math.random() * 150,
+                h: 50 + Math.random() * 150,
+                color: [themePalette.dist1, themePalette.dist2, themePalette.dist3][Math.floor(Math.random()*3)],
+                layer: 1
+            });
+        }
+
+        // Hard Mode Foreground Scenery (Random blockers)
+        if (currentDiff === 3) {
+            for(let i=0; i<20; i++) {
+                let rx = Math.random() * WORLD_WIDTH;
+                let ry = Math.random() * WORLD_HEIGHT;
+                
+                // Safety check: Prevent 100% block
+                let isTooClose = false;
+                for(let tp of targetPositions) {
+                    if (Math.hypot(rx - tp.x, ry - tp.y) < 60) {
+                        isTooClose = true;
+                        break;
+                    }
+                }
+                if (!isTooClose) {
+                    worldObjects.push({
+                        type: 'scenery', shape: 'rect', x: rx, y: ry, w: 100 + Math.random() * 100, h: 100 + Math.random() * 100,
+                        color: themePalette.dist2, layer: 3
+                    });
+                }
+            }
+        }
+
+        worldObjects.sort((a, b) => a.layer - b.layer);
+    }
+
+    function setupTargetsUI() {
+        const container = document.getElementById('target-container');
+        const headerText = document.getElementById('target-header');
+        container.innerHTML = '';
+        
+        let targetCount = Object.keys(targetsData).length;
+        if(targetCount === 1) {
+            headerText.innerText = `หาของชิ้นนี้ให้ครบ!`;
+        } else {
+            headerText.innerText = `หาของเหล่านี้ให้ครบ!`;
+        }
+        
+        for (const [key, data] of Object.entries(targetsData)) {
+            let svg = getIconSVG(key, data.iconColor);
+            container.innerHTML += `
+                <div class="target-item" id="ui-${key}">
+                    <div class="target-icon">${svg}</div>
+                    <span style="font-size: 12px; opacity:0.8">${data.name}</span>
+                    <div class="found-count" id="count-${key}">0 / ${data.total}</div>
+                </div>
+            `;
+        }
+    }
+
+    // --- Drawing Engine ---
+    function applyPaperCutStyle() {
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 4;
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    }
+    function resetShadow() {
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+    }
+
+    function getIconSVG(type, color) {
+        if(type === TARGET_TYPES.UMBRELLA) return `<svg width="24" height="24" viewBox="0 0 100 100"><path d="M10,50 Q50,0 90,50 Z" fill="${color}"/><rect x="48" y="50" width="4" height="30" fill="#777"/><path d="M48,80 A10,10 0 0,0 68,80" fill="none" stroke="#777" stroke-width="4"/></svg>`;
+        if(type === TARGET_TYPES.HAT) return `<svg width="24" height="24" viewBox="0 0 100 100"><ellipse cx="50" cy="70" rx="40" ry="10" fill="${color}"/><path d="M30,65 C30,30 70,30 70,65 Z" fill="${color}" stroke="#fff" stroke-width="2"/></svg>`;
+        if(type === TARGET_TYPES.CAMERA) return `<svg width="24" height="24" viewBox="0 0 100 100"><rect x="20" y="30" width="60" height="40" rx="5" fill="${color}"/><circle cx="50" cy="50" r="12" fill="#fff"/><circle cx="50" cy="50" r="8" fill="#333"/></svg>`;
+        if(type === TARGET_TYPES.GLASSES) return `<svg width="24" height="24" viewBox="0 0 100 100"><rect x="10" y="40" width="35" height="25" rx="5" fill="${color}"/><rect x="55" y="40" width="35" height="25" rx="5" fill="${color}"/><path d="M45,50 Q50,40 55,50" stroke="${color}" stroke-width="4" fill="none"/></svg>`;
+        if(type === TARGET_TYPES.BAG) return `<svg width="24" height="24" viewBox="0 0 100 100"><rect x="20" y="40" width="60" height="50" rx="5" fill="${color}"/><path d="M35,40 C35,10 65,10 65,40" stroke="${color}" stroke-width="5" fill="none"/></svg>`;
+        if(type === TARGET_TYPES.MAP) return `<svg width="24" height="24" viewBox="0 0 100 100"><rect x="15" y="20" width="70" height="60" fill="${color}"/><path d="M35,20 L35,80 M65,20 L65,80" stroke="#fff" stroke-width="2"/><circle cx="70" cy="30" r="5" fill="red"/></svg>`;
+        if(type === TARGET_TYPES.COCONUT) return `<svg width="24" height="24" viewBox="0 0 100 100"><circle cx="50" cy="60" r="35" fill="${color}"/><circle cx="40" cy="50" r="4" fill="#555"/><circle cx="60" cy="50" r="4" fill="#555"/><circle cx="50" cy="65" r="4" fill="#555"/><rect x="65" y="10" width="6" height="40" fill="#FF8A8A" transform="rotate(20 65 10)"/></svg>`;
+        if(type === TARGET_TYPES.FAN) return `<svg width="24" height="24" viewBox="0 0 100 100"><path d="M10,80 C10,30 90,30 90,80 Z" fill="${color}"/><path d="M50,80 L20,40 M50,80 L35,35 M50,80 L65,35 M50,80 L80,40" stroke="#fff" stroke-width="2"/></svg>`;
+        return '';
+    }
+
+    function drawObject(obj) {
+        if(obj.found) return;
+
+        ctx.save();
+        ctx.translate(obj.x, obj.y);
+        applyPaperCutStyle();
+        ctx.fillStyle = obj.color;
+
+        if (obj.type === 'scenery') {
+            if (obj.shape === 'circle') {
+                ctx.beginPath(); ctx.arc(0, 0, obj.w/2, 0, Math.PI*2); ctx.fill();
+            } else {
+                ctx.beginPath(); ctx.roundRect(-obj.w/2, -obj.h/2, obj.w, obj.h, 20); ctx.fill(); ctx.stroke();
+            }
+        } 
+        else if (obj.type === TARGET_TYPES.UMBRELLA) {
+            ctx.beginPath(); ctx.arc(0, 0, 30, Math.PI, 0); ctx.fill(); ctx.stroke();
+            resetShadow(); ctx.fillStyle = '#8B4513'; ctx.fillRect(-2, 0, 4, 35); 
+            ctx.beginPath(); ctx.arc(2, 35, 6, Math.PI, 0, true); ctx.lineWidth = 4; ctx.strokeStyle = '#8B4513'; ctx.stroke();
+        }
+        else if (obj.type === TARGET_TYPES.HAT) {
+            ctx.beginPath(); ctx.ellipse(0, 15, 40, 10, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 10, 25, Math.PI, 0); ctx.fill(); ctx.stroke();
+            resetShadow(); ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(-25, 5, 50, 8);
+        }
+        else if (obj.type === TARGET_TYPES.CAMERA) {
+            ctx.beginPath(); ctx.roundRect(-30, -20, 60, 40, 8); ctx.fill(); ctx.stroke();
+            resetShadow(); ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fillStyle = '#FFF'; ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fillStyle = '#333'; ctx.fill();
+            ctx.fillStyle = '#FF5252'; ctx.beginPath(); ctx.arc(20, -10, 4, 0, Math.PI*2); ctx.fill();
+        }
+        else if (obj.type === TARGET_TYPES.GLASSES) {
+            ctx.beginPath(); ctx.roundRect(-25, -10, 20, 15, 5); ctx.roundRect(5, -10, 20, 15, 5); ctx.fill(); ctx.stroke();
+            resetShadow(); ctx.beginPath(); ctx.moveTo(-5, -5); ctx.quadraticCurveTo(0, -10, 5, -5); ctx.lineWidth = 3; ctx.stroke();
+        }
+        else if (obj.type === TARGET_TYPES.BAG) {
+            ctx.beginPath(); ctx.roundRect(-20, -10, 40, 35, 5); ctx.fill(); ctx.stroke();
+            resetShadow(); ctx.beginPath(); ctx.arc(0, -10, 10, Math.PI, 0); ctx.lineWidth = 4; ctx.strokeStyle = obj.color; ctx.stroke();
+        }
+        else if (obj.type === TARGET_TYPES.MAP) {
+            ctx.beginPath(); ctx.rect(-25, -20, 50, 40); ctx.fill(); ctx.stroke();
+            resetShadow(); ctx.beginPath(); ctx.moveTo(-8, -20); ctx.lineTo(-8, 20); ctx.moveTo(8, -20); ctx.lineTo(8, 20);
+            ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.stroke();
+            ctx.fillStyle = '#FF5252'; ctx.beginPath(); ctx.arc(15, -5, 4, 0, Math.PI*2); ctx.fill();
+        }
+        else if (obj.type === TARGET_TYPES.COCONUT) {
+            ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            resetShadow(); ctx.fillStyle = '#5A4A42'; ctx.beginPath(); ctx.arc(-7, -5, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(7, -5, 3, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(0, 5, 3, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#FF8A8A'; ctx.save(); ctx.rotate(20 * Math.PI / 180); ctx.fillRect(10, -30, 4, 25); ctx.restore(); 
+        }
+        else if (obj.type === TARGET_TYPES.FAN) {
+            ctx.beginPath(); ctx.arc(0, 15, 25, Math.PI, 0); ctx.fill(); ctx.stroke();
+            resetShadow(); ctx.beginPath();
+            for(let a=1; a<=4; a++) {
+                let angle = Math.PI + (a * Math.PI/5);
+                ctx.moveTo(0, 15); ctx.lineTo(Math.cos(angle)*25, 15 + Math.sin(angle)*25);
+            }
+            ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    function gameLoop() {
+        if (!isPlaying) return;
+
+        ctx.fillStyle = currentTheme === 1 ? '#FFF2B2' : '#B2E5D3';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(-camera.x, -camera.y);
+        ctx.scale(camera.scale, camera.scale);
+
+        worldObjects.forEach(drawObject);
+
+        for(let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life -= 2;
+            ctx.globalAlpha = Math.max(0, p.life / 100);
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            if(p.type === 'star') ctx.arc(p.x, p.y, 5, 0, Math.PI*2);
+            else ctx.fillRect(p.x, p.y, 8, 8);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            if(p.life <= 0) particles.splice(i, 1);
+        }
+
+        ctx.restore();
+        requestAnimationFrame(gameLoop);
+    }
+
+    // --- Interaction Logic ---
+    function screenToWorld(sx, sy) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: ((sx - rect.left) + camera.x) / camera.scale,
+            y: ((sy - rect.top) + camera.y) / camera.scale
+        };
+    }
+
+    function createConfetti(x, y) {
+        const colors = ['#FFC0B2', '#B2E5D3', '#B2D8FF', '#FFF2B2', '#FF8A8A'];
+        for(let i=0; i<30; i++) {
+            particles.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 1) * 10,
+                life: 100, color: colors[Math.floor(Math.random() * colors.length)],
+                type: Math.random() > 0.5 ? 'star' : 'square'
+            });
+        }
+    }
+
+    function showFloatingText(text, x, y, isPositive) {
+        const el = document.createElement('div');
+        el.className = `floating-text ${isPositive ? 'text-plus' : 'text-minus'}`;
+        el.innerText = text;
+        const rect = container.getBoundingClientRect();
+        el.style.left = (x - rect.left) + 'px'; el.style.top = (y - rect.top) + 'px';
+        container.appendChild(el);
+        setTimeout(() => el.remove(), 1000);
+    }
+
+    function checkClick(wx, wy, screenX, screenY) {
+        let hitTarget = false;
+        
+        for (let i = worldObjects.length - 1; i >= 0; i--) {
+            let obj = worldObjects[i];
+            if (obj.isTarget && !obj.found) {
+                if (Math.hypot(wx - obj.x, wy - obj.y) < 40) {
+                    obj.found = true; hitTarget = true; score += 20;
+                    targetsData[obj.type].found++;
+                    createConfetti(obj.x, obj.y);
+                    showFloatingText('+20', screenX, screenY, true);
+                    updateTargetUI(obj.type);
+                    break; 
+                }
+            }
+        }
+
+        if (!hitTarget) {
+            score = Math.max(0, score - 2);
+            showFloatingText('-2', screenX, screenY, false);
+            canvas.classList.remove('wiggle-effect');
+            void canvas.offsetWidth; 
+            canvas.classList.add('wiggle-effect');
+        }
+        
+        updateHUD();
+        checkWinCondition();
+    }
+
+    function updateTargetUI(type) {
+        const data = targetsData[type];
+        const countEl = document.getElementById(`count-${type}`);
+        countEl.innerText = `${data.found} / ${data.total}`;
+        
+        const iconEl = document.getElementById(`ui-${type}`);
+        iconEl.classList.remove('popup-effect');
+        void iconEl.offsetWidth;
+        iconEl.classList.add('popup-effect');
+
+        if (data.found >= data.total) {
+            countEl.classList.add('done');
+            iconEl.style.opacity = '0.5';
+        }
+    }
+
+    function checkWinCondition() {
+        let allFound = true;
+        for (const key in targetsData) {
+            if (targetsData[key].found < targetsData[key].total) { allFound = false; break; }
+        }
+        if (allFound) {
+            setTimeout(() => endGame(true), 1000); 
+        }
+    }
+
+    // --- Input Handling ---
+    function handleStart(clientX, clientY) {
+        if (!isPlaying) return;
+        isDragging = true;
+        dragStart.x = clientX; dragStart.y = clientY;
+        cameraStart.x = camera.x; cameraStart.y = camera.y;
+        lastTapTime = Date.now();
+    }
+
+    function handleMove(clientX, clientY) {
+        if (!isDragging || !isPlaying) return;
+        camera.x = cameraStart.x - (clientX - dragStart.x);
+        camera.y = cameraStart.y - (clientY - dragStart.y);
+
+        // Clamp Camera (Fix 1: Add padding for panning down so items aren't obscured by UI)
+        const maxCamX = Math.max(0, WORLD_WIDTH * camera.scale - container.clientWidth);
+        const maxCamY = Math.max(0, WORLD_HEIGHT * camera.scale - container.clientHeight + 250); 
+        camera.x = Math.max(0, Math.min(camera.x, maxCamX));
+        camera.y = Math.max(0, Math.min(camera.y, maxCamY));
+    }
+
+    function handleEnd(clientX, clientY) {
+        if (!isPlaying) return;
+        isDragging = false;
+        
+        if (Date.now() - lastTapTime < 300 && Math.hypot(clientX - dragStart.x, clientY - dragStart.y) < 10) {
+            const worldPos = screenToWorld(clientX, clientY);
+            checkClick(worldPos.x, worldPos.y, clientX, clientY);
+        }
+    }
+
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); handleStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
+    canvas.addEventListener('touchmove', e => { e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
+    canvas.addEventListener('touchend', e => { e.preventDefault(); handleEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }, {passive: false});
+
+    canvas.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY));
+    canvas.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY));
+    canvas.addEventListener('mouseup', e => handleEnd(e.clientX, e.clientY));
+    canvas.addEventListener('mouseleave', () => { isDragging = false; });
+
+    window.addEventListener('resize', () => {
+        if (isPlaying) {
+            initCanvas();
+            const maxCamX = Math.max(0, WORLD_WIDTH * camera.scale - container.clientWidth);
+            const maxCamY = Math.max(0, WORLD_HEIGHT * camera.scale - container.clientHeight + 250);
+            camera.x = Math.min(camera.x, maxCamX); camera.y = Math.min(camera.y, maxCamY);
+        }
+    });
+
+</script>
+</body>
+</html>

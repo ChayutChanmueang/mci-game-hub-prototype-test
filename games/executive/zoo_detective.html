@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Zoo Detective - Senior Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* ใช้ dynamic viewport height เพื่อแก้ปัญหา toolbar ในมือถือบัง */
+            --app-height: 100dvh;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #0f172a;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* fallback */
+            height: var(--app-height);
+            overflow: hidden;
+            color: #1e293b;
+        }
+
+        .app-container {
+            /* Mobile Default: เต็มจอ ไม่ฟิกสัดส่วน */
+            width: 100%;
+            height: 100%;
+            background: #f0fdf4;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Desktop/Tablet: จำลองหน้าจอมือถือ */
+        @media (min-width: 500px) {
+            .app-container {
+                max-width: 480px;
+                height: 95vh;
+                max-height: 1000px;
+                border-radius: 2.5rem;
+                border: 8px solid #334155;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            }
+        }
+
+        /* --- UI COMPONENTS --- */
+        
+        /* 1. Header (HUD) */
+        .hud-bar {
+            flex: 0 0 auto;
+            background: white;
+            padding: 0.75rem 1.25rem;
+            /* Safe area padding สำหรับมือถือมีรอยบาก */
+            padding-top: max(0.75rem, env(safe-area-inset-top));
+            border-bottom: 2px solid #10b981;
+            z-index: 30;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* 2. Main Content Area */
+        .game-content {
+            flex: 1; /* ยืดเต็มพื้นที่ที่เหลือ */
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            gap: 1rem;
+            overflow: hidden;
+            position: relative;
+            background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+        }
+
+        /* Clues Card */
+        .clues-card {
+            flex: 0 0 auto; /* ไม่ยืด */
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 1.25rem;
+            padding: 1rem;
+            border: 2px solid #86efac;
+            /* จำกัดความสูงไม่ให้กินที่เกินไป (สูงสุด 30% ของจอ) */
+            max-height: 30vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .clues-header {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px dashed #cbd5e1;
+        }
+
+        .clues-list-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+            /* Smooth scroll */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Grid Wrapper (พื้นที่วางตาราง) */
+        .grid-wrapper {
+            flex: 1; /* ยืดรับพื้นที่ที่เหลือทั้งหมด */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            overflow: hidden;
+            padding: 0.5rem;
+            min-height: 0;
+        }
+
+        .grid-layout { 
+            display: grid; 
+            /* ขนาดจะถูกควบคุมโดย JS เพื่อรักษาสัดส่วน */
+        }
+
+        .slot {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border: 3px solid #bbf7d0;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #bbf7d0;
+            transition: transform 0.1s, border-color 0.2s;
+            position: relative;
+        }
+        
+        .slot:active { transform: scale(0.95); }
+        .slot.active {
+            border-color: #10b981;
+            background-color: #fff;
+            box-shadow: 0 6px 15px rgba(16, 185, 129, 0.25);
+            transform: scale(1.02);
+            z-index: 10;
+        }
+
+        /* 3. Footer (Controls) */
+        .controls {
+            flex: 0 0 auto; /* ไม่ยืด */
+            background: white;
+            padding: 1rem;
+            /* Safe area padding ด้านล่าง */
+            padding-bottom: max(1rem, env(safe-area-inset-bottom));
+            border-top: 2px solid #bbf7d0;
+            border-radius: 1.5rem 1.5rem 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+            z-index: 30;
+        }
+
+        .animal-bank {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .animal-btn {
+            aspect-ratio: 1/1;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.5rem, 6vw, 2.5rem); /* ปรับขนาดฟอนต์ตามจอ */
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .animal-btn.selected {
+            border-color: #10b981;
+            background: #d1fae5;
+            box-shadow: inset 0 0 0 3px #34d399;
+            transform: translateY(-2px);
+        }
+
+        .action-btn {
+            background: #10b981;
+            color: white;
+            width: 100%;
+            padding: 1rem;
+            border-radius: 1rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            box-shadow: 0 4px 0 #047857;
+            transition: all 0.1s;
+            border: none;
+            cursor: pointer;
+        }
+        .action-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #047857;
+        }
+
+        /* Menus & Modals */
+        #menu-interface {
+            background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%);
+            padding-top: max(1.5rem, env(safe-area-inset-top));
+            padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+        }
+
+        .menu-btn {
+            background: white;
+            border: 2px solid #bbf7d0;
+            border-radius: 1.5rem;
+            padding: 1.25rem;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+        }
+        
+        .hidden { display: none !important; }
+        .shake { animation: shake 0.4s ease-in-out; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container" id="main-app">
+        
+        <!-- === 1. MENU INTERFACE === -->
+        <div id="menu-interface" class="w-full h-full flex flex-col p-6 overflow-y-auto">
+            <div class="text-center mb-6">
+                <div class="text-6xl mb-2 animate-bounce">🦁</div>
+                <h1 class="text-3xl font-black text-emerald-800">Zoo Detective</h1>
+                <p class="text-slate-500 font-bold">ฝึกสมองวัยเก๋า</p>
+            </div>
+
+            <div class="flex-1 space-y-2 mb-4 overflow-y-auto px-1">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">เลือกระดับความยาก</p>
+                
+                <div onclick="startGameAtLevel(1)" class="menu-btn hover:bg-emerald-50 active:scale-95 transition">
+                    <div class="flex items-center">
+                        <div class="text-3xl mr-4 bg-emerald-100 p-2 rounded-xl">🐣</div>
+                        <div class="text-left">
+                            <div class="font-bold text-lg text-slate-800">ฝึกหัด (10 ด่าน)</div>
+                            <div class="text-xs text-slate-500">ตาราง 1x3 (ง่ายมาก)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div onclick="startGameAtLevel(2)" class="menu-btn hover:bg-blue-50 active:scale-95 transition">
+                    <div class="flex items-center">
+                        <div class="text-3xl mr-4 bg-blue-100 p-2 rounded-xl">🐢</div>
+                        <div class="text-left">
+                            <div class="font-bold text-lg text-slate-800">ทั่วไป (10 ด่าน)</div>
+                            <div class="text-xs text-slate-500">ตาราง 2x2 (มาตรฐาน)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div onclick="startGameAtLevel(3)" class="menu-btn hover:bg-orange-50 active:scale-95 transition">
+                    <div class="flex items-center">
+                        <div class="text-3xl mr-4 bg-orange-100 p-2 rounded-xl">🦊</div>
+                        <div class="text-left">
+                            <div class="font-bold text-lg text-slate-800">เก่งมาก (10 ด่าน)</div>
+                            <div class="text-xs text-slate-500">ตาราง 3x2 (ท้าทาย)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div onclick="startGameAtLevel(4)" class="menu-btn hover:bg-purple-50 active:scale-95 transition">
+                    <div class="flex items-center">
+                        <div class="text-3xl mr-4 bg-purple-100 p-2 rounded-xl">🦁</div>
+                        <div class="text-left">
+                            <div class="font-bold text-lg text-slate-800">เซียน (10 ด่าน)</div>
+                            <div class="text-xs text-slate-500">ตาราง 3x3 (ยากที่สุด)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3 mt-auto pt-4 border-t border-slate-100">
+                <button onclick="showLeaderboard()" class="w-full py-4 bg-slate-800 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg active:scale-95 transition">
+                    <span>🏆</span> ดูคะแนนสูงสุด
+                </button>
+                
+                <button onclick="downloadAnalytics()" class="w-full py-3 bg-emerald-600 text-white rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-md active:scale-95 transition">
+                    <span>📥</span> ดาวน์โหลดข้อมูล
+                </button>
+            </div>
+        </div>
+
+        <!-- === LEADERBOARD INTERFACE === -->
+        <div id="leaderboard-interface" class="w-full h-full hidden flex flex-col pt-safe pb-safe bg-slate-50">
+            <header class="hud-bar justify-center relative">
+                <button onclick="backToMenu()" class="absolute left-4 text-slate-400 hover:text-slate-800 text-2xl p-2 rounded-full hover:bg-slate-100">⬅</button>
+                <h2 class="text-xl font-bold text-slate-800">🏆 กระดานผู้นำ</h2>
+            </header>
+            
+            <div class="flex border-b border-slate-200 bg-white sticky top-0 z-10 shadow-sm">
+                <div onclick="switchLeaderboardTab(1)" class="flex-1 py-3 text-center cursor-pointer border-b-4 border-transparent text-slate-400 font-bold transition lb-tab active" id="tab-1" style="border-color: #10b981; color: #10b981; background: #ecfdf5;">ฝึกหัด</div>
+                <div onclick="switchLeaderboardTab(2)" class="flex-1 py-3 text-center cursor-pointer border-b-4 border-transparent text-slate-400 font-bold transition lb-tab" id="tab-2">ทั่วไป</div>
+                <div onclick="switchLeaderboardTab(3)" class="flex-1 py-3 text-center cursor-pointer border-b-4 border-transparent text-slate-400 font-bold transition lb-tab" id="tab-3">เก่งมาก</div>
+                <div onclick="switchLeaderboardTab(4)" class="flex-1 py-3 text-center cursor-pointer border-b-4 border-transparent text-slate-400 font-bold transition lb-tab" id="tab-4">เซียน</div>
+            </div>
+
+            <div id="lb-content" class="flex-1 overflow-y-auto p-4 space-y-2">
+                <div class="text-center text-slate-400 mt-10">กำลังโหลดข้อมูล...</div>
+            </div>
+        </div>
+
+
+        <!-- === 2. GAME INTERFACE === -->
+        <div id="game-interface" class="hidden h-full flex flex-col">
+            <!-- Header -->
+            <header class="hud-bar">
+                <button onclick="backToMenu()" class="mr-3 text-2xl text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+                    🏠
+                </button>
+                <div class="flex flex-col mr-auto">
+                    <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">ระดับ <span id="level-name">ฝึกหัด</span></span>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-2xl font-black text-slate-800">ด่าน <span id="stage-display">1</span>/10</span>
+                        <span class="text-xs text-slate-400 font-medium" id="grid-info">1x3</span>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">เวลา</span>
+                    <div class="flex items-center gap-1 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">
+                        <span class="text-sm">⏱️</span>
+                        <span id="timer-text" class="text-lg font-mono font-bold text-emerald-700">00:00</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="game-content">
+                <section class="clues-card">
+                    <div class="clues-header">
+                        <span class="text-xl mr-2">🕵️</span>
+                        <h2 class="font-bold text-emerald-900 text-base">ข้อมูลนักสืบ (ทำตามลำดับ)</h2>
+                    </div>
+                    <div class="clues-list-wrapper">
+                        <ul id="hint-list" class="space-y-3 text-lg text-slate-700 font-medium list-none pb-2">
+                            <!-- Hints -->
+                        </ul>
+                    </div>
+                </section>
+
+                <div class="grid-wrapper" id="grid-wrapper">
+                    <section class="grid-layout" id="game-grid">
+                        <!-- Slots -->
+                    </section>
+                </div>
+            </main>
+
+            <!-- Footer -->
+            <footer class="controls">
+                <div id="animal-bank" class="animal-bank">
+                    <!-- Buttons -->
+                </div>
+                <button onclick="onCheckAnswer()" class="action-btn">
+                    ส่งคำตอบ
+                </button>
+            </footer>
+        </div>
+
+        <!-- Win Modal -->
+        <div id="modal-win" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+            <div class="bg-white rounded-[2rem] w-full max-w-xs p-8 text-center border-8 border-emerald-400 shadow-2xl relative overflow-hidden overflow-y-auto max-h-[90vh]">
+                <div class="text-7xl mb-4 animate-bounce">🏆</div>
+                <h2 class="text-3xl font-bold text-slate-800 mb-2" id="win-title">ด่านสำเร็จ!</h2>
+                <div class="flex justify-center gap-1 mb-6 text-3xl text-yellow-400" id="star-rating">
+                    ★ ★ ★
+                </div>
+                
+                <div class="bg-slate-50 rounded-2xl p-5 mb-6 border border-slate-200 space-y-3">
+                    <div class="flex justify-between items-center text-sm border-b border-slate-200 pb-3">
+                        <span class="text-slate-500 font-bold">เวลาด่านนี้</span>
+                        <span class="font-mono font-bold text-slate-700 text-lg" id="res-stage-time">00:00</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm border-b border-slate-200 pb-3">
+                        <span class="text-slate-500 font-bold">เวลารวมทั้งหมด</span>
+                        <span class="font-mono font-bold text-emerald-600 text-lg" id="res-total-time">00:00</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-1">
+                        <span class="text-slate-500 font-bold">คะแนนรวม</span>
+                        <span class="font-black text-emerald-600 text-3xl" id="res-score">1000</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3" id="win-buttons">
+                    <!-- Buttons injected by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ALL_ANIMALS = ['🦁', '🐘', '🦒', '🐒', '🦓', '🐯', '🦛', '🐼', '🦊', '🐨', '🐮', '🐷', '🐸', '🐔', '🐧'];
+        
+        let state = {
+            level: 1,
+            stage: 1, // 1 to 10
+            rows: 1,
+            cols: 2,
+            solution: [],
+            currentBoard: [],
+            selectedAnimal: null,
+            elapsedSeconds: 0,
+            timerId: null,
+            availableAnimals: [],
+            runId: null,
+            totalLevelSeconds: 0,
+            totalScore: 0,
+            moveCount: 0,
+            wrongAttempts: 0
+        };
+
+        const LEVEL_NAMES = {1: "ฝึกหัด", 2: "ทั่วไป", 3: "เก่งมาก", 4: "เซียน"};
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        // --- Navigation ---
+        function showMenu() {
+            document.getElementById('menu-interface').classList.remove('hidden');
+            document.getElementById('game-interface').classList.add('hidden');
+            document.getElementById('leaderboard-interface').classList.add('hidden');
+            if(state.timerId) clearInterval(state.timerId);
+        }
+
+        function backToMenu() {
+            showMenu();
+        }
+
+        function startGameAtLevel(lvl) {
+            state.level = lvl;
+            state.stage = 1;
+            state.totalLevelSeconds = 0;
+            state.totalScore = 0;
+            state.runId = Date.now();
+            document.getElementById('menu-interface').classList.add('hidden');
+            document.getElementById('game-interface').classList.remove('hidden');
+            initGameRound();
+        }
+
+        // --- Analytics & Save ---
+        function saveAnalyticsLog(isWin) {
+            const logs = JSON.parse(localStorage.getItem('zoo_analytics_logs') || '[]');
+            const logEntry = {
+                timestamp: new Date().toISOString(),
+                runId: state.runId,
+                level: state.level,
+                stage: state.stage,
+                gridSize: `${state.rows}x${state.cols}`,
+                timeTakenSeconds: state.elapsedSeconds,
+                moveCount: state.moveCount,
+                wrongAttempts: state.wrongAttempts,
+                totalScoreSnapshot: state.totalScore,
+                result: isWin ? 'WIN' : 'INCOMPLETE'
+            };
+            logs.push(logEntry);
+            localStorage.setItem('zoo_analytics_logs', JSON.stringify(logs));
+        }
+
+        function downloadAnalytics() {
+            const logs = localStorage.getItem('zoo_analytics_logs');
+            if (!logs || logs === '[]') {
+                alert('ยังไม่มีข้อมูลการเล่นที่บันทึกไว้ครับ');
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(logs);
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "zoo_detective_data_" + new Date().toISOString().slice(0,10) + ".json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function getScores() {
+            const data = localStorage.getItem('zoo_scores_v2');
+            return data ? JSON.parse(data) : { 1: [], 2: [], 3: [], 4: [] };
+        }
+
+        function saveScore(level, score, totalSeconds, stage, runId) {
+            const scores = getScores();
+            const date = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+            const existingIndex = scores[level].findIndex(s => s.runId === runId);
+            const entry = { score, totalSeconds, timeText: formatTime(totalSeconds), date, stage, runId };
+
+            if (existingIndex !== -1) scores[level][existingIndex] = entry;
+            else scores[level].push(entry);
+            
+            scores[level].sort((a, b) => b.score - a.score);
+            scores[level] = scores[level].slice(0, 20);
+            localStorage.setItem('zoo_scores_v2', JSON.stringify(scores));
+        }
+
+        // --- Leaderboard UI ---
+        function showLeaderboard() {
+            document.getElementById('menu-interface').classList.add('hidden');
+            document.getElementById('leaderboard-interface').classList.remove('hidden');
+            switchLeaderboardTab(1); 
+        }
+        
+        function showLeaderboardFromModal() {
+            document.getElementById('modal-win').classList.add('hidden');
+            document.getElementById('game-interface').classList.add('hidden');
+            document.getElementById('leaderboard-interface').classList.remove('hidden');
+            switchLeaderboardTab(state.level); 
+        }
+
+        function switchLeaderboardTab(level) {
+            document.querySelectorAll('.lb-tab').forEach(t => {
+                t.classList.remove('active');
+                t.style.borderColor = 'transparent';
+                t.style.color = '#64748b';
+                t.style.background = 'transparent';
+            });
+            const activeTab = document.getElementById(`tab-${level}`);
+            activeTab.classList.add('active');
+            activeTab.style.borderColor = '#10b981';
+            activeTab.style.color = '#10b981';
+            activeTab.style.background = '#ecfdf5';
+
+            const scores = getScores();
+            const list = scores[level] || [];
+            const container = document.getElementById('lb-content');
+            
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-48 text-slate-400">
+                        <span class="text-4xl mb-2">📝</span>
+                        <p>ยังไม่มีประวัติการเล่นในระดับนี้</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = list.map((item, index) => {
+                const rankClass = index === 0 ? 'top-1' : index === 1 ? 'top-2' : index === 2 ? 'top-3' : '';
+                return `
+                    <div class="lb-item">
+                        <div class="flex items-center">
+                            <div class="lb-rank ${rankClass}">${index + 1}</div>
+                            <div class="flex flex-col">
+                                <span class="text-xs text-slate-400">${item.date}</span>
+                                <span class="font-bold text-slate-700">ถึงด่าน ${item.stage}</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="font-bold text-emerald-600 text-lg">${item.score}</span>
+                            <span class="text-xs text-slate-400 font-mono">รวม ${item.timeText}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- Game Logic ---
+        function initGameRound() {
+            state.moveCount = 0;
+            state.wrongAttempts = 0;
+            state.elapsedSeconds = 0;
+
+            if (state.level === 1) { state.rows = 1; state.cols = 3; }
+            else if (state.level === 2) { state.rows = 2; state.cols = 2; }
+            else if (state.level === 3) { state.rows = 3; state.cols = 2; }
+            else { state.rows = 3; state.cols = 3; }
+
+            const totalSlots = state.rows * state.cols;
+            const shuffledAnimals = [...ALL_ANIMALS].sort(() => Math.random() - 0.5);
+            state.availableAnimals = shuffledAnimals.slice(0, totalSlots);
+            state.solution = [...state.availableAnimals].sort(() => Math.random() - 0.5);
+            state.currentBoard = new Array(totalSlots).fill(null);
+            state.selectedAnimal = null;
+            
+            document.getElementById('level-name').innerText = LEVEL_NAMES[state.level];
+            document.getElementById('stage-display').innerText = state.stage;
+            document.getElementById('grid-info').innerText = `${state.rows}x${state.cols}`;
+            updateTimerDisplay();
+            
+            renderAnimalBank();
+            generateHints();
+            setTimeout(renderGrid, 50); 
+            startTimer();
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('game-grid');
+            const wrapper = document.getElementById('grid-wrapper');
+            grid.innerHTML = '';
+            
+            const availWidth = wrapper.clientWidth - 10;
+            const availHeight = wrapper.clientHeight - 10;
+
+            const gap = 8;
+            const totalGapW = (state.cols - 1) * gap;
+            const totalGapH = (state.rows - 1) * gap;
+
+            const maxCellW = (availWidth - totalGapW) / state.cols;
+            const maxCellH = (availHeight - totalGapH) / state.rows;
+            
+            const cellSize = Math.floor(Math.min(maxCellW, maxCellH));
+            
+            grid.style.gridTemplateColumns = `repeat(${state.cols}, ${cellSize}px)`;
+            grid.style.gridTemplateRows = `repeat(${state.rows}, ${cellSize}px)`;
+            grid.style.gap = `${gap}px`;
+
+            const fontSize = Math.floor(cellSize * 0.6);
+
+            for (let i = 0; i < state.rows * state.cols; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.style.fontSize = `${fontSize}px`;
+                slot.innerHTML = `<span class="opacity-20 text-slate-300 font-bold select-none text-[30%]">${i+1}</span>`; 
+                slot.onclick = () => onSlotClick(i);
+                grid.appendChild(slot);
+            }
+        }
+
+        function renderAnimalBank() {
+            const bank = document.getElementById('animal-bank');
+            bank.innerHTML = '';
+            const count = state.availableAnimals.length;
+            bank.style.gridTemplateColumns = `repeat(${Math.min(count, 5)}, 1fr)`;
+
+            state.availableAnimals.forEach(animal => {
+                const btn = document.createElement('div');
+                btn.className = 'animal-btn';
+                btn.id = `btn-${animal}`;
+                btn.innerText = animal;
+                btn.onclick = () => onAnimalSelect(animal);
+                bank.appendChild(btn);
+            });
+        }
+
+        function startTimer() {
+            if (state.timerId) clearInterval(state.timerId);
+            state.timerId = setInterval(() => {
+                state.elapsedSeconds++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const timeStr = formatTime(state.elapsedSeconds);
+            document.getElementById('timer-text').innerText = timeStr;
+            return timeStr;
+        }
+
+        function getPositionName(idx) {
+            const r = Math.floor(idx / state.cols);
+            const c = idx % state.cols;
+            
+            if (state.rows === 1) {
+                if (state.cols === 3) {
+                     const names = ["ซ้ายสุด", "ตรงกลาง", "ขวาสุด"];
+                     return names[c];
+                }
+                return c === 0 ? "ซ้าย" : "ขวา";
+            }
+            if (state.rows === 2 && state.cols === 2) {
+                const rowName = r === 0 ? "บน" : "ล่าง";
+                const colName = c === 0 ? "ซ้าย" : "ขวา";
+                return `มุม${colName}${rowName}`;
+            }
+            if (state.rows === 3 && state.cols === 3) {
+                if (r === 1 && c === 1) return "ตรงกลางตาราง";
+                if (r === 0 && c === 0) return "มุมซ้ายบน";
+                if (r === 0 && c === 2) return "มุมขวาบน";
+                if (r === 2 && c === 0) return "มุมซ้ายล่าง";
+                if (r === 2 && c === 2) return "มุมขวาล่าง";
+                if (r === 0 && c === 1) return "แถวบน ตรงกลาง";
+                if (r === 2 && c === 1) return "แถวล่าง ตรงกลาง";
+                if (r === 1 && c === 0) return "แถวกลาง ด้านซ้าย";
+                if (r === 1 && c === 2) return "แถวกลาง ด้านขวา";
+            }
+            const rowNames = ["บน", "กลาง", "ล่าง"];
+            const colNames = ["ซ้าย", "กลาง", "ขวา"];
+            return `${colNames[c]} แถว${rowNames[r]}`;
+        }
+
+        function getPhrase(type, a1, a2) {
+            const phrases = {
+                up: [`🔼 <b>${a1}</b> อยู่ด้านบนของ <b>${a2}</b>`, `🔼 <b>${a1}</b> พักอยู่ชั้นบนของ <b>${a2}</b>`, `🔼 <b>${a2}</b> ถูก <b>${a1}</b> ทับอยู่`],
+                down: [`🔽 <b>${a1}</b> อยู่ด้านล่างของ <b>${a2}</b>`, `🔽 <b>${a1}</b> พักอยู่ใต้ <b>${a2}</b>`, `🔽 <b>${a2}</b> นั่งทับ <b>${a1}</b> อยู่`],
+                left: [`👈 <b>${a1}</b> อยู่ทางซ้ายของ <b>${a2}</b>`, `👈 <b>${a1}</b> ยืนต่อแถวซ้ายมือของ <b>${a2}</b>`, `👈 <b>${a2}</b> มี <b>${a1}</b> อยู่ด้านซ้าย`],
+                right: [`👉 <b>${a1}</b> อยู่ทางขวาของ <b>${a2}</b>`, `👉 <b>${a1}</b> ยืนต่อแถวขวามือของ <b>${a2}</b>`, `👉 <b>${a2}</b> มี <b>${a1}</b> อยู่ด้านขวา`]
+            };
+            return phrases[type][Math.floor(Math.random() * phrases[type].length)];
+        }
+
+        function generateHints() {
+            const sol = state.solution;
+            const list = document.getElementById('hint-list');
+            const hints = [];
+            const total = state.rows * state.cols;
+            const visited = new Set();
+            
+            let rootIdx = Math.floor(Math.random() * total);
+            if (state.rows === 3 && state.cols === 3) {
+                const easyStarts = [0, 2, 4, 6, 8];
+                rootIdx = easyStarts[Math.floor(Math.random() * easyStarts.length)];
+            } else if (state.rows === 1) {
+                rootIdx = Math.floor(Math.random() * 3);
+            }
+
+            visited.add(rootIdx);
+            hints.push(`📍 <span class="text-emerald-700 font-bold">${sol[rootIdx]}</span> อยู่ที่ <b>${getPositionName(rootIdx)}</b>`);
+
+            while (visited.size < total - 1) {
+                const candidates = [];
+                visited.forEach(u => {
+                    const r = Math.floor(u / state.cols);
+                    const c = u % state.cols;
+                    const neighbors = [
+                        { idx: u - state.cols, dir: 'up' },
+                        { idx: u + state.cols, dir: 'down' },
+                        { idx: u - 1, dir: 'left', valid: c > 0 },
+                        { idx: u + 1, dir: 'right', valid: c < state.cols - 1 }
+                    ];
+                    neighbors.forEach(n => {
+                        if (n.idx >= 0 && n.idx < total && !visited.has(n.idx)) {
+                            if ((n.dir === 'left' || n.dir === 'right') && !n.valid) return;
+                            candidates.push({ u: u, v: n.idx, dir: n.dir });
+                        }
+                    });
+                });
+
+                if (candidates.length === 0) break;
+
+                const pick = candidates[Math.floor(Math.random() * candidates.length)];
+                const animalU = sol[pick.u];
+                const animalV = sol[pick.v];
+                
+                hints.push(getPhrase(pick.dir, animalV, animalU));
+                visited.add(pick.v);
+            }
+            
+            hints.push(`<li class="bg-amber-50 text-amber-800 p-2 rounded-lg text-sm border border-amber-200 mt-2">💡 ตัวสุดท้ายไม่มีคำใบ้ ต้องหาที่ว่างเองนะครับ</li>`);
+            list.innerHTML = hints.map(h => h.startsWith('<li') ? h : `<li class="pl-2 border-l-4 border-emerald-200">${h}</li>`).join('');
+        }
+
+        function onAnimalSelect(animal) {
+            state.selectedAnimal = animal;
+            document.querySelectorAll('.animal-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById(`btn-${animal}`).classList.add('selected');
+        }
+
+        function onSlotClick(idx) {
+            if (!state.selectedAnimal) return;
+            const prevIdx = state.currentBoard.indexOf(state.selectedAnimal);
+            if (prevIdx !== -1) {
+                state.currentBoard[prevIdx] = null;
+                const prevSlot = document.querySelectorAll('.slot')[prevIdx];
+                prevSlot.innerHTML = `<span class="opacity-20 text-slate-300 font-bold select-none text-[30%]">${prevIdx+1}</span>`;
+                prevSlot.classList.remove('active');
+            }
+            state.currentBoard[idx] = state.selectedAnimal;
+            const slot = document.querySelectorAll('.slot')[idx];
+            slot.innerText = state.selectedAnimal;
+            slot.classList.add('active');
+            state.moveCount++;
+        }
+
+        function nextStage() {
+            state.stage++;
+            document.getElementById('modal-win').classList.add('hidden');
+            initGameRound();
+        }
+
+        function onCheckAnswer() {
+            if (state.currentBoard.includes(null)) {
+                const app = document.getElementById('main-app');
+                app.classList.add('shake');
+                setTimeout(() => app.classList.remove('shake'), 400);
+                return;
+            }
+
+            const isCorrect = state.currentBoard.every((val, i) => val === state.solution[i]);
+
+            if (isCorrect) {
+                clearInterval(state.timerId);
+                const baseScore = state.level * 1000;
+                const timePenalty = state.elapsedSeconds * 10;
+                const stageScore = Math.max(100, baseScore - timePenalty);
+                
+                state.totalLevelSeconds += state.elapsedSeconds;
+                state.totalScore += stageScore;
+
+                saveScore(state.level, state.totalScore, state.totalLevelSeconds, state.stage, state.runId);
+                saveAnalyticsLog(true);
+
+                document.getElementById('res-stage-time').innerText = formatTime(state.elapsedSeconds);
+                document.getElementById('res-total-time').innerText = formatTime(state.totalLevelSeconds);
+                document.getElementById('res-score').innerText = state.totalScore;
+                
+                const stars = document.getElementById('star-rating');
+                if (stageScore > baseScore * 0.8) stars.innerHTML = '★ ★ ★';
+                else if (stageScore > baseScore * 0.5) stars.innerHTML = '★ ★ ☆';
+                else stars.innerHTML = '★ ☆ ☆';
+
+                const btnContainer = document.getElementById('win-buttons');
+                const isLastStage = state.stage === 10;
+                
+                let nextBtnHtml = '';
+                let titleHtml = `ด่าน ${state.stage} สำเร็จ!`;
+
+                if (isLastStage) {
+                    titleHtml = `🎉 พิชิตระดับ ${LEVEL_NAMES[state.level]} สำเร็จ!`;
+                    nextBtnHtml = `
+                        <button onclick="backToMenu(); document.getElementById('modal-win').classList.add('hidden')" class="col-span-2 py-3 rounded-xl font-bold text-white bg-emerald-500 shadow-md hover:bg-emerald-600 text-lg">
+                            กลับสู่เมนูหลัก
+                        </button>
+                    `;
+                } else {
+                    nextBtnHtml = `
+                        <button onclick="showLeaderboardFromModal()" class="py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200">
+                            🏆 คะแนนรวม
+                        </button>
+                        <button onclick="nextStage()" class="py-3 rounded-xl font-bold text-white bg-emerald-500 shadow-md hover:bg-emerald-600">
+                            ด่านต่อไป (${state.stage+1}/10)
+                        </button>
+                    `;
+                }
+
+                document.getElementById('win-title').innerText = titleHtml;
+                btnContainer.innerHTML = nextBtnHtml;
+                document.getElementById('modal-win').classList.remove('hidden');
+            } else {
+                const app = document.getElementById('main-app');
+                app.classList.add('shake');
+                setTimeout(() => app.classList.remove('shake'), 400);
+                state.wrongAttempts++;
+            }
+        }
+
+        window.addEventListener('resize', renderGrid);
+    </script>
+</body>
+</html>

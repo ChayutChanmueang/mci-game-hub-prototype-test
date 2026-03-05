@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>เกมฝึกสมาธิ: ขับรถเลนกลาง</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #1a202c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 50vh;
+            aspect-ratio: 9 / 18;
+            background-color: #2d3748;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        @media (min-width: 600px) {
+            #game-container {
+                height: 90vh;
+                border-radius: 20px;
+                border: 4px solid #4a5568;
+            }
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .control-btn {
+            transition: all 0.1s;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .control-btn:active, .control-btn.active {
+            background-color: rgba(255, 255, 255, 0.4);
+            transform: scale(0.98);
+        }
+        
+        /* Custom Checkbox */
+        .checkbox-wrapper input:checked + div {
+            background-color: #10B981;
+            border-color: #10B981;
+        }
+        .checkbox-wrapper input:checked + div svg {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- UI Layer -->
+    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between">
+        
+        <!-- Top HUD -->
+        <div id="hud" class="hidden p-4 flex justify-between items-start text-white text-xl font-bold text-shadow">
+            <div class="bg-gray-800/80 px-4 py-2 rounded-xl border border-gray-600 shadow-lg backdrop-blur-sm">
+                คะแนน: <span id="scoreDisplay" class="text-green-400 text-2xl">0</span>
+            </div>
+            <div class="bg-gray-800/80 px-4 py-2 rounded-xl border border-gray-600 shadow-lg backdrop-blur-sm">
+                เวลา: <span id="timeDisplay" class="text-yellow-400 text-2xl">60</span>s
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div id="controls" class="hidden h-1/4 w-full flex pointer-events-auto shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
+            <button id="btnLeft" class="control-btn w-1/2 h-full bg-gradient-to-br from-blue-600 to-blue-800 text-white text-4xl font-bold flex items-center justify-center border-r border-blue-400/30">
+                <span class="drop-shadow-lg transform -translate-x-2">◀ ซ้าย</span>
+            </button>
+            <button id="btnRight" class="control-btn w-1/2 h-full bg-gradient-to-bl from-blue-600 to-blue-800 text-white text-4xl font-bold flex items-center justify-center border-l border-blue-400/30">
+                <span class="drop-shadow-lg transform translate-x-2">ขวา ▶</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="absolute inset-0 z-20 bg-gray-900/95 flex flex-col items-center justify-center p-6 text-center text-white pointer-events-auto backdrop-blur-sm">
+        <div class="mb-6 p-4 bg-white/10 rounded-full">
+            <svg class="w-16 h-16 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+        <h1 class="text-4xl font-bold text-white mb-2 tracking-wide">เกมฝึกสมาธิ</h1>
+        <h2 class="text-2xl font-light text-blue-300 mb-6">ขับรถเลนกลาง</h2>
+        
+        <div class="bg-gray-800/60 p-5 rounded-2xl mb-6 border border-white/10 w-full max-w-sm shadow-xl">
+            <h3 class="text-xl font-bold mb-3 text-green-400 border-b border-white/10 pb-2">วิธีเล่น</h3>
+            <ul class="text-lg text-left space-y-3 text-gray-200">
+                <li class="flex items-center"><span class="text-2xl mr-3">🚗</span> รถจะเบี่ยงซ้ายขวาเอง</li>
+                <li class="flex items-center"><span class="text-2xl mr-3">🎮</span> กดปุ่ม หรือ <strong>เอียงเครื่อง</strong></li>
+                <li class="flex items-center"><span class="text-2xl mr-3">🎯</span> เลี้ยงให้อยู่ <strong>เลนกลาง</strong></li>
+            </ul>
+        </div>
+
+        <!-- Gyro Toggle -->
+        <label class="checkbox-wrapper flex items-center cursor-pointer mb-8 bg-white/5 p-3 rounded-lg hover:bg-white/10 transition">
+            <input type="checkbox" id="gyroToggle" class="hidden">
+            <div class="w-6 h-6 border-2 border-gray-400 rounded flex items-center justify-center mr-3 transition-colors bg-white">
+                <svg class="w-4 h-4 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <span class="text-xl select-none">ใช้การเอียงเครื่อง (Gyroscope)</span>
+        </label>
+
+        <button id="btnStart" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-3xl font-bold py-4 px-12 rounded-full shadow-lg shadow-green-500/30 transform transition active:scale-95 border-2 border-green-400/20">
+            เริ่มเกม
+        </button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="absolute inset-0 z-30 bg-gray-900/95 hidden flex-col items-center justify-center p-6 text-center text-white pointer-events-auto backdrop-blur-md">
+        <h1 class="text-5xl font-bold text-white mb-2">หมดเวลา!</h1>
+        <div class="w-20 h-1 bg-yellow-400 mb-6 rounded-full"></div>
+        <p class="text-xl text-gray-300 mb-2">คะแนนของคุณ</p>
+        <div class="text-8xl font-bold text-yellow-400 mb-8 drop-shadow-lg" id="finalScore">0</div>
+        
+        <p class="text-lg text-blue-200 mb-8 bg-blue-900/30 py-3 px-6 rounded-lg" id="feedbackText">ยอดเยี่ยมมาก!</p>
+
+        <button id="btnRestart" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-2xl font-bold py-4 px-12 rounded-full shadow-lg shadow-blue-500/30 transform transition active:scale-95 border-2 border-blue-400/20">
+            เล่นอีกครั้ง
+        </button>
+    </div>
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // UI Elements
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const hud = document.getElementById('hud');
+    const controls = document.getElementById('controls');
+    const btnStart = document.getElementById('btnStart');
+    const btnRestart = document.getElementById('btnRestart');
+    const btnLeft = document.getElementById('btnLeft');
+    const btnRight = document.getElementById('btnRight');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const finalScore = document.getElementById('finalScore');
+    const feedbackText = document.getElementById('feedbackText');
+    const gyroToggle = document.getElementById('gyroToggle');
+
+    // Game Variables
+    let animationId;
+    let gameState = 'START';
+    let score = 0;
+    let timeLeft = 60;
+    let timerInterval;
+
+    // --- Configuration ---
+    const ROAD_SPEED = 3.5;
+    const PLAYER_SPEED_FACTOR = 0.012; // Button Speed
+    const DRIFT_FORCE_FACTOR = 0.0035; 
+    
+    // Gyro Variables
+    let useGyro = false;
+    let currentGamma = 0; // Tilt Left/Right (-90 to 90)
+    
+    // Objects
+    let trees = [];
+    let particles = [];
+
+    // Canvas Size Setup
+    function resizeCanvas() {
+        const container = document.getElementById('game-container');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Road Setup
+    let roadOffsetY = 0;
+
+    // Car Setup
+    const car = {
+        width: 0,
+        height: 0,
+        x: 0,
+        y: 0,
+        color: '#F59E0B', // Amber 500
+    };
+
+    // Movement Logic
+    let isMovingLeft = false;
+    let isMovingRight = false;
+    
+    // Drift Logic
+    let driftVelocity = 0;
+    let targetDriftVelocity = 0;
+    let driftTimer = 0;
+
+    class Tree {
+        constructor() {
+            this.y = -100;
+            this.side = Math.random() < 0.5 ? 'left' : 'right';
+            const laneWidth = canvas.width / 3;
+            if (this.side === 'left') {
+                this.x = Math.random() * (laneWidth * 0.5) - 20; 
+            } else {
+                this.x = canvas.width - (Math.random() * (laneWidth * 0.5)) - 20;
+            }
+            this.type = Math.random();
+        }
+        
+        update() {
+            this.y += ROAD_SPEED;
+        }
+
+        draw() {
+            ctx.save();
+            const trunkW = canvas.width * 0.04;
+            const trunkH = canvas.width * 0.06;
+            
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.ellipse(this.x + trunkW/2 + 5, this.y + trunkH + 5, trunkW, trunkW/3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#78350F';
+            ctx.fillRect(this.x, this.y, trunkW, trunkH);
+
+            ctx.fillStyle = this.type > 0.5 ? '#15803D' : '#166534';
+            const leaveSize = canvas.width * 0.12;
+            
+            ctx.beginPath();
+            ctx.arc(this.x + trunkW/2, this.y - leaveSize/3, leaveSize/2, 0, Math.PI*2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.beginPath();
+            ctx.arc(this.x + trunkW/2 - 5, this.y - leaveSize/3 - 5, leaveSize/4, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+    }
+
+    class Particle {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.vx = (Math.random() - 0.5) * 2;
+            this.vy = 2 + Math.random() * 2;
+            this.alpha = 0.8;
+            this.size = Math.random() * 5 + 3;
+        }
+        update() {
+            this.y += this.vy;
+            this.x += this.vx;
+            this.alpha -= 0.03;
+        }
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = this.alpha;
+            ctx.fillStyle = '#9CA3AF';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    // Gyroscope Handler
+    function handleOrientation(event) {
+        if (!useGyro) return;
+        // gamma is the left-to-right tilt in degrees, where right is positive
+        currentGamma = event.gamma || 0; 
+    }
+
+    function initGameWithGyro() {
+        useGyro = gyroToggle.checked;
+
+        if (useGyro) {
+            // Check for iOS 13+ permission requirement
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(response => {
+                        if (response === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation);
+                            startGameFlow();
+                        } else {
+                            alert("ไม่ได้รับอนุญาตให้เข้าถึงการเอียงเครื่อง ระบบจะใช้ปุ่มกดเท่านั้น");
+                            useGyro = false;
+                            gyroToggle.checked = false;
+                            startGameFlow();
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                // Non-iOS 13+ or Android
+                window.addEventListener('deviceorientation', handleOrientation);
+                startGameFlow();
+            }
+        } else {
+            // Gyro not selected
+            window.removeEventListener('deviceorientation', handleOrientation);
+            startGameFlow();
+        }
+    }
+
+    function startGameFlow() {
+        resizeCanvas();
+        score = 0;
+        timeLeft = 60;
+        scoreDisplay.innerText = score;
+        timeDisplay.innerText = timeLeft;
+        
+        car.width = canvas.width * 0.14;
+        car.height = car.width * 1.9;
+        car.x = canvas.width / 2 - car.width / 2;
+        car.y = canvas.height * 0.60;
+
+        driftVelocity = 0;
+        targetDriftVelocity = 0;
+        driftTimer = 0;
+        isMovingLeft = false;
+        isMovingRight = false;
+        currentGamma = 0; // Reset tilt
+        
+        trees = [];
+        particles = [];
+
+        startScreen.classList.add('hidden');
+        gameOverScreen.classList.add('hidden');
+        hud.classList.remove('hidden');
+        controls.classList.remove('hidden');
+
+        gameState = 'PLAYING';
+        
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (gameState === 'PLAYING') {
+                timeLeft--;
+                timeDisplay.innerText = timeLeft;
+                if (timeLeft <= 0) endGame();
+            }
+        }, 1000);
+
+        cancelAnimationFrame(animationId);
+        gameLoop();
+    }
+
+    function endGame() {
+        gameState = 'GAMEOVER';
+        clearInterval(timerInterval);
+        hud.classList.add('hidden');
+        controls.classList.add('hidden');
+        gameOverScreen.classList.remove('hidden');
+        gameOverScreen.style.display = 'flex';
+        finalScore.innerText = Math.floor(score);
+        
+        if (score > 2500) feedbackText.innerText = "สุดยอด! สมาธิมั่นคงดั่งภูผา";
+        else if (score > 1200) feedbackText.innerText = "ดีเยี่ยม! พัฒนาขึ้นมากครับ";
+        else feedbackText.innerText = "เก่งมาก! ฝึกบ่อยๆ สุขภาพจิตจะดี";
+    }
+
+    // Input Handling
+    function handleLeftDown(e) { if(e.cancelable) e.preventDefault(); isMovingLeft = true; btnLeft.classList.add('active'); }
+    function handleLeftUp(e) { if(e.cancelable) e.preventDefault(); isMovingLeft = false; btnLeft.classList.remove('active'); }
+    function handleRightDown(e) { if(e.cancelable) e.preventDefault(); isMovingRight = true; btnRight.classList.add('active'); }
+    function handleRightUp(e) { if(e.cancelable) e.preventDefault(); isMovingRight = false; btnRight.classList.remove('active'); }
+
+    btnLeft.addEventListener('mousedown', handleLeftDown);
+    btnLeft.addEventListener('touchstart', handleLeftDown, {passive: false});
+    window.addEventListener('mouseup', handleLeftUp);
+    btnLeft.addEventListener('touchend', handleLeftUp);
+    
+    btnRight.addEventListener('mousedown', handleRightDown);
+    btnRight.addEventListener('touchstart', handleRightDown, {passive: false});
+    window.addEventListener('mouseup', handleRightUp);
+    btnRight.addEventListener('touchend', handleRightUp);
+
+    // Main Start Button acts as Permission Requester + Start
+    btnStart.addEventListener('click', initGameWithGyro);
+    btnRestart.addEventListener('click', () => {
+        // Just restart, gyro permission persists
+        startGameFlow();
+    });
+
+    function updateLogic() {
+        if (Math.random() < 0.03) trees.push(new Tree());
+        
+        if (gameState === 'PLAYING' && Math.random() < 0.3) {
+             particles.push(new Particle(car.x + car.width/2, car.y + car.height));
+        }
+
+        trees.forEach(t => t.update());
+        trees = trees.filter(t => t.y < canvas.height + 100);
+        
+        particles.forEach(p => p.update());
+        particles = particles.filter(p => p.alpha > 0);
+
+        driftTimer--;
+        if (driftTimer <= 0) {
+            const direction = Math.random() > 0.5 ? 1 : -1;
+            const maxDrift = canvas.width * DRIFT_FORCE_FACTOR;
+            targetDriftVelocity = direction * (Math.random() * maxDrift + (maxDrift * 0.3));
+            driftTimer = Math.random() * 150 + 100;
+        }
+
+        driftVelocity += (targetDriftVelocity - driftVelocity) * 0.015;
+
+        // --- Calculate Movement ---
+        // 1. Base Drift
+        let totalMovement = driftVelocity;
+
+        // 2. Button Inputs
+        const buttonSpeed = canvas.width * PLAYER_SPEED_FACTOR;
+        if (isMovingLeft) totalMovement -= buttonSpeed;
+        if (isMovingRight) totalMovement += buttonSpeed;
+
+        // 3. Gyro Input (Added to buttons)
+        if (useGyro) {
+            // Clamp Tilt to reasonable range (e.g., -25 to 25 degrees)
+            let tilt = Math.max(-25, Math.min(25, currentGamma));
+            
+            // Deadzone (ignore small trembling)
+            if (Math.abs(tilt) < 2) tilt = 0;
+
+            // Map tilt to speed
+            const gyroSpeedFactor = canvas.width * 0.0006; // Adjust sensitivity
+            totalMovement += tilt * gyroSpeedFactor;
+        }
+
+        car.x += totalMovement;
+
+        if (car.x < 0) car.x = 0;
+        if (car.x + car.width > canvas.width) car.x = canvas.width - car.width;
+
+        const laneWidth = canvas.width / 3;
+        const carCenter = car.x + car.width / 2;
+        const margin = car.width * 0.25; 
+        const inCenterLane = carCenter > (laneWidth - margin) && carCenter < (laneWidth * 2 + margin);
+
+        if (inCenterLane) {
+            score += 1;
+            if (score % 10 === 0) scoreDisplay.innerText = Math.floor(score / 10);
+        }
+
+        return inCenterLane;
+    }
+
+    function drawRoad(inCenterLane) {
+        ctx.fillStyle = '#064E3B'; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const roadX = 0;
+        const roadW = canvas.width;
+        
+        ctx.fillStyle = '#374151'; 
+        ctx.fillRect(roadX, 0, roadW, canvas.height);
+        
+        const laneWidth = canvas.width / 3;
+        if (inCenterLane) {
+            const gradient = ctx.createLinearGradient(laneWidth, 0, laneWidth * 2, 0);
+            gradient.addColorStop(0, 'rgba(52, 211, 153, 0.1)');
+            gradient.addColorStop(0.5, 'rgba(52, 211, 153, 0.2)');
+            gradient.addColorStop(1, 'rgba(52, 211, 153, 0.1)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(laneWidth, 0, laneWidth, canvas.height);
+        } else {
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.1)';
+            const carCenter = car.x + car.width/2;
+            if (carCenter < laneWidth) ctx.fillRect(0, 0, laneWidth, canvas.height);
+            else ctx.fillRect(laneWidth * 2, 0, laneWidth, canvas.height);
+        }
+
+        roadOffsetY += ROAD_SPEED;
+        if (roadOffsetY > 80) roadOffsetY = 0;
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = canvas.width * 0.015;
+        ctx.setLineDash([40, 40]);
+
+        ctx.beginPath();
+        ctx.moveTo(laneWidth, -80 + roadOffsetY);
+        ctx.lineTo(laneWidth, canvas.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(laneWidth * 2, -80 + roadOffsetY);
+        ctx.lineTo(laneWidth * 2, canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        ctx.strokeStyle = '#FCD34D'; 
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(2, 0); ctx.lineTo(2, canvas.height);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(canvas.width - 2, 0); ctx.lineTo(canvas.width - 2, canvas.height);
+        ctx.stroke();
+    }
+
+    function drawCar() {
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.beginPath();
+        ctx.roundRect(car.x + 8, car.y + 8, car.width, car.height, 12);
+        ctx.fill();
+
+        const grad = ctx.createLinearGradient(car.x, car.y, car.x + car.width, car.y);
+        grad.addColorStop(0, '#D97706'); 
+        grad.addColorStop(0.5, '#FBBF24'); 
+        grad.addColorStop(1, '#D97706');
+        
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.roundRect(car.x, car.y, car.width, car.height, 12);
+        ctx.fill();
+        
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.fillRect(car.x + car.width * 0.45, car.y, car.width * 0.1, car.height);
+
+        ctx.fillStyle = '#1E293B'; 
+        ctx.beginPath();
+        ctx.roundRect(car.x + car.width * 0.1, car.y + car.height * 0.25, car.width * 0.8, car.height * 0.2, 4);
+        ctx.fill();
+        
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.beginPath();
+        ctx.moveTo(car.x + car.width * 0.7, car.y + car.height * 0.25);
+        ctx.lineTo(car.x + car.width * 0.8, car.y + car.height * 0.25);
+        ctx.lineTo(car.x + car.width * 0.6, car.y + car.height * 0.45);
+        ctx.lineTo(car.x + car.width * 0.5, car.y + car.height * 0.45);
+        ctx.fill();
+
+        ctx.fillStyle = '#1E293B';
+        ctx.beginPath();
+        ctx.roundRect(car.x + car.width * 0.15, car.y + car.height * 0.65, car.width * 0.7, car.height * 0.15, 3);
+        ctx.fill();
+
+        ctx.fillStyle = '#FEF9C3';
+        ctx.shadowColor = '#FEF9C3';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(car.x + car.width * 0.2, car.y + 5, car.width * 0.12, 0, Math.PI * 2);
+        ctx.arc(car.x + car.width * 0.8, car.y + 5, car.width * 0.12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        ctx.fillStyle = '#991B1B';
+        ctx.beginPath();
+        ctx.roundRect(car.x + car.width * 0.1, car.y + car.height - 5, car.width * 0.25, 4, 2);
+        ctx.roundRect(car.x + car.width * 0.65, car.y + car.height - 5, car.width * 0.25, 4, 2);
+        ctx.fill();
+    }
+
+    function drawGame(inCenterLane) {
+        drawRoad(inCenterLane);
+        particles.forEach(p => p.draw());
+        drawCar();
+        trees.forEach(t => t.draw());
+    }
+
+    function gameLoop() {
+        if (gameState !== 'PLAYING') return;
+        const inCenterLane = updateLogic();
+        drawGame(inCenterLane);
+        animationId = requestAnimationFrame(gameLoop);
+    }
+
+    resizeCanvas();
+    drawRoad(true);
+    car.width = canvas.width * 0.14; car.height = car.width * 1.9;
+    car.x = canvas.width / 2 - car.width / 2; car.y = canvas.height * 0.60;
+    drawCar();
+
+</script>
+</body>
+</html>

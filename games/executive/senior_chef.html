@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>เชฟวัยเก๋า - Senior Chef (Difficulty Selection)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            touch-action: manipulation;
+            background-color: #fff7ed;
+        }
+        .item-card {
+            transition: all 0.15s ease-out;
+        }
+        .item-card:active {
+            transform: scale(0.98);
+        }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .selected-pulse {
+            animation: pulse-green 0.5s;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #fdba74; 
+            border-radius: 4px;
+        }
+        .category-tab {
+            transition: all 0.2s;
+        }
+        .category-active {
+            background-color: #f97316; /* orange-500 */
+            color: white;
+            border-color: #c2410c; /* orange-700 */
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .category-inactive {
+            background-color: white;
+            color: #78716c; /* stone-500 */
+            border-color: #e7e5e4; /* stone-200 */
+        }
+        .difficulty-btn {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .difficulty-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="h-screen w-full overflow-hidden flex flex-col items-center justify-center bg-orange-50">
+
+    <div class="w-full h-full max-w-lg bg-white shadow-2xl relative flex flex-col overflow-hidden">
+        
+        <!-- SCREEN 1: Difficulty Selection -->
+        <div id="start-screen" class="absolute inset-0 z-50 bg-orange-50 flex flex-col items-center justify-center p-6 space-y-6">
+            <div class="text-center mb-4">
+                <div class="text-8xl mb-2">👨‍🍳</div>
+                <h1 class="text-4xl font-extrabold text-orange-800">เชฟวัยเก๋า</h1>
+                <p class="text-xl text-orange-600 font-bold mt-2">เลือกระดับความท้าทาย</p>
+            </div>
+
+            <button onclick="startGame('easy')" class="difficulty-btn w-full bg-green-100 border-4 border-green-400 p-6 rounded-3xl text-left shadow-lg relative overflow-hidden group">
+                <div class="relative z-10 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-green-800">ระดับง่าย</h2>
+                        <p class="text-lg text-green-700 font-bold mt-1">วัตถุดิบ 2-3 อย่าง</p>
+                    </div>
+                    <span class="text-5xl">🥚</span>
+                </div>
+            </button>
+
+            <button onclick="startGame('medium')" class="difficulty-btn w-full bg-blue-100 border-4 border-blue-400 p-6 rounded-3xl text-left shadow-lg relative overflow-hidden group">
+                <div class="relative z-10 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-blue-800">ระดับกลาง</h2>
+                        <p class="text-lg text-blue-700 font-bold mt-1">วัตถุดิบ 4-6 อย่าง</p>
+                    </div>
+                    <span class="text-5xl">🍲</span>
+                </div>
+            </button>
+
+            <button onclick="startGame('hard')" class="difficulty-btn w-full bg-red-100 border-4 border-red-400 p-6 rounded-3xl text-left shadow-lg relative overflow-hidden group">
+                <div class="relative z-10 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-red-800">ระดับยาก</h2>
+                        <p class="text-lg text-red-700 font-bold mt-1">วัตถุดิบ 7-10 อย่าง</p>
+                        <p class="text-sm text-red-600 font-bold opacity-75">(ทำอาหาร 2 เมนู)</p>
+                    </div>
+                    <span class="text-5xl">🌶️</span>
+                </div>
+            </button>
+        </div>
+
+        <!-- SCREEN 2: Game UI (Initially Hidden) -->
+        <div id="game-ui" class="hidden flex flex-col w-full h-full">
+            
+            <!-- Header: Information Area -->
+            <header class="bg-orange-100 p-3 shadow-md z-20">
+                <!-- Top Bar: Level & Money -->
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-2">
+                        <button onclick="showStartScreen()" class="bg-white px-2 py-1 rounded-lg border-2 border-orange-300 text-xs font-bold text-orange-600">
+                            ↩️ เมนูหลัก
+                        </button>
+                        <span class="bg-orange-600 text-white px-3 py-1 rounded-full text-base font-bold shadow">ด่าน <span id="level-display">1</span></span>
+                        <div class="bg-white px-2 py-1 rounded-lg border-2 border-orange-300 flex items-center gap-1 text-orange-800 font-bold text-base">
+                            <span>⏱️</span>
+                            <span id="timer-display">00:00</span>
+                        </div>
+                    </div>
+                    <div class="text-right bg-blue-50 px-2 py-1 rounded-lg border-2 border-blue-200">
+                        <p class="text-xs text-slate-600 font-bold">งบประมาณ</p>
+                        <p class="text-xl font-extrabold text-blue-700">฿<span id="budget-display">0</span></p>
+                    </div>
+                </div>
+                
+                <!-- Menu Mission -->
+                <div class="bg-white p-3 rounded-xl border-4 border-orange-200 shadow-sm">
+                    <div class="flex items-center gap-3 mb-2 border-b-2 border-orange-100 pb-2">
+                        <div class="text-5xl bg-orange-50 p-1 rounded-xl border-2 border-orange-100" id="menu-icon">🍳</div>
+                        <div class="flex-1">
+                            <p class="text-sm text-slate-500 font-bold mb-0">เมนูวันนี้:</p>
+                            <h2 class="text-xl font-extrabold text-orange-800 leading-tight" id="menu-name">...</h2>
+                        </div>
+                        <!-- Target Stars Badge -->
+                        <div class="bg-yellow-50 px-2 py-1 rounded-lg border-2 border-yellow-300 text-center min-w-[70px]">
+                            <p class="text-[10px] text-yellow-800 font-bold leading-tight">เป้าหมายดาว</p>
+                            <div class="flex items-center justify-center gap-1">
+                                <span class="text-lg">⭐</span>
+                                <span class="text-xl font-extrabold text-yellow-700" id="target-stars">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between items-end mb-1">
+                            <p class="text-sm text-orange-800 font-bold">ต้องซื้อวัตถุดิบ (<span id="req-count">0</span> อย่าง):</p>
+                        </div>
+                        <div id="recipe-checklist" class="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                            <!-- Badges injected here -->
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Category Tabs -->
+            <div class="flex p-2 gap-2 bg-orange-50 z-10 shrink-0 overflow-x-auto no-scrollbar">
+                <button onclick="setCategory('meat')" id="tab-meat" class="category-tab flex-1 py-3 px-2 rounded-xl border-b-4 font-bold text-lg flex flex-col items-center justify-center min-w-[80px]">
+                    <span class="text-2xl mb-1">🥩</span>
+                    <span class="text-sm">เนื้อ&ไข่</span>
+                </button>
+                <button onclick="setCategory('veg')" id="tab-veg" class="category-tab flex-1 py-3 px-2 rounded-xl border-b-4 font-bold text-lg flex flex-col items-center justify-center min-w-[80px]">
+                    <span class="text-2xl mb-1">🥬</span>
+                    <span class="text-sm">ผัก&ผลไม้</span>
+                </button>
+                <button onclick="setCategory('dry')" id="tab-dry" class="category-tab flex-1 py-3 px-2 rounded-xl border-b-4 font-bold text-lg flex flex-col items-center justify-center min-w-[80px]">
+                    <span class="text-2xl mb-1">🧂</span>
+                    <span class="text-sm">ของแห้ง</span>
+                </button>
+            </div>
+
+            <!-- Main Content: Shelf -->
+            <main class="flex-1 overflow-y-auto p-4 bg-stone-100 relative">
+                <div id="shelf-grid" class="grid grid-cols-2 gap-4 pb-36">
+                    <!-- Items generated here -->
+                </div>
+                <div id="empty-shelf-msg" class="hidden h-full flex items-center justify-center text-stone-400 font-bold text-xl">
+                    ไม่มีสินค้าในหมวดนี้
+                </div>
+            </main>
+
+            <!-- Footer: Action Area -->
+            <footer class="bg-white border-t-8 border-orange-500 p-4 z-30 shadow-[0_-5px_20px_rgba(0,0,0,0.15)]">
+                <div class="flex justify-between items-center mb-4 px-2">
+                    <!-- Total Cost -->
+                    <div>
+                        <p class="text-sm text-slate-500 font-bold">ยอดรวม</p>
+                        <p class="text-2xl font-extrabold text-slate-800">฿<span id="cost-display" class="text-blue-600">0</span></p>
+                    </div>
+                    
+                    <!-- Remaining Money -->
+                    <div id="remaining-box" class="text-center px-3 py-1 rounded-xl bg-slate-100">
+                        <p class="text-sm text-slate-500 font-bold">เงินเหลือ</p>
+                        <p class="text-2xl font-extrabold text-green-600">฿<span id="remaining-display">0</span></p>
+                    </div>
+
+                    <!-- Current Stars -->
+                    <div id="star-box" class="text-right px-3 py-1 rounded-xl bg-slate-100">
+                        <p class="text-sm text-slate-500 font-bold">ได้ดาว</p>
+                        <p class="text-2xl font-extrabold text-yellow-600"><span id="current-stars">0</span><span class="text-base text-slate-400">/</span><span id="target-stars-footer" class="text-lg">0</span></p>
+                    </div>
+                </div>
+
+                <button onclick="checkOut()" id="checkout-btn" class="w-full bg-orange-500 hover:bg-orange-600 text-white text-3xl font-extrabold py-4 rounded-2xl shadow-xl active:bg-orange-700 active:scale-95 transition-all flex justify-center items-center gap-3 border-b-8 border-orange-700 active:border-b-0 active:mt-2">
+                    <span>🍳 ปรุงอาหาร</span>
+                </button>
+            </footer>
+        </div>
+
+        <!-- Modal -->
+        <div id="modal" class="hidden absolute inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+            <div class="bg-white rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl animate-bounce-short border-4 border-white">
+                <div id="modal-icon" class="text-8xl mb-4">🎉</div>
+                <h2 id="modal-title" class="text-4xl font-extrabold mb-4 text-green-600">อร่อยมาก!</h2>
+                
+                <div id="modal-time-stat" class="hidden bg-yellow-50 p-3 rounded-xl mb-6 border-2 border-yellow-200">
+                    <p class="text-xl text-slate-600 font-bold">ใช้เวลาไป</p>
+                    <p class="text-4xl font-extrabold text-yellow-700" id="final-time">00:00</p>
+                </div>
+
+                <p id="modal-message" class="text-2xl text-slate-700 mb-8 leading-relaxed font-semibold">...</p>
+                
+                <div class="flex flex-col gap-3">
+                    <button id="modal-btn-next" onclick="nextLevel()" class="w-full bg-green-500 text-white text-3xl font-extrabold py-4 rounded-xl shadow-lg border-b-4 border-green-700 hover:bg-green-600 active:border-b-0 active:translate-y-1">
+                        ไปด่านต่อไป ➡️
+                    </button>
+                    <button id="modal-btn-retry" onclick="retryLevel()" class="hidden w-full bg-slate-200 text-slate-700 text-2xl font-bold py-4 rounded-xl shadow-sm hover:bg-slate-300">
+                        ลองใหม่อีกครั้ง ↺
+                    </button>
+                    <button id="modal-btn-home" onclick="showStartScreen()" class="w-full bg-orange-100 text-orange-800 text-2xl font-bold py-4 rounded-xl shadow-sm hover:bg-orange-200">
+                        กลับหน้าหลัก 🏠
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA ---
+        const ingredients = [
+            { id: 'rice', cat: 'dry', name: 'ข้าวสาร', icon: '🍚', variants: [{name: 'ข้าวเสาไห้', price: 20, q: 1}, {name: 'ข้าวหอมมะลิ', price: 45, q: 3}] },
+            { id: 'egg', cat: 'meat', name: 'ไข่ไก่', icon: '🥚', variants: [{name: 'ไข่คละเบอร์', price: 5, q: 1}, {name: 'ไข่โอเมก้า', price: 10, q: 3}] },
+            { id: 'pork', cat: 'meat', name: 'เนื้อหมู', icon: '🥩', variants: [{name: 'หมูบด', price: 40, q: 1}, {name: 'หมูคุโรบุตะ', price: 80, q: 3}] },
+            { id: 'veg', cat: 'veg', name: 'ผักคะน้า', icon: '🥬', variants: [{name: 'คะน้าทั่วไป', price: 15, q: 1}, {name: 'คะน้ายอดอ่อน', price: 30, q: 3}] },
+            { id: 'oil', cat: 'dry', name: 'น้ำมัน', icon: '🍶', variants: [{name: 'น้ำมันปาล์ม', price: 30, q: 1}, {name: 'น้ำมันมะกอก', price: 60, q: 3}] },
+            { id: 'fishsauce', cat: 'dry', name: 'น้ำปลา', icon: '🧂', variants: [{name: 'น้ำปลาผสม', price: 15, q: 1}, {name: 'น้ำปลาแท้', price: 35, q: 3}] },
+            { id: 'chicken', cat: 'meat', name: 'เนื้อไก่', icon: '🍗', variants: [{name: 'โครงไก่', price: 25, q: 1}, {name: 'อกไก่นุ่ม', price: 55, q: 3}] },
+            { id: 'onion', cat: 'veg', name: 'หอมใหญ่', icon: '🧅', variants: [{name: 'หอมใหญ่ไทย', price: 10, q: 1}, {name: 'หอมใหญ่ญี่ปุ่น', price: 25, q: 3}] },
+            { id: 'carrot', cat: 'veg', name: 'แครอท', icon: '🥕', variants: [{name: 'แครอทจีน', price: 12, q: 1}, {name: 'แครอทออสฯ', price: 30, q: 3}] },
+            { id: 'water', cat: 'dry', name: 'น้ำเปล่า', icon: '💧', variants: [{name: 'น้ำกรอง', price: 5, q: 1}, {name: 'น้ำแร่ธรรมชาติ', price: 20, q: 3}] },
+            { id: 'chili', cat: 'veg', name: 'พริก', icon: '🌶️', variants: [{name: 'พริกแห้ง', price: 10, q: 1}, {name: 'พริกขี้หนูสวน', price: 25, q: 3}] },
+            { id: 'basil', cat: 'veg', name: 'กะเพรา', icon: '🌿', variants: [{name: 'กะเพราตลาด', price: 5, q: 1}, {name: 'กะเพราแดง', price: 15, q: 3}] },
+            { id: 'lime', cat: 'veg', name: 'มะนาว', icon: '🍋', variants: [{name: 'มะนาวขวด', price: 10, q: 1}, {name: 'มะนาวสด', price: 20, q: 3}] },
+            { id: 'shrimp', cat: 'meat', name: 'กุ้ง', icon: '🦐', variants: [{name: 'กุ้งฝอย', price: 50, q: 1}, {name: 'กุ้งแม่น้ำ', price: 120, q: 3}] },
+            { id: 'papaya', cat: 'veg', name: 'มะละกอ', icon: '🍈', variants: [{name: 'มะละกอดิบ', price: 20, q: 1}, {name: 'มะละกอดำเนิน', price: 40, q: 3}] },
+            { id: 'coconut', cat: 'dry', name: 'กะทิ', icon: '🥥', variants: [{name: 'กะทิกล่อง', price: 25, q: 1}, {name: 'หัวกะทิสด', price: 50, q: 3}] },
+            { id: 'garlic', cat: 'veg', name: 'กระเทียม', icon: '🧄', variants: [{name: 'กระเทียมจีน', price: 10, q: 1}, {name: 'กระเทียมไทย', price: 20, q: 3}] },
+            { id: 'sugar', cat: 'dry', name: 'น้ำตาล', icon: '🍚', variants: [{name: 'น้ำตาลทราย', price: 15, q: 1}, {name: 'น้ำตาลมะพร้าว', price: 35, q: 3}] },
+            { id: 'noodles', cat: 'dry', name: 'ก๋วยเตี๋ยว', icon: '🍜', variants: [{name: 'เส้นหมี่', price: 15, q: 1}, {name: 'เส้นจันท์', price: 30, q: 3}] }
+        ];
+
+        const allMenus = [
+            // --- EASY (2-3 items) ---
+            { id: 101, name: 'ไข่ต้ม', icon: '🥚', reqs: ['egg', 'water'] },
+            { id: 102, name: 'ไข่ดาว', icon: '🍳', reqs: ['egg', 'oil'] },
+            { id: 103, name: 'ข้าวสวย', icon: '🍚', reqs: ['rice', 'water'] },
+            { id: 104, name: 'หมูทอด', icon: '🥩', reqs: ['pork', 'oil', 'fishsauce'] },
+            { id: 105, name: 'ข้าวต้มหมู', icon: '🍲', reqs: ['rice', 'pork', 'water'] },
+            { id: 106, name: 'ไก่ต้มน้ำปลา', icon: '🍗', reqs: ['chicken', 'water', 'fishsauce'] },
+
+            // --- MEDIUM (4-6 items) ---
+            { id: 201, name: 'ไข่เจียวหมูสับ', icon: '🍳', reqs: ['egg', 'pork', 'oil', 'fishsauce'] },
+            { id: 202, name: 'ไก่ทอดกระเทียม', icon: '🍗', reqs: ['chicken', 'oil', 'fishsauce', 'garlic'] },
+            { id: 203, name: 'ข้าวไข่เจียว', icon: '🍳', reqs: ['rice', 'egg', 'oil', 'fishsauce'] },
+            { id: 204, name: 'ไข่ตุ๋นทรงเครื่อง', icon: '🍲', reqs: ['egg', 'water', 'pork', 'fishsauce', 'carrot'] },
+            { id: 205, name: 'หมูผัดกระเทียม', icon: '🥩', reqs: ['pork', 'garlic', 'oil', 'fishsauce', 'sugar'] },
+            { id: 206, name: 'ข้าวผัดหมู', icon: '🍛', reqs: ['rice', 'pork', 'egg', 'veg', 'garlic'] },
+            { id: 207, name: 'ต้มจืดไก่', icon: '🍲', reqs: ['chicken', 'water', 'veg', 'carrot', 'garlic'] },
+            { id: 208, name: 'ผัดผักรวมมิตร', icon: '🥗', reqs: ['veg', 'carrot', 'onion', 'oil', 'fishsauce', 'garlic'] },
+            { id: 209, name: 'ผัดกะเพราหมู', icon: '🌿', reqs: ['pork', 'basil', 'chili', 'fishsauce', 'oil', 'garlic'] },
+            { id: 210, name: 'ต้มข่าไก่', icon: '🥣', reqs: ['chicken', 'coconut', 'lime', 'chili', 'fishsauce', 'sugar'] },
+
+            // --- For HARD combinations, we will combine menus dynamically ---
+            // Additional Complex Menus
+            { id: 301, name: 'ต้มยำกุ้ง', icon: '🦐', reqs: ['shrimp', 'water', 'lime', 'chili', 'fishsauce', 'sugar'] },
+            { id: 302, name: 'ส้มตำไทย', icon: '🥗', reqs: ['papaya', 'chili', 'lime', 'fishsauce', 'sugar', 'garlic'] },
+            { id: 303, name: 'แกงเขียวหวาน', icon: '🍲', reqs: ['chicken', 'coconut', 'basil', 'chili', 'fishsauce', 'sugar'] },
+            { id: 304, name: 'ผัดซีอิ๊ว', icon: '🍜', reqs: ['noodles', 'pork', 'egg', 'veg', 'oil', 'sugar'] },
+            { id: 305, name: 'ผัดไทย', icon: '🍝', reqs: ['noodles', 'shrimp', 'egg', 'sugar', 'lime', 'fishsauce', 'oil'] }
+        ];
+
+        let state = {
+            level: 1,
+            difficulty: 'easy',
+            budget: 0,
+            targetQuality: 0,
+            currentMenu: null,
+            cart: [],
+            shelfItems: [],
+            activeCategory: 'meat',
+            timerInterval: null,
+            startTime: 0,
+            elapsedSeconds: 0
+        };
+
+        // --- APP FLOW ---
+
+        function showStartScreen() {
+            document.getElementById('start-screen').classList.remove('hidden');
+            document.getElementById('game-ui').classList.add('hidden');
+            document.getElementById('modal').classList.add('hidden');
+            clearInterval(state.timerInterval);
+        }
+
+        function startGame(difficulty) {
+            state.difficulty = difficulty;
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden');
+            startLevel(1);
+        }
+
+        function setCategory(cat) {
+            state.activeCategory = cat;
+            updateUI();
+        }
+
+        function startLevel(level) {
+            clearInterval(state.timerInterval);
+            state.level = level;
+            state.cart = [];
+            state.elapsedSeconds = 0;
+            state.activeCategory = 'meat';
+            document.getElementById('level-display').innerText = level;
+            document.getElementById('timer-display').innerText = "00:00";
+            document.getElementById('modal-time-stat').classList.add('hidden');
+
+            // --- MENU SELECTION LOGIC ---
+            let selectedMenu = null;
+            let combinedReqs = [];
+
+            if (state.difficulty === 'easy') {
+                // Easy: 2-3 ingredients
+                const easyMenus = allMenus.filter(m => m.reqs.length >= 2 && m.reqs.length <= 3);
+                selectedMenu = easyMenus[Math.floor(Math.random() * easyMenus.length)];
+                combinedReqs = [...selectedMenu.reqs];
+            
+            } else if (state.difficulty === 'medium') {
+                // Medium: 4-6 ingredients
+                const medMenus = allMenus.filter(m => m.reqs.length >= 4 && m.reqs.length <= 6);
+                selectedMenu = medMenus[Math.floor(Math.random() * medMenus.length)];
+                combinedReqs = [...selectedMenu.reqs];
+
+            } else {
+                // Hard: 7-10 ingredients (Can be 2 menus)
+                // Strategy: Try to pick 2 menus whose UNION of ingredients is between 7 and 10.
+                let valid = false;
+                let attempts = 0;
+                
+                while (!valid && attempts < 100) {
+                    attempts++;
+                    const m1 = allMenus[Math.floor(Math.random() * allMenus.length)];
+                    const m2 = allMenus[Math.floor(Math.random() * allMenus.length)];
+                    
+                    if (m1.id === m2.id) continue;
+
+                    const unionReqs = [...new Set([...m1.reqs, ...m2.reqs])];
+                    
+                    if (unionReqs.length >= 7 && unionReqs.length <= 10) {
+                        selectedMenu = {
+                            name: `${m1.name} + ${m2.name}`,
+                            icon: `${m1.icon}${m2.icon}`,
+                            reqs: unionReqs
+                        };
+                        valid = true;
+                    }
+                }
+                
+                // Fallback if random gen fails
+                if (!valid) {
+                    selectedMenu = {
+                        name: 'ต้มยำกุ้ง + ไข่เจียว',
+                        icon: '🦐🍳',
+                        reqs: ['shrimp', 'water', 'lime', 'chili', 'fishsauce', 'sugar', 'egg', 'oil'] // 8 items
+                    };
+                }
+                combinedReqs = selectedMenu.reqs;
+            }
+
+            state.currentMenu = selectedMenu;
+
+            // --- BUDGET & TARGET CALCULATION ---
+            const minPossibleQ = combinedReqs.length * 1;
+            const maxPossibleQ = combinedReqs.length * 3;
+            state.targetQuality = Math.floor(minPossibleQ + (maxPossibleQ - minPossibleQ) * 0.6);
+
+            let simulatedItems = combinedReqs.map(id => {
+                const ing = ingredients.find(i => i.id === id);
+                return { ...ing.variants[0], diffPrice: ing.variants[1].price - ing.variants[0].price, upgradeQ: 2 }; 
+            });
+
+            let currentQ = minPossibleQ;
+            let currentCost = simulatedItems.reduce((sum, item) => sum + item.price, 0);
+
+            while (currentQ < state.targetQuality) {
+                const candidates = simulatedItems.filter(i => i.q === 1).sort((a, b) => a.diffPrice - b.diffPrice);
+                if (candidates.length > 0) {
+                    const upgrade = candidates[0];
+                    currentCost += upgrade.diffPrice;
+                    upgrade.q = 3;
+                    currentQ += upgrade.upgradeQ;
+                } else {
+                    break; 
+                }
+            }
+
+            state.budget = Math.ceil(currentCost * 1.15); 
+            state.budget = Math.ceil(state.budget / 5) * 5; 
+
+            // --- SHELF GENERATION ---
+            let shelf = [];
+            // Add required items
+            state.currentMenu.reqs.forEach(ingId => {
+                const ing = ingredients.find(i => i.id === ingId);
+                shelf.push(createShelfItem(ing, ing.variants[0]));
+                shelf.push(createShelfItem(ing, ing.variants[1]));
+            });
+
+            // Add distractors
+            const unusedIngredients = ingredients.filter(i => !state.currentMenu.reqs.includes(i.id));
+            // More distractors for higher difficulty
+            const numDistractors = state.difficulty === 'easy' ? 3 : (state.difficulty === 'medium' ? 5 : 8);
+            
+            const distractors = unusedIngredients.sort(() => 0.5 - Math.random()).slice(0, numDistractors);
+            distractors.forEach(ing => {
+                shelf.push(createShelfItem(ing, ing.variants[0])); 
+            });
+
+            state.shelfItems = shelf.sort(() => 0.5 - Math.random());
+            updateUI();
+            startTimer();
+        }
+
+        function createShelfItem(ing, variant) {
+            return {
+                id: Math.random().toString(36).substr(2, 9),
+                ingId: ing.id,
+                cat: ing.cat, 
+                icon: ing.icon,
+                name: variant.name,
+                price: variant.price,
+                q: variant.q,
+                baseName: ing.name
+            };
+        }
+
+        function startTimer() {
+            state.startTime = Date.now();
+            state.timerInterval = setInterval(() => {
+                const now = Date.now();
+                state.elapsedSeconds = Math.floor((now - state.startTime) / 1000);
+                const mins = Math.floor(state.elapsedSeconds / 60).toString().padStart(2, '0');
+                const secs = (state.elapsedSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function updateUI() {
+            // Header Stats
+            document.getElementById('menu-name').innerText = state.currentMenu.name;
+            document.getElementById('menu-icon').innerText = state.currentMenu.icon;
+            document.getElementById('target-stars').innerText = state.targetQuality;
+            document.getElementById('target-stars-footer').innerText = state.targetQuality;
+            document.getElementById('req-count').innerText = state.currentMenu.reqs.length;
+
+            // Tabs UI
+            ['meat', 'veg', 'dry'].forEach(cat => {
+                const btn = document.getElementById(`tab-${cat}`);
+                if (state.activeCategory === cat) {
+                    btn.className = "category-tab flex-1 py-3 px-2 rounded-xl border-b-4 font-bold text-lg flex flex-col items-center justify-center min-w-[80px] category-active";
+                } else {
+                    btn.className = "category-tab flex-1 py-3 px-2 rounded-xl border-b-4 font-bold text-lg flex flex-col items-center justify-center min-w-[80px] category-inactive";
+                }
+            });
+
+            // Checklist
+            const checklistEl = document.getElementById('recipe-checklist');
+            checklistEl.innerHTML = '';
+            state.currentMenu.reqs.forEach(ingId => {
+                const ing = ingredients.find(i => i.id === ingId);
+                const isAcquired = state.cart.some(c => c.ingId === ingId);
+                const badgeClass = isAcquired 
+                    ? 'bg-green-100 text-green-800 border-2 border-green-500' 
+                    : 'bg-white text-slate-400 border-2 border-slate-200 border-dashed opacity-70';
+                const checkMark = isAcquired ? '✓' : '';
+                
+                checklistEl.innerHTML += `
+                    <div class="px-2 py-1 rounded-lg text-sm font-bold flex items-center gap-1 ${badgeClass}">
+                        <span class="text-lg">${ing.icon}</span>
+                        <span>${ing.name}</span>
+                        <span class="font-extrabold text-green-600">${checkMark}</span>
+                    </div>
+                `;
+            });
+
+            // Shelf Grid (Filtered by Category)
+            const shelfEl = document.getElementById('shelf-grid');
+            const emptyMsg = document.getElementById('empty-shelf-msg');
+            shelfEl.innerHTML = '';
+            
+            // Filter items
+            const visibleItems = state.shelfItems.filter(item => item.cat === state.activeCategory);
+
+            if (visibleItems.length === 0) {
+                emptyMsg.classList.remove('hidden');
+            } else {
+                emptyMsg.classList.add('hidden');
+                visibleItems.forEach(item => {
+                    const isSelected = state.cart.some(c => c.id === item.id);
+                    const isSameTypeSelected = state.cart.some(c => c.ingId === item.ingId && c.id !== item.id);
+
+                    let cardClass = "bg-white border-4 border-stone-200 shadow-sm";
+                    let opacityClass = "opacity-100";
+                    let animClass = "";
+
+                    if (isSelected) {
+                        cardClass = "bg-green-50 border-4 border-green-500 shadow-lg transform scale-[0.98]";
+                        animClass = "selected-pulse";
+                    } else if (isSameTypeSelected) {
+                        opacityClass = "opacity-40 grayscale";
+                        cardClass = "bg-slate-100 border-4 border-slate-200";
+                    }
+
+                    let starsHTML = '';
+                    for(let i=0; i<item.q; i++) starsHTML += '⭐';
+
+                    const btn = document.createElement('div');
+                    btn.className = `item-card cursor-pointer p-3 rounded-3xl flex flex-col items-center justify-between h-56 relative ${cardClass} ${opacityClass} ${animClass}`;
+                    btn.onclick = () => toggleItem(item);
+                    
+                    const selectBadge = isSelected ? '<div class="absolute -top-3 -right-3 bg-green-500 text-white rounded-full p-2 border-4 border-white shadow-md"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg></div>' : '';
+
+                    btn.innerHTML = `
+                        ${selectBadge}
+                        <div class="text-7xl mt-2 drop-shadow-sm">${item.icon}</div>
+                        <div class="text-center w-full leading-tight flex-1 flex flex-col justify-center">
+                            <div class="text-2xl font-bold text-stone-800">${item.name}</div>
+                            <div class="text-sm text-yellow-500 mt-1 flex justify-center gap-0.5">${starsHTML}</div>
+                        </div>
+                        <div class="w-full bg-stone-100 rounded-xl py-2 px-3 flex justify-between items-center mt-2 border-2 border-stone-200">
+                            <span class="text-sm text-stone-500 font-bold">ราคา</span>
+                            <span class="font-extrabold text-2xl text-blue-700">฿${item.price}</span>
+                        </div>
+                    `;
+                    shelfEl.appendChild(btn);
+                });
+            }
+
+            // Footer Calculations
+            const currentCost = state.cart.reduce((sum, i) => sum + i.price, 0);
+            const currentQ = state.cart.reduce((sum, i) => sum + i.q, 0);
+            const remaining = state.budget - currentCost;
+
+            document.getElementById('budget-display').innerText = state.budget;
+            document.getElementById('cost-display').innerText = currentCost;
+            document.getElementById('remaining-display').innerText = remaining;
+            document.getElementById('current-stars').innerText = currentQ;
+
+            // Feedback Visuals
+            const starBox = document.getElementById('star-box');
+            if (currentQ >= state.targetQuality) {
+                starBox.className = "text-right px-3 py-1 rounded-xl bg-green-100 border-2 border-green-300";
+                starBox.querySelector('p:last-child').className = "text-2xl font-extrabold text-green-700";
+            } else {
+                starBox.className = "text-right px-3 py-1 rounded-xl bg-yellow-50 border-2 border-yellow-200";
+                starBox.querySelector('p:last-child').className = "text-2xl font-extrabold text-yellow-600";
+            }
+
+            const remainBox = document.getElementById('remaining-box');
+            if (remaining < 0) {
+                 remainBox.className = "text-center px-3 py-1 rounded-xl bg-red-100 border-2 border-red-300 bounce-alert";
+                 remainBox.querySelector('p:last-child').className = "text-2xl font-extrabold text-red-600";
+            } else {
+                 remainBox.className = "text-center px-3 py-1 rounded-xl bg-green-50 border-2 border-green-200";
+                 remainBox.querySelector('p:last-child').className = "text-2xl font-extrabold text-green-600";
+            }
+        }
+
+        function toggleItem(item) {
+            const index = state.cart.findIndex(c => c.id === item.id);
+            if (index > -1) {
+                state.cart.splice(index, 1);
+            } else {
+                const existingSameTypeIndex = state.cart.findIndex(c => c.ingId === item.ingId);
+                if (existingSameTypeIndex > -1) {
+                    state.cart.splice(existingSameTypeIndex, 1);
+                }
+                state.cart.push(item);
+            }
+            updateUI();
+        }
+
+        function checkOut() {
+            const currentCost = state.cart.reduce((sum, i) => sum + i.price, 0);
+            const currentQ = state.cart.reduce((sum, i) => sum + i.q, 0);
+            const remaining = state.budget - currentCost;
+
+            const missingIngs = state.currentMenu.reqs.filter(reqId => !state.cart.find(c => c.ingId === reqId));
+            const extraIngs = state.cart.filter(c => !state.currentMenu.reqs.includes(c.ingId));
+
+            if (remaining < 0) {
+                showModal('fail', 'เงินไม่พอครับ! ซื้อของแพงเกินงบไปหน่อย ลองเปลี่ยนเป็นของราคาถูกดูบ้างนะครับ');
+            } else if (missingIngs.length > 0) {
+                const missingNames = missingIngs.map(id => ingredients.find(i => i.id === id).name).join(', ');
+                showModal('fail', `ยังขาดวัตถุดิบครับ: ${missingNames}`);
+            } else if (extraIngs.length > 0) {
+                 showModal('fail', `มีวัตถุดิบที่ไม่จำเป็นติดมาด้วยครับ ลองเช็คดูใหม่อีกทีนะครับ`);
+            } else if (currentQ < state.targetQuality) {
+                showModal('fail', `ความอร่อยยังไม่ถึง ${state.targetQuality} ดาวครับ (ตอนนี้ได้ ${currentQ}) ลองเปลี่ยนไปใช้วัตถุดิบเกรดดีขึ้นบ้างนะครับ`);
+            } else {
+                clearInterval(state.timerInterval);
+                const mins = Math.floor(state.elapsedSeconds / 60).toString().padStart(2, '0');
+                const secs = (state.elapsedSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('final-time').innerText = `${mins}:${secs}`;
+                document.getElementById('modal-time-stat').classList.remove('hidden');
+                
+                showModal('success', `ยอดเยี่ยมมาก! คุณบริหารงบได้เก่งมาก ได้ทั้งความอร่อยและเงินพอดีเป๊ะ`);
+            }
+        }
+
+        function showModal(type, message) {
+            const modal = document.getElementById('modal');
+            const icon = document.getElementById('modal-icon');
+            const title = document.getElementById('modal-title');
+            const msg = document.getElementById('modal-message');
+            const btnRetry = document.getElementById('modal-btn-retry');
+            const btnNext = document.getElementById('modal-btn-next');
+            const btnHome = document.getElementById('modal-btn-home');
+
+            modal.classList.remove('hidden');
+            msg.innerText = message;
+
+            if (type === 'success') {
+                icon.innerText = '👨‍🍳';
+                title.innerText = 'ผ่านฉลุย!';
+                title.className = "text-5xl font-extrabold mb-4 text-green-600";
+                btnRetry.classList.add('hidden');
+                btnNext.classList.remove('hidden');
+                btnHome.classList.add('hidden');
+            } else {
+                icon.innerText = '🤔';
+                title.innerText = 'ลองใหม่นะครับ';
+                title.className = "text-5xl font-extrabold mb-4 text-orange-500";
+                btnRetry.classList.remove('hidden');
+                btnNext.classList.add('hidden');
+                btnHome.classList.remove('hidden');
+            }
+        }
+
+        function retryLevel() {
+            document.getElementById('modal').classList.add('hidden');
+            state.cart = [];
+            updateUI();
+            startTimer();
+        }
+
+        function nextLevel() {
+            document.getElementById('modal').classList.add('hidden');
+            startLevel(state.level + 1);
+        }
+
+        // Show start screen initially
+        showStartScreen();
+
+    </script>
+</body>
+</html>

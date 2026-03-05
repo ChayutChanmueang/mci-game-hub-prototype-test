@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ทางเดินน้ำ (Water Flow)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&family=Mali:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #FFF8EE;
+            --panel-bg: #FFFFFF;
+            --stroke-color: #334155;
+            --water-color: #38BDF8;
+            --pipe-color: #FB923C;
+            --tree-color: #34D399;
+            --faucet-color: #FBBF24;
+            --btn-active: translate-y-1;
+        }
+
+        body {
+            font-family: 'Mali', 'Nunito', sans-serif;
+            background-color: #1E293B;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Mobile Container 9:18 Aspect Ratio */
+        #game-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100dvh;
+            max-height: 800px;
+            background-color: var(--bg-color);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: background-color 0.5s ease;
+        }
+
+        @media (min-width: 401px) {
+            #game-container {
+                height: 800px; /* Enforce ratio on desktop */
+                border-radius: 2rem;
+                border: 8px solid var(--stroke-color);
+            }
+        }
+
+        /* Paper Cut UI Styles */
+        .paper-panel {
+            background-color: var(--panel-bg);
+            border: 4px solid var(--stroke-color);
+            border-radius: 1.5rem;
+            box-shadow: 6px 6px 0px var(--stroke-color);
+        }
+
+        .paper-btn {
+            border: 4px solid var(--stroke-color);
+            border-radius: 1.2rem;
+            box-shadow: 4px 4px 0px var(--stroke-color);
+            transition: all 0.1s ease;
+            position: relative;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .paper-btn:active {
+            transform: translateY(4px) translateX(4px);
+            box-shadow: 0px 0px 0px var(--stroke-color);
+        }
+
+        .paper-btn.disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Game Grid & Pipes */
+        .grid-container {
+            display: grid;
+            gap: 4px;
+            padding: 10px;
+            width: 100%;
+            aspect-ratio: 1/1;
+            background-color: rgba(255, 255, 255, 0.4);
+            border: 4px solid var(--stroke-color);
+            border-radius: 1.5rem;
+        }
+
+        .cell {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: var(--panel-bg);
+            border: 3px solid var(--stroke-color);
+            border-radius: 0.75rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: inset -2px -2px 0px rgba(0,0,0,0.1);
+        }
+
+        .cell.empty {
+            background-color: transparent;
+            border-color: rgba(51, 65, 85, 0.2);
+            box-shadow: none;
+            cursor: default;
+        }
+
+        .pipe-svg {
+            width: 80%;
+            height: 80%;
+            transition: transform 0.3s cubic-bezier(0.4, 2.08, 0.55, 0.44); /* Bouncy rotation */
+        }
+
+        /* Water Animation Classes */
+        .filled .pipe-path {
+            stroke: var(--water-color) !important;
+            animation: waterFlow 0.5s ease forwards;
+        }
+
+        @keyframes waterFlow {
+            0% { stroke-width: 0; }
+            100% { stroke-width: 16; }
+        }
+
+        /* Wiggle Animation for error */
+        .wiggle {
+            animation: wiggle 0.4s ease-in-out;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-2deg); }
+            75% { transform: translateX(5px) rotate(2deg); }
+        }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .hidden-screen {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container" class="flex flex-col">
+    <!-- Canvas for Confetti -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- MAIN MENU SCREEN -->
+    <div id="menu-screen" class="flex-1 flex flex-col items-center justify-center p-6 space-y-6 z-10">
+        <!-- Title Panel -->
+        <div class="paper-panel w-full p-6 text-center bg-[#FFE4E6]">
+            <h1 class="text-4xl font-black text-slate-800 mb-2 tracking-wide leading-tight">ทางเดินน้ำ<br><span class="text-2xl text-sky-500">Water Flow</span></h1>
+            <p class="text-slate-600 text-lg font-bold leading-snug">หมุนท่อเพื่อต่อน้ำ<br>จากก๊อกไปรดต้นไม้!</p>
+        </div>
+
+        <!-- Theme Selection -->
+        <div class="paper-panel w-full p-4 flex justify-between items-center bg-white">
+            <span class="text-slate-700 font-bold text-lg">ธีมสี:</span>
+            <div class="flex gap-2">
+                <button onclick="setTheme('spring')" class="paper-btn bg-[#FFF8EE] px-4 py-2 text-sm">ฤดูใบไม้ผลิ</button>
+                <button onclick="setTheme('summer')" class="paper-btn bg-[#E0F2FE] px-4 py-2 text-sm">ฤดูร้อน</button>
+            </div>
+        </div>
+
+        <!-- Difficulty Selection -->
+        <div class="paper-panel w-full p-5 space-y-4 bg-white">
+            <h2 class="text-xl font-bold text-center text-slate-800 border-b-2 border-slate-200 pb-2">เลือกระดับความยาก</h2>
+            
+            <button onclick="startGame('easy')" class="paper-btn w-full bg-[#A7F3D0] p-4 flex flex-col items-center">
+                <span class="text-xl">ง่าย (Easy)</span>
+                <span class="text-sm text-slate-700 font-normal">ทางตรง มีท่อ 3-4 ชิ้น</span>
+            </button>
+
+            <button onclick="startGame('medium')" class="paper-btn w-full bg-[#FDE68A] p-4 flex flex-col items-center">
+                <span class="text-xl">ปานกลาง (Medium)</span>
+                <span class="text-sm text-slate-700 font-normal">ทางโค้ง มีท่อหลอกที่ไม่จำเป็น</span>
+            </button>
+
+            <button onclick="startGame('hard')" class="paper-btn w-full bg-[#FECACA] p-4 flex flex-col items-center">
+                <span class="text-xl">ยาก (Hard)</span>
+                <span class="text-sm text-slate-700 font-normal">มีทางแยก รดต้นไม้ 2 ต้น</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- GAMEPLAY SCREEN -->
+    <div id="game-screen" class="hidden-screen flex-1 flex flex-col p-4 z-10">
+        <!-- Top Bar -->
+        <div class="flex justify-between items-center mb-4 mt-4">
+            <button onclick="backToMenu()" class="paper-btn bg-white px-4 py-2 text-slate-700 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+                กลับ
+            </button>
+            <div class="paper-panel bg-white px-5 py-2">
+                <span class="text-lg font-bold text-slate-800">คะแนน: <span id="score-display" class="text-orange-500 text-2xl">0</span></span>
+            </div>
+        </div>
+
+        <div class="text-center mb-2 flex justify-center gap-2">
+            <span id="level-title" class="text-xl font-bold text-slate-700 bg-white px-4 py-1 rounded-full border-2 border-slate-700 shadow-[2px_2px_0px_#334155]">ระดับ: ง่าย</span>
+            <span id="stage-display" class="text-xl font-bold text-slate-700 bg-white px-4 py-1 rounded-full border-2 border-slate-700 shadow-[2px_2px_0px_#334155]">ด่าน: 1/5</span>
+        </div>
+
+        <!-- Game Board Container -->
+        <div class="flex-1 flex flex-col justify-center items-center">
+            <div id="board" class="grid-container" style="grid-template-columns: repeat(4, 1fr);">
+                <!-- Cells generated by JS -->
+            </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="mt-4 mb-6">
+            <button id="check-btn" onclick="checkFlow()" class="paper-btn w-full bg-[#38BDF8] text-white p-5 text-2xl flex justify-center items-center gap-2">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                ปล่อยน้ำ!
+            </button>
+        </div>
+    </div>
+
+    <!-- WIN MODAL -->
+    <div id="win-modal" class="hidden-screen absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-40 flex justify-center items-center p-6">
+        <div class="paper-panel bg-white w-full max-w-sm p-8 text-center animate-[wiggle_0.5s_ease-out]">
+            <div class="w-24 h-24 mx-auto bg-green-100 rounded-full flex items-center justify-center border-4 border-slate-700 mb-4 shadow-[4px_4px_0px_#34D399]">
+                <span class="text-5xl">🌱</span>
+            </div>
+            <h2 id="win-title" class="text-3xl font-black text-slate-800 mb-2">ยอดเยี่ยม!</h2>
+            <p id="win-desc" class="text-slate-600 font-bold mb-4">น้ำไหลไปถึงต้นไม้สำเร็จแล้ว</p>
+            <div class="bg-orange-100 border-2 border-slate-700 rounded-xl p-3 mb-6 inline-block">
+                <span class="text-2xl font-black text-orange-500">+50 คะแนน</span>
+            </div>
+            <button id="next-btn" onclick="nextStage()" class="paper-btn w-full bg-[#A7F3D0] p-4 text-xl">
+                ด่านต่อไป
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Audio System (Web Audio API) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playTone(freq, type, duration, vol=0.1) {
+        if (!audioCtx) return;
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        
+        gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + duration);
+    }
+
+    function playClick() { playTone(600, 'sine', 0.1, 0.05); }
+    function playRotate() { playTone(800, 'triangle', 0.1, 0.05); }
+    function playError() { 
+        playTone(300, 'sawtooth', 0.2, 0.05); 
+        setTimeout(() => playTone(250, 'sawtooth', 0.3, 0.05), 100);
+    }
+    function playWin() {
+        playTone(523.25, 'sine', 0.15, 0.1); // C5
+        setTimeout(() => playTone(659.25, 'sine', 0.15, 0.1), 150); // E5
+        setTimeout(() => playTone(783.99, 'sine', 0.3, 0.1), 300); // G5
+        setTimeout(() => playTone(1046.50, 'sine', 0.5, 0.1), 450); // C6
+    }
+
+    // --- Game Logic ---
+    let score = 0;
+    let currentDifficulty = 'easy';
+    let currentStage = 1;
+    const maxStages = 5;
+    let boardData = [];
+    let cols = 4;
+    let rows = 4;
+    let isGameOver = false;
+
+    // Ports logic: [Top, Right, Bottom, Left]
+    const PIPE_TYPES = {
+        'S': { ports: [0, 1, 0, 0], svg: 'faucet' },   // Source always points Right (for this map)
+        'T': { ports: [0, 0, 0, 1], svg: 'tree' },     // Target always receives from Left
+        'I': { ports: [1, 0, 1, 0], svg: 'straight' }, // Straight
+        'L': { ports: [1, 1, 0, 0], svg: 'corner' },   // Corner
+        'X': { ports: [1, 1, 1, 0], svg: 'tjunction' },// T-Junction
+        '.': { ports: [0, 0, 0, 0], svg: 'none' }      // Empty
+    };
+
+    const LEVELS = {
+        'easy': {
+            cols: 4, rows: 4,
+            grids: [
+                [
+                    ['L', 'I', 'X', 'L'],
+                    ['S', 'I', 'I', 'T'],
+                    ['I', 'X', 'L', 'I'],
+                    ['.', 'L', 'I', '.']
+                ],
+                [
+                    ['S', 'L', 'X', 'L'],
+                    ['I', 'L', 'I', 'T'],
+                    ['X', 'I', 'I', 'L'],
+                    ['.', 'L', 'X', '.']
+                ],
+                [
+                    ['I', 'L', 'I', 'T'],
+                    ['S', 'L', 'X', 'L'],
+                    ['X', 'I', 'L', 'I'],
+                    ['L', 'X', 'I', 'L']
+                ]
+            ]
+        },
+        'medium': {
+            cols: 5, rows: 5,
+            grids: [
+                [
+                    ['S', 'L', 'I', 'X', 'L'],
+                    ['L', 'I', 'L', 'I', 'X'],
+                    ['X', 'L', 'I', 'L', 'I'],
+                    ['I', 'L', 'X', 'I', 'L'],
+                    ['L', 'X', 'I', 'L', 'T']
+                ],
+                [
+                    ['X', 'I', 'L', 'I', 'X'],
+                    ['I', 'L', 'L', 'L', 'I'],
+                    ['S', 'I', 'L', 'L', 'T'],
+                    ['L', 'X', 'I', 'I', 'L'],
+                    ['I', 'L', 'L', 'X', 'I']
+                ],
+                [
+                    ['I', 'L', 'X', 'L', 'I'],
+                    ['X', 'I', 'L', 'L', 'X'],
+                    ['L', 'L', 'L', 'L', 'T'],
+                    ['I', 'I', 'X', 'I', 'L'],
+                    ['S', 'L', 'L', 'X', 'I']
+                ]
+            ]
+        },
+        'hard': {
+            cols: 5, rows: 5,
+            grids: [
+                [
+                    ['L', 'X', 'L', 'I', 'T'],
+                    ['I', 'L', 'I', 'X', 'L'],
+                    ['S', 'I', 'X', 'L', 'I'],
+                    ['X', 'I', 'I', 'L', 'X'],
+                    ['L', 'I', 'L', 'I', 'T']
+                ],
+                [
+                    ['X', 'I', 'L', 'I', 'L'],
+                    ['I', 'L', 'I', 'I', 'T'],
+                    ['S', 'X', 'L', 'X', 'I'],
+                    ['L', 'L', 'L', 'L', 'T'],
+                    ['I', 'X', 'L', 'L', 'X']
+                ],
+                [
+                    ['L', 'X', 'L', 'I', 'T'],
+                    ['I', 'L', 'I', 'L', 'X'],
+                    ['X', 'I', 'X', 'I', 'T'],
+                    ['L', 'L', 'L', 'X', 'I'],
+                    ['S', 'L', 'X', 'I', 'L']
+                ]
+            ]
+        }
+    };
+
+    function setTheme(theme) {
+        initAudio();
+        playClick();
+        const container = document.getElementById('game-container');
+        if(theme === 'summer') {
+            container.style.backgroundColor = '#E0F2FE';
+            document.documentElement.style.setProperty('--bg-color', '#E0F2FE');
+        } else {
+            container.style.backgroundColor = '#FFF8EE';
+            document.documentElement.style.setProperty('--bg-color', '#FFF8EE');
+        }
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('score-display').innerText = score;
+    }
+
+    function startGame(diff) {
+        initAudio();
+        playClick();
+        currentDifficulty = diff;
+        currentStage = 1;
+        score = 0;
+        isGameOver = false;
+        
+        updateScoreDisplay();
+        document.getElementById('stage-display').innerText = `ด่าน: ${currentStage}/${maxStages}`;
+
+        document.getElementById('menu-screen').classList.add('hidden-screen');
+        document.getElementById('game-screen').classList.remove('hidden-screen');
+        document.getElementById('win-modal').classList.add('hidden-screen');
+        
+        const diffNames = { 'easy': 'ง่าย', 'medium': 'ปานกลาง', 'hard': 'ยาก' };
+        document.getElementById('level-title').innerText = `ระดับ: ${diffNames[diff]}`;
+        
+        generateBoard(diff);
+        renderBoard();
+        document.getElementById('check-btn').classList.remove('disabled');
+    }
+
+    function nextStage() {
+        initAudio();
+        playClick();
+        currentStage++;
+        isGameOver = false;
+        
+        document.getElementById('stage-display').innerText = `ด่าน: ${currentStage}/${maxStages}`;
+        document.getElementById('win-modal').classList.add('hidden-screen');
+        document.getElementById('check-btn').classList.remove('disabled');
+        
+        generateBoard(currentDifficulty);
+        renderBoard();
+    }
+
+    function backToMenu() {
+        initAudio();
+        playClick();
+        document.getElementById('menu-screen').classList.remove('hidden-screen');
+        document.getElementById('game-screen').classList.add('hidden-screen');
+        document.getElementById('win-modal').classList.add('hidden-screen');
+    }
+
+    function generateBoard(diff) {
+        const level = LEVELS[diff];
+        cols = level.cols;
+        rows = level.rows;
+        boardData = [];
+
+        const gridEl = document.getElementById('board');
+        gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+        // สุ่มเลือกด่าน 1 รูปแบบจาก grids ที่มีในระดับความยากนั้นๆ
+        const randomGridIndex = Math.floor(Math.random() * level.grids.length);
+        const selectedGrid = level.grids[randomGridIndex];
+
+        for (let y = 0; y < rows; y++) {
+            let row = [];
+            for (let x = 0; x < cols; x++) {
+                const type = selectedGrid[y][x];
+                let rot = 0;
+                let locked = true;
+
+                if (type === 'I' || type === 'L' || type === 'X') {
+                    // Randomize rotation for all pipes (including dummy pipes)
+                    rot = Math.floor(Math.random() * 4);
+                    locked = false;
+                }
+
+                row.push({ x, y, type, rot, locked, isFilled: false });
+            }
+            boardData.push(row);
+        }
+    }
+
+    function getSVGContent(type) {
+        const strokeColor = "var(--stroke-color)";
+        const pipeBg = "var(--pipe-color)";
+        
+        switch(type) {
+            case 'faucet':
+                return `<svg viewBox="0 0 100 100" class="pipe-svg">
+                    <!-- Base -->
+                    <rect x="10" y="30" width="40" height="40" rx="8" fill="var(--faucet-color)" stroke="${strokeColor}" stroke-width="6"/>
+                    <!-- Spout -->
+                    <path d="M 50 50 L 80 50 L 80 70" fill="none" stroke="${strokeColor}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M 50 50 L 80 50 L 80 70" fill="none" stroke="#FDE68A" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Handle -->
+                    <path d="M 30 30 L 30 15 M 15 15 L 45 15" fill="none" stroke="${strokeColor}" stroke-width="8" stroke-linecap="round"/>
+                </svg>`;
+            case 'tree':
+                return `<svg viewBox="0 0 100 100" class="pipe-svg">
+                    <!-- Trunk -->
+                    <path d="M 50 90 L 50 60" fill="none" stroke="#78350F" stroke-width="12" stroke-linecap="round"/>
+                    <!-- Receiving Pipe -->
+                    <path d="M 10 75 L 50 75" fill="none" stroke="${strokeColor}" stroke-width="12" stroke-linecap="round"/>
+                    <path d="M 10 75 L 50 75" fill="none" class="pipe-path" stroke="#D1D5DB" stroke-width="6" stroke-linecap="round"/>
+                    <!-- Leaves -->
+                    <circle cx="50" cy="40" r="25" fill="var(--tree-color)" stroke="${strokeColor}" stroke-width="6"/>
+                    <circle cx="30" cy="50" r="15" fill="var(--tree-color)" stroke="${strokeColor}" stroke-width="6"/>
+                    <circle cx="70" cy="50" r="15" fill="var(--tree-color)" stroke="${strokeColor}" stroke-width="6"/>
+                </svg>`;
+            case 'straight':
+                return `<svg viewBox="0 0 100 100" class="pipe-svg">
+                    <!-- Outer pipe -->
+                    <rect x="35" y="0" width="30" height="100" fill="${pipeBg}" stroke="${strokeColor}" stroke-width="6" />
+                    <!-- Inner water path (hidden by default) -->
+                    <line x1="50" y1="0" x2="50" y2="100" class="pipe-path" stroke="${pipeBg}" stroke-width="16" stroke-linecap="square"/>
+                </svg>`;
+            case 'corner':
+                return `<svg viewBox="0 0 100 100" class="pipe-svg">
+                    <path d="M 50 0 L 50 50 L 100 50" fill="none" stroke="${strokeColor}" stroke-width="30" stroke-linecap="square" stroke-linejoin="miter"/>
+                    <path d="M 50 0 L 50 50 L 100 50" fill="none" stroke="${pipeBg}" stroke-width="18" stroke-linecap="square" stroke-linejoin="miter"/>
+                    <path d="M 50 0 L 50 50 L 100 50" fill="none" class="pipe-path" stroke="${pipeBg}" stroke-width="16" stroke-linecap="square" stroke-linejoin="miter"/>
+                </svg>`;
+            case 'tjunction':
+                return `<svg viewBox="0 0 100 100" class="pipe-svg">
+                    <path d="M 50 0 L 50 100 M 50 50 L 100 50" fill="none" stroke="${strokeColor}" stroke-width="30" stroke-linecap="square" stroke-linejoin="miter"/>
+                    <path d="M 50 0 L 50 100 M 50 50 L 100 50" fill="none" stroke="${pipeBg}" stroke-width="18" stroke-linecap="square" stroke-linejoin="miter"/>
+                    <path d="M 50 0 L 50 100 M 50 50 L 100 50" fill="none" class="pipe-path" stroke="${pipeBg}" stroke-width="16" stroke-linecap="square" stroke-linejoin="miter"/>
+                </svg>`;
+            default: return '';
+        }
+    }
+
+    function renderBoard() {
+        const gridEl = document.getElementById('board');
+        gridEl.innerHTML = '';
+
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                const cellData = boardData[y][x];
+                const cellEl = document.createElement('div');
+                cellEl.className = `cell ${cellData.type === '.' ? 'empty' : ''} ${cellData.isFilled ? 'filled' : ''}`;
+                cellEl.id = `cell-${x}-${y}`;
+
+                if (cellData.type !== '.') {
+                    cellEl.innerHTML = getSVGContent(PIPE_TYPES[cellData.type].svg);
+                    const svgEl = cellEl.querySelector('.pipe-svg');
+                    svgEl.style.transform = `rotate(${cellData.rot * 90}deg)`;
+
+                    if (!cellData.locked) {
+                        cellEl.onclick = () => rotatePipe(x, y);
+                    }
+                }
+                gridEl.appendChild(cellEl);
+            }
+        }
+    }
+
+    function rotatePipe(x, y) {
+        if (isGameOver) return;
+        initAudio();
+        playRotate();
+        boardData[y][x].rot = (boardData[y][x].rot + 1) % 4;
+        
+        const cellEl = document.getElementById(`cell-${x}-${y}`);
+        const svgEl = cellEl.querySelector('.pipe-svg');
+        // Add smooth rotation visually by adding to current rotation degrees, avoiding 270->0 snap
+        const currentRotationStr = svgEl.style.transform;
+        let currentDeg = 0;
+        if(currentRotationStr) {
+            const match = currentRotationStr.match(/rotate\(([-\d]+)deg\)/);
+            if(match) currentDeg = parseInt(match[1]);
+        }
+        svgEl.style.transform = `rotate(${currentDeg + 90}deg)`;
+        
+        // Remove filled status if user rotates after a fail
+        clearWater();
+    }
+
+    function clearWater() {
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                boardData[y][x].isFilled = false;
+                const cellEl = document.getElementById(`cell-${x}-${y}`);
+                if(cellEl) cellEl.classList.remove('filled');
+            }
+        }
+    }
+
+    function getOpenPorts(cell) {
+        if (cell.type === '.') return [0, 0, 0, 0];
+        const basePorts = PIPE_TYPES[cell.type].ports;
+        // Shift array right by 'rot' amount
+        const rot = cell.rot;
+        const openPorts = [];
+        for (let i = 0; i < 4; i++) {
+            openPorts.push(basePorts[(i - rot + 4) % 4]);
+        }
+        return openPorts;
+    }
+
+    function checkFlow() {
+        if (isGameOver) return;
+        initAudio();
+        clearWater();
+        
+        // Find sources
+        let sources = [];
+        let targets = 0;
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                if (boardData[y][x].type === 'S') sources.push({x, y});
+                if (boardData[y][x].type === 'T') targets++;
+            }
+        }
+
+        let visited = new Set();
+        let connectedTargets = 0;
+        let queue = [...sources];
+        
+        // Add sources to filled initially
+        sources.forEach(s => {
+            visited.add(`${s.x},${s.y}`);
+            boardData[s.y][s.x].isFilled = true;
+        });
+
+        // Directions: Top(0), Right(1), Bottom(2), Left(3)
+        const dx = [0, 1, 0, -1];
+        const dy = [-1, 0, 1, 0];
+
+        while(queue.length > 0) {
+            const curr = queue.shift();
+            const currCell = boardData[curr.y][curr.x];
+            const currPorts = getOpenPorts(currCell);
+
+            for (let dir = 0; dir < 4; dir++) {
+                if (currPorts[dir]) { // If port is open in this direction
+                    const nx = curr.x + dx[dir];
+                    const ny = curr.y + dy[dir];
+
+                    // Check bounds
+                    if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+                        const neighbor = boardData[ny][nx];
+                        const neighborPorts = getOpenPorts(neighbor);
+                        const oppositeDir = (dir + 2) % 4;
+
+                        // Check if neighbor has opposite port open and not visited
+                        if (neighborPorts[oppositeDir] && !visited.has(`${nx},${ny}`)) {
+                            visited.add(`${nx},${ny}`);
+                            neighbor.isFilled = true;
+                            queue.push({x: nx, y: ny});
+                            
+                            if (neighbor.type === 'T') {
+                                connectedTargets++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Apply visual updates
+        renderBoard(); // Re-render to show filled classes
+
+        if (connectedTargets === targets && targets > 0) {
+            // WIN
+            playWin();
+            isGameOver = true;
+            score += 50;
+            updateScoreDisplay();
+            document.getElementById('check-btn').classList.add('disabled');
+            
+            triggerConfetti();
+            
+            // Set Modal Content Based on Stage
+            const winTitle = document.getElementById('win-title');
+            const winDesc = document.getElementById('win-desc');
+            const nextBtn = document.getElementById('next-btn');
+
+            if (currentStage < maxStages) {
+                winTitle.innerText = "ยอดเยี่ยม!";
+                winDesc.innerText = "น้ำไหลไปถึงต้นไม้สำเร็จแล้ว";
+                nextBtn.innerText = "ด่านต่อไป";
+                nextBtn.onclick = nextStage;
+            } else {
+                winTitle.innerText = "จบเกม!";
+                winDesc.innerText = "คุณผ่านครบ 5 ด่านแล้ว!";
+                nextBtn.innerText = "กลับหน้าหลัก";
+                nextBtn.onclick = backToMenu;
+            }
+            
+            setTimeout(() => {
+                document.getElementById('win-modal').classList.remove('hidden-screen');
+            }, 800);
+            
+        } else {
+            // FAIL
+            playError();
+            score -= 5;
+            updateScoreDisplay();
+            
+            // Wiggle animation
+            const boardEl = document.getElementById('board');
+            boardEl.classList.remove('wiggle');
+            void boardEl.offsetWidth; // trigger reflow
+            boardEl.classList.add('wiggle');
+            
+            setTimeout(() => { clearWater(); renderBoard(); }, 1000); // Clear water visually after a sec
+        }
+    }
+
+    // --- Simple Confetti System ---
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let animationId = null;
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function triggerConfetti() {
+        particles = [];
+        const colors = ['#38BDF8', '#34D399', '#FB923C', '#FBBF24', '#F472B6'];
+        for(let i=0; i<100; i++) {
+            particles.push({
+                x: canvas.width / 2,
+                y: canvas.height / 2 + 100,
+                vx: (Math.random() - 0.5) * 15,
+                vy: (Math.random() - 1) * 15 - 5,
+                size: Math.random() * 10 + 5,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rotation: Math.random() * 360,
+                rotSpeed: (Math.random() - 0.5) * 10
+            });
+        }
+        
+        if(!animationId) loop();
+    }
+
+    function loop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = false;
+        
+        particles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.5; // gravity
+            p.rotation += p.rotSpeed;
+            
+            if (p.y < canvas.height) active = true;
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation * Math.PI / 180);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+            ctx.restore();
+        });
+
+        if (active) {
+            animationId = requestAnimationFrame(loop);
+        } else {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+
+</script>
+</body>
+</html>

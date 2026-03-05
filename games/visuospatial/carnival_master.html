@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Carnival Master: Level Up Edition</title>
+    <!-- Import Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Kanit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #1a252f;
+            font-family: 'Kanit', sans-serif;
+            touch-action: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border-radius: 0;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* --- UI LAYER --- */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .hud-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .hud-item {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 12px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 50px;
+            border: 2px solid #fff;
+            backdrop-filter: blur(4px);
+        }
+
+        .hud-label {
+            font-size: 10px;
+            color: #666;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .hud-value {
+            font-family: 'Fredoka One', cursive;
+            font-size: 20px;
+            color: #333;
+            line-height: 1.1;
+        }
+        
+        .score-val { color: #e67e22; }
+        .ammo-val { color: #27ae60; }
+        .level-val { color: #9b59b6; }
+
+        .btn-icon {
+            background: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            pointer-events: auto;
+            cursor: pointer;
+            font-size: 20px;
+            transition: transform 0.1s;
+        }
+        .btn-icon:active { transform: scale(0.9); }
+
+        /* --- SCREENS --- */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            color: white;
+            text-align: center;
+            z-index: 20;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(1.1);
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 42px;
+            margin: 0;
+            color: #f1c40f;
+            text-shadow: 3px 3px 0px #d35400, 0px 0px 15px rgba(243, 156, 18, 0.5);
+            line-height: 1.1;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 20px;
+            width: 85%;
+            max-width: 350px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            color: #333;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(to right, #e74c3c, #f1c40f);
+        }
+
+        .option-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        
+        .option-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .toggle-container {
+            display: flex;
+            background: #ecf0f1;
+            border-radius: 12px;
+            padding: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Kanit', sans-serif;
+            font-weight: 600;
+            color: #95a5a6;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn.active {
+            background: #fff;
+            color: #2c3e50;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .main-btn {
+            background: linear-gradient(to bottom, #2ecc71, #27ae60);
+            color: white;
+            border: none;
+            padding: 12px 0;
+            width: 100%;
+            font-size: 24px;
+            font-family: 'Fredoka One', cursive;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 0px #1e8449, 0 10px 10px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+        .main-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0px #1e8449;
+        }
+
+        .secondary-btn {
+            background: transparent;
+            border: 2px solid #bdc3c7;
+            color: #7f8c8d;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        /* Leaderboard */
+        .leaderboard-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        .lb-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 14px;
+        }
+        .lb-row:last-child { border-bottom: none; }
+        .lb-rank { font-weight: bold; color: #f39c12; width: 30px; }
+        .lb-score { font-weight: bold; color: #2c3e50; }
+        .lb-time { color: #95a5a6; font-size: 12px; }
+
+        /* Game Over Stats */
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .result-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .result-label { font-size: 12px; color: #95a5a6; }
+        .result-val { font-family: 'Fredoka One', cursive; font-size: 24px; color: #2c3e50; }
+
+        .tutorial-hint {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        /* Level Up Toast */
+        #levelToast {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 30;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+        #levelToast h2 {
+            margin: 0;
+            color: #9b59b6;
+            font-family: 'Fredoka One', cursive;
+            font-size: 36px;
+            text-shadow: 2px 2px 0px #fff;
+        }
+        #levelToast.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- UI Overlay -->
+        <div id="ui-layer">
+            <div class="hud-top">
+                <div class="hud-group">
+                    <div class="hud-item">
+                        <span class="hud-label">LEVEL</span>
+                        <span id="levelDisplay" class="hud-value level-val">1</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">SCORE</span>
+                        <span id="scoreDisplay" class="hud-value score-val">0</span>
+                    </div>
+                </div>
+                
+                <div class="hud-group">
+                    <div class="hud-item">
+                        <span class="hud-label" id="ammoLabel">AMMO</span>
+                        <span id="ammoDisplay" class="hud-value ammo-val">5</span>
+                    </div>
+                    <button class="btn-icon" onclick="exitToMenu()">🏠</button>
+                </div>
+            </div>
+            <div id="dragHint" class="tutorial-hint">ลากลงเพื่อยิง!</div>
+        </div>
+        
+        <!-- Level Up Notification -->
+        <div id="levelToast">
+            <h2 id="levelToastText">LEVEL UP!</h2>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="startScreen" class="screen">
+            <h1>CARNIVAL<br>MASTER</h1>
+            
+            <div class="card">
+                <div class="option-group">
+                    <span class="option-label">ความยาก (Difficulty)</span>
+                    <div class="toggle-container">
+                        <button class="toggle-btn active" onclick="setDifficulty('EASY', this)">ง่าย</button>
+                        <button class="toggle-btn" onclick="setDifficulty('MEDIUM', this)">กลาง</button>
+                        <button class="toggle-btn" onclick="setDifficulty('HARD', this)">ยาก</button>
+                    </div>
+                    <div style="font-size: 11px; color: #999; margin-top: 5px;">*ระดับง่ายเป้าหมายจะเคลื่อนที่ช้ามาก</div>
+                </div>
+
+                <div class="option-group">
+                    <span class="option-label">โหมดการเล่น (Mode)</span>
+                    <div class="toggle-container">
+                        <button class="toggle-btn active" onclick="setWeapon('DART', this)">ปาเป้า</button>
+                        <button class="toggle-btn" onclick="setWeapon('BALL', this)">ปาบอล</button>
+                    </div>
+                </div>
+
+                <button class="main-btn" onclick="startGame()">เริ่มเกม</button>
+                <div style="text-align: center;">
+                    <button class="secondary-btn" onclick="showLeaderboard()">🏆 อันดับคะแนน</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard Screen -->
+        <div id="leaderboardScreen" class="screen hidden">
+            <h1>HALL OF FAME</h1>
+            <div class="card">
+                <div class="leaderboard-list" id="lbList">
+                    <div style="text-align: center; color: #999; padding: 20px;">ไม่มีข้อมูล</div>
+                </div>
+                <button class="main-btn" onclick="hideLeaderboard()" style="background: #95a5a6; box-shadow: 0 5px 0 #7f8c8d;">กลับ</button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="screen hidden">
+            <h1>จบเกม!</h1>
+            <div class="card">
+                <div class="result-grid">
+                    <div class="result-item">
+                        <div class="result-label">เลเวลสูงสุด</div>
+                        <div id="finalLevel" class="result-val">1</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">คะแนนรวม</div>
+                        <div id="finalScore" class="result-val">0</div>
+                    </div>
+                </div>
+                
+                <div id="newRecordMsg" style="color: #e67e22; font-weight: bold; margin-bottom: 10px; display: none;">✨ สถิติใหม่! ✨</div>
+
+                <button class="main-btn" onclick="resetGame()">เล่นอีกครั้ง</button>
+                <div style="text-align: center;">
+                    <button class="secondary-btn" onclick="exitToMenu()">กลับหน้าเมนู</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        const TARGET_RATIO = 9 / 18;
+
+        // Settings
+        let selectedDifficulty = 'EASY';
+        let selectedWeapon = 'DART';
+
+        // Game State
+        let gameState = 'MENU';
+        let currentLevel = 1;
+        let score = 0;
+        let ammoLeft = 0;
+        let targets = [];
+        let particles = [];
+        let projectile = null;
+        let shelvesY = [];
+
+        // Input
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let dragCurrent = { x: 0, y: 0 };
+        const MAX_DRAG_DIST = 180; 
+        const FORCE_MULTIPLIER = 0.24;
+        const GRAVITY = 0.5;
+
+        // Setup
+        function resize() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const r = w / h;
+
+            if (r > TARGET_RATIO) {
+                height = h;
+                width = height * TARGET_RATIO;
+            } else {
+                width = w;
+                height = h;
+            }
+
+            container.style.width = width + 'px';
+            container.style.height = height + 'px';
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- Logic ---
+
+        function setDifficulty(level, btn) {
+            selectedDifficulty = level;
+            updateBtnGroup(btn);
+        }
+
+        function setWeapon(weapon, btn) {
+            selectedWeapon = weapon;
+            updateBtnGroup(btn);
+            document.getElementById('ammoLabel').innerText = weapon === 'DART' ? 'ลูกดอก' : 'ลูกบอล';
+        }
+
+        function updateBtnGroup(activeBtn) {
+            const siblings = activeBtn.parentElement.children;
+            for(let s of siblings) s.classList.remove('active');
+            activeBtn.classList.add('active');
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('leaderboardScreen').classList.add('hidden');
+            
+            score = 0;
+            currentLevel = 1;
+            targets = [];
+            particles = [];
+            projectile = null;
+            gameState = 'PLAYING';
+            
+            const hint = document.getElementById('dragHint');
+            hint.style.opacity = '1';
+            setTimeout(() => { hint.style.opacity = '0'; }, 2000);
+
+            startLevel();
+        }
+
+        function resetGame() {
+            startGame();
+        }
+
+        function exitToMenu() {
+            gameState = 'MENU';
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+        }
+
+        function getShelvesConfig() {
+            // Add more shelves as level increases, up to 7 shelves
+            const maxShelves = Math.min(7, 3 + Math.floor(currentLevel / 3));
+            let shelves = [];
+            
+            // Generate evenly spaced shelves
+            // Start from 15% height down to 70%
+            const startY = 0.15;
+            const endY = 0.70;
+            const step = (endY - startY) / (maxShelves - 1 || 1);
+            
+            for(let i=0; i<maxShelves; i++) {
+                shelves.push(startY + (step * i));
+            }
+            return shelves;
+        }
+
+        function startLevel() {
+            shelvesY = getShelvesConfig();
+            targets = [];
+            
+            // Calculate number of targets based on level
+            // Base 2 + roughly 1 per level
+            let numTargets = 2 + currentLevel;
+            if (numTargets > 15) numTargets = 15; // Cap at 15 to prevent crash
+
+            // RULE: Ammo is ALWAYS Targets + 3
+            ammoLeft = numTargets + 3;
+
+            // Calculate Speed based on Level and Difficulty
+            let speedBase = 0;
+            if (selectedDifficulty === 'EASY') speedBase = 0.5; // Very slow start
+            if (selectedDifficulty === 'MEDIUM') speedBase = 1.5;
+            if (selectedDifficulty === 'HARD') speedBase = 2.5;
+
+            // Speed increases by 10% per level
+            let speed = speedBase * (1 + (currentLevel - 1) * 0.15);
+
+            // Distribute targets across shelves
+            for(let i=0; i<numTargets; i++) {
+                const shelfIndex = i % shelvesY.length; // Round robin distribution
+                const yPct = shelvesY[shelfIndex];
+                
+                const xPos = Math.random() * (width - 80) + 40;
+                const yPos = (height * yPct);
+
+                let t;
+                if (selectedWeapon === 'DART') {
+                    t = new Balloon(xPos, yPos);
+                } else {
+                    t = new Can(xPos, yPos);
+                }
+                
+                // Set speed
+                t.setSpeed(speed);
+                targets.push(t);
+            }
+
+            updateUI();
+        }
+
+        function levelUp() {
+            currentLevel++;
+            
+            // Show Toast
+            const toast = document.getElementById('levelToast');
+            const toastText = document.getElementById('levelToastText');
+            toastText.innerText = `LEVEL ${currentLevel}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                startLevel();
+            }, 1200);
+        }
+
+        function updateUI() {
+            document.getElementById('scoreDisplay').innerText = score;
+            document.getElementById('ammoDisplay').innerText = ammoLeft;
+            document.getElementById('levelDisplay').innerText = currentLevel;
+        }
+
+        function checkGameOver() {
+            // Check win condition first
+            if (targets.length === 0) {
+                // Level Complete!
+                if (projectile === null) { // Wait for projectile to finish
+                    levelUp();
+                }
+                return;
+            }
+
+            // Lose condition
+            if (ammoLeft <= 0 && projectile === null) {
+                gameState = 'GAMEOVER';
+                
+                document.getElementById('finalScore').innerText = score;
+                document.getElementById('finalLevel').innerText = currentLevel;
+                
+                const isNewRecord = saveScore(score, currentLevel);
+                document.getElementById('newRecordMsg').style.display = isNewRecord ? 'block' : 'none';
+
+                document.getElementById('gameOverScreen').classList.remove('hidden');
+            }
+        }
+
+        // --- Leaderboard System ---
+        const LB_KEY = 'carnival_master_lb_v2';
+        
+        function saveScore(newScore, lvl) {
+            let data = JSON.parse(localStorage.getItem(LB_KEY) || '[]');
+            const date = new Date().toLocaleDateString();
+            data.push({ score: newScore, level: lvl, date: date });
+            
+            data.sort((a, b) => b.score - a.score);
+            data = data.slice(0, 10);
+            
+            localStorage.setItem(LB_KEY, JSON.stringify(data));
+            return data.length > 0 && data[0].score === newScore;
+        }
+
+        function showLeaderboard() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('leaderboardScreen').classList.remove('hidden');
+            
+            const list = document.getElementById('lbList');
+            const data = JSON.parse(localStorage.getItem(LB_KEY) || '[]');
+            
+            list.innerHTML = '';
+            if (data.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">ยังไม่มีการบันทึกคะแนน</div>';
+                return;
+            }
+
+            data.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'lb-row';
+                row.innerHTML = `
+                    <div class="lb-rank">#${index+1}</div>
+                    <div class="lb-score">${item.score}</div>
+                    <div class="lb-time">Lv.${item.level}</div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function hideLeaderboard() {
+            document.getElementById('leaderboardScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+        }
+
+        // --- Classes ---
+
+        class BaseTarget {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.markedForDeletion = false;
+            }
+            
+            setSpeed(speed) {
+                // Random direction
+                const dir = Math.random() > 0.5 ? 1 : -1;
+                this.vx = dir * speed;
+            }
+
+            update() {
+                this.x += this.vx;
+                if (this.x < 30 || this.x > width - 30) {
+                    this.vx *= -1; // Bounce
+                    // Keep in bounds
+                    if (this.x < 30) this.x = 30;
+                    if (this.x > width - 30) this.x = width - 30;
+                }
+            }
+        }
+
+        class Balloon extends BaseTarget {
+            constructor(x, y) {
+                super(x, y - 35); 
+                this.radius = 26;
+                this.color = `hsl(${Math.random() * 360}, 80%, 60%)`;
+                this.type = 'BALLOON';
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y + this.radius);
+                ctx.lineTo(this.x, this.y + this.radius + 15);
+                ctx.strokeStyle = '#ddd';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(this.x - 8, this.y - 8, 6, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+
+        class Can extends BaseTarget {
+            constructor(x, y) {
+                super(x, y - 25); 
+                this.w = 30;
+                this.h = 40;
+                this.radius = 20; 
+                this.color = Math.random() > 0.5 ? '#e74c3c' : '#3498db';
+                this.type = 'CAN';
+            }
+            draw() {
+                const x = this.x - this.w/2;
+                const y = this.y - this.h/2;
+                
+                ctx.fillStyle = this.color;
+                ctx.fillRect(x, y, this.w, this.h);
+                
+                ctx.fillStyle = '#bdc3c7';
+                ctx.fillRect(x, y - 2, this.w, 4); 
+                ctx.fillRect(x, y + this.h - 2, this.w, 4);
+
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 8, 0, Math.PI*2);
+                ctx.fill();
+                
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                ctx.fillRect(x + this.w - 5, y, 5, this.h);
+            }
+        }
+
+        class Projectile {
+            constructor(x, y, vx, vy, type) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.type = type;
+                this.active = true;
+                this.angle = 0;
+                this.rotSpeed = 0.2;
+            }
+
+            update() {
+                if (!this.active) return;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += GRAVITY; 
+                
+                if (this.type === 'DART') {
+                    this.angle = Math.atan2(this.vy, this.vx);
+                } else {
+                    this.angle += this.rotSpeed;
+                }
+
+                if (this.x < -50 || this.x > width + 50 || this.y > height + 50) {
+                    this.active = false;
+                    onProjectileMiss();
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                if (this.type === 'DART') {
+                    ctx.fillStyle = '#ecf0f1'; 
+                    ctx.fillRect(-20, -3, 30, 6); 
+                    
+                    ctx.beginPath(); 
+                    ctx.moveTo(10, -3); ctx.lineTo(25, 0); ctx.lineTo(10, 3);
+                    ctx.fillStyle = '#2c3e50'; ctx.fill();
+
+                    ctx.fillStyle = '#e74c3c'; 
+                    ctx.beginPath(); 
+                    ctx.moveTo(-20, 0); ctx.lineTo(-35, -10); ctx.lineTo(-28, 0); ctx.lineTo(-35, 10);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+                    ctx.fillStyle = '#f1c40f'; 
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 14, 0, Math.PI * 2, false);
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.arc(-8, -8, 8, 0, Math.PI);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(8, 8, 8, Math.PI, 0);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 12;
+                this.vy = (Math.random() - 0.5) * 12;
+                this.life = 1.0;
+                this.color = color;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.4;
+                this.life -= 0.05;
+            }
+            draw() {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 4, 0, Math.PI*2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        // --- Core Functions ---
+
+        function onProjectileMiss() {
+            projectile = null;
+            ammoLeft--;
+            updateUI();
+            checkGameOver();
+        }
+
+        function onHit(index) {
+            const t = targets[index];
+            const pColor = t.type === 'BALLOON' ? t.color : '#bdc3c7';
+            
+            for(let i=0; i<15; i++) particles.push(new Particle(t.x, t.y, pColor));
+            
+            targets.splice(index, 1);
+            score += 100;
+            projectile = null; 
+            
+            // Note: Ammo is managed per level start, hitting doesn't give extra ammo now
+            // to maintain the "N+3" constraint strictly.
+            
+            updateUI();
+            checkGameOver();
+        }
+
+        function checkCollisions() {
+            if (!projectile || !projectile.active) return;
+            
+            const hitRadius = selectedWeapon === 'BALL' ? 18 : 8;
+
+            for (let i = 0; i < targets.length; i++) {
+                let t = targets[i];
+                let dx = projectile.x - t.x;
+                let dy = projectile.y - t.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (dist < t.radius + hitRadius) {
+                    onHit(i);
+                    break;
+                }
+            }
+        }
+
+        // --- Render ---
+
+        function drawShelves() {
+            ctx.fillStyle = '#8e44ad'; 
+            shelvesY.forEach(pct => {
+                const y = (height * pct) + 10;
+                ctx.fillRect(0, y, width, 12);
+                
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillRect(0, y + 8, width, 4); 
+                ctx.fillStyle = '#8e44ad';
+            });
+        }
+
+        function getPlayerPos() { return { x: width / 2, y: height * 0.85 }; }
+
+        // --- Input ---
+
+        function getInputPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            let cx, cy;
+            if(e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+            else { cx = e.clientX; cy = e.clientY; }
+            return { x: cx - rect.left, y: cy - rect.top };
+        }
+
+        function handleStart(e) {
+            if (gameState !== 'PLAYING' || projectile !== null) return;
+            const pos = getInputPos(e);
+            if (pos.y < 80) return; 
+            isDragging = true;
+            dragStart = pos;
+            dragCurrent = pos;
+            document.getElementById('dragHint').style.opacity = '0';
+        }
+
+        function handleMove(e) {
+            if (!isDragging) return;
+            dragCurrent = getInputPos(e);
+        }
+
+        function handleEnd(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            let dx = dragStart.x - dragCurrent.x;
+            let dy = dragStart.y - dragCurrent.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if (dist > MAX_DRAG_DIST) {
+                let r = MAX_DRAG_DIST / dist;
+                dx *= r; dy *= r;
+            }
+
+            if (dist > 30) {
+                let vx = dx * FORCE_MULTIPLIER;
+                let vy = dy * FORCE_MULTIPLIER;
+                if (vy > 0) vy = -vy * 0.5; 
+                
+                const p = getPlayerPos();
+                projectile = new Projectile(p.x, p.y, vx, vy, selectedWeapon);
+            }
+        }
+
+        window.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchstart', handleStart, {passive: false});
+        window.addEventListener('touchmove', handleMove, {passive: false});
+        window.addEventListener('touchend', handleEnd, {passive: false});
+
+        // --- Loop ---
+
+        function loop() {
+            ctx.clearRect(0, 0, width, height);
+            
+            if (gameState === 'PLAYING') drawShelves();
+
+            const pPos = getPlayerPos();
+
+            // Aiming
+            if (isDragging) {
+                let dx = dragCurrent.x - dragStart.x;
+                let dy = dragCurrent.y - dragStart.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                if(dist > MAX_DRAG_DIST) { let r = MAX_DRAG_DIST/dist; dx*=r; dy*=r; }
+
+                ctx.beginPath();
+                ctx.moveTo(pPos.x, pPos.y);
+                ctx.lineTo(pPos.x + dx, pPos.y + dy);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                let vx = (dragStart.x - dragCurrent.x) * FORCE_MULTIPLIER;
+                let vy = (dragStart.y - dragCurrent.y) * FORCE_MULTIPLIER;
+                if(dist > MAX_DRAG_DIST) {
+                     let r = MAX_DRAG_DIST / Math.sqrt(Math.pow(dragStart.x - dragCurrent.x, 2) + Math.pow(dragStart.y - dragCurrent.y, 2));
+                     vx = ((dragStart.x - dragCurrent.x) * r) * FORCE_MULTIPLIER;
+                     vy = ((dragStart.y - dragCurrent.y) * r) * FORCE_MULTIPLIER;
+                }
+                if(vy > 0) vy = -vy*0.5;
+
+                let sx = pPos.x, sy = pPos.y;
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                for(let k=0; k<12; k++) {
+                    sx += vx; sy += vy; vy += GRAVITY;
+                    ctx.beginPath(); ctx.arc(sx, sy, 3, 0, Math.PI*2); ctx.fill();
+                }
+            } else if (!projectile && gameState === 'PLAYING') {
+                ctx.save();
+                ctx.translate(pPos.x, pPos.y);
+                if (selectedWeapon === 'DART') {
+                    ctx.rotate(-Math.PI/2);
+                    ctx.fillStyle = '#bdc3c7'; ctx.fillRect(-5, -20, 10, 40);
+                } else {
+                    ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fillStyle = '#f1c40f'; ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            targets.forEach(t => { t.update(); t.draw(); });
+
+            if (projectile) {
+                projectile.update();
+                if (projectile) {
+                    projectile.draw();
+                    checkCollisions();
+                }
+            }
+
+            particles.forEach(p => { p.update(); p.draw(); });
+            particles = particles.filter(p => p.life > 0);
+
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+
+    </script>
+</body>
+</html>

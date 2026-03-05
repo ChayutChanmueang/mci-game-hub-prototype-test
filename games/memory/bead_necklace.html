@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bead Necklace - สร้อยลูกปัดหลากสี</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Color Palette - High Saturation Pastel */
+            --bg-cream: #FDF9F1;
+            --text-dark: #5A4A42;
+            --stroke-color: #D6C5B3;
+            
+            /* Bead Colors */
+            --peach: #FFB5A7;
+            --mint: #A8E6CF;
+            --sky: #AEEEEE;
+            --yellow: #FDFD96;
+            --lavender: #CDB4DB;
+            --rose: #FFC0CB;
+            
+            /* Hard Mode Similar Colors */
+            --green-light: #D4F0F0;
+            --green-dark: #81CACF;
+            --blue-light: #BFE6BA;
+            --blue-dark: #7DB97A;
+
+            /* Paper Cut UI Effects */
+            --shadow-soft: 2px 4px 12px rgba(90, 74, 66, 0.08);
+            --shadow-inset: inset 2px 2px 5px rgba(255, 255, 255, 0.7), inset -1px -2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-bead: 2px 4px 6px rgba(0,0,0,0.1), inset -2px -4px 6px rgba(0,0,0,0.1), inset 2px 4px 6px rgba(255,255,255,0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #E8E0D5; /* พื้นหลังนอกจอโทรศัพท์ */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Mali', cursive, sans-serif;
+            color: var(--text-dark);
+            overflow: hidden;
+        }
+
+        /* 9:18 Aspect Ratio Container */
+        #device-container {
+            width: 100%;
+            height: 100%;
+            max-width: 450px;
+            max-height: 900px;
+            aspect-ratio: 9 / 18;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        @media (min-width: 451px) {
+            #device-container {
+                height: 90vh;
+                border-radius: 32px;
+                border: 8px solid #FFF;
+            }
+        }
+
+        /* Screen Management */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        /* UI Elements - Paper Cut Style */
+        .panel {
+            background-color: #FFF;
+            border-radius: 24px;
+            border: 2px solid var(--stroke-color);
+            padding: 20px;
+            box-shadow: var(--shadow-soft), var(--shadow-inset);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+            text-shadow: 1px 1px 0px #FFF, 2px 2px 0px rgba(0,0,0,0.1);
+        }
+
+        p {
+            font-size: 18px;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            background-color: #FFF;
+            border: 2px solid var(--stroke-color);
+            border-radius: 20px;
+            padding: 16px 20px;
+            font-size: 20px;
+            font-family: inherit;
+            font-weight: 600;
+            color: var(--text-dark);
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-soft), var(--shadow-inset);
+            transition: transform 0.1s, box-shadow 0.1s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05), inset 1px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn.primary {
+            background-color: var(--mint);
+            border-color: #8FD8BE;
+            font-size: 24px;
+            padding: 20px;
+            margin-top: 10px;
+        }
+
+        .diff-desc {
+            font-size: 14px;
+            font-weight: 400;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        /* Header (In-Game) */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .btn-back {
+            background: #FFF;
+            border: 2px solid var(--stroke-color);
+            border-radius: 16px;
+            padding: 10px 16px;
+            font-size: 16px;
+            font-family: inherit;
+            font-weight: bold;
+            box-shadow: var(--shadow-soft);
+            color: var(--text-dark);
+        }
+
+        .stats {
+            display: flex;
+            gap: 16px;
+        }
+
+        .stat-box {
+            background: #FFF;
+            border: 2px solid var(--stroke-color);
+            border-radius: 16px;
+            padding: 8px 16px;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: var(--shadow-soft);
+            text-align: center;
+        }
+
+        /* Game Area */
+        .game-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .status-text {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            height: 36px;
+            margin-bottom: 10px;
+            color: var(--text-dark);
+        }
+
+        /* Necklace Display */
+        .necklace-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 40px;
+        }
+
+        .string {
+            position: absolute;
+            top: 65px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 100px;
+            border: 4px solid var(--stroke-color);
+            border-top: none;
+            border-radius: 0 0 100px 100px;
+            z-index: 1;
+        }
+
+        .slots-container {
+            display: flex;
+            gap: 10px;
+            z-index: 2;
+            position: absolute;
+            top: 40px;
+        }
+
+        .bead-slot {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 3px dashed var(--stroke-color);
+            background-color: rgba(255,255,255,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        /* Beads */
+        .bead {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            box-shadow: var(--shadow-bead);
+            position: relative;
+            /* Inner hole */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .bead::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background-color: var(--bg-cream);
+            border-radius: 50%;
+            box-shadow: inset 1px 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* Pool Area */
+        .pool-panel {
+            background-color: #FFF;
+            border: 2px solid var(--stroke-color);
+            border-radius: 24px 24px 0 0;
+            padding: 20px;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+            min-height: 250px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-content: flex-start;
+            gap: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            margin: 0 -24px -24px -24px; /* Extend to edges */
+            padding-bottom: 40px; /* Safe area */
+        }
+
+        .pool-panel.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .pool-bead {
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .pool-bead:active {
+            transform: scale(0.9);
+        }
+
+        /* Animations */
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px) rotate(-5deg); }
+            50% { transform: translateX(8px) rotate(5deg); }
+            75% { transform: translateX(-8px) rotate(-5deg); }
+        }
+
+        .wiggle {
+            animation: wiggle 0.4s ease;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes fallDown {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(300px) scale(0.5); opacity: 0; }
+        }
+
+        .falling {
+            animation: fallDown 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards;
+        }
+
+        /* Confetti */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        @keyframes floatScore {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+        }
+        
+        .score-floater {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-dark);
+            text-shadow: 2px 2px 0px #FFF;
+            pointer-events: none;
+            z-index: 50;
+            animation: floatScore 1s forwards;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="device-container">
+    
+    <!-- MENU SCREEN -->
+    <div id="menu-screen" class="screen active">
+        <div class="panel">
+            <h1>สร้อยลูกปัดหลากสี</h1>
+            <p>จำรูปแบบสีของสร้อยคอ แล้วร้อยลูกปัดกลับเข้าไปใหม่ให้เหมือนเดิมเป๊ะๆ!</p>
+        </div>
+
+        <div class="panel" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+            <p style="font-weight: bold; margin-bottom: 20px;">เลือกระดับความยาก</p>
+            
+            <button class="btn" onclick="startGame('easy')" style="background-color: var(--sky);">
+                ง่าย (Easy)
+                <span class="diff-desc">ลูกปัด 3 เม็ด สีสันต่างกันชัดเจน</span>
+            </button>
+            <button class="btn" onclick="startGame('medium')" style="background-color: var(--yellow);">
+                ปานกลาง (Medium)
+                <span class="diff-desc">ลูกปัด 5 เม็ด ความท้าทายกำลังดี</span>
+            </button>
+            <button class="btn" onclick="startGame('hard')" style="background-color: var(--peach);">
+                ยาก (Hard)
+                <span class="diff-desc">ลูกปัด 7 เม็ด สีใกล้เคียงกัน หลอกตา</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="showMenu()">❮ กลับ</button>
+            <div class="stats">
+                <div class="stat-box" id="score-display">คะแนน: 0</div>
+                <div class="stat-box" id="timer-display">4:00</div>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <div class="status-text" id="status-text">จดจำรูปแบบ! (5)</div>
+            
+            <div class="necklace-container">
+                <div class="string"></div>
+                <div class="slots-container" id="slots-container">
+                    <!-- Slots & Target Beads inserted here -->
+                </div>
+            </div>
+
+            <div class="pool-panel" id="pool-panel">
+                <!-- Loose beads to pick from inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="game-over-screen" class="screen">
+        <div class="panel" style="margin-top: auto; margin-bottom: auto;">
+            <h1>หมดเวลา!</h1>
+            <p>คุณร้อยลูกปัดได้คะแนนรวม</p>
+            <h1 style="font-size: 64px; color: var(--mint); margin: 20px 0;" id="final-score">0</h1>
+            <button class="btn primary" onclick="showMenu()">เล่นใหม่อีกครั้ง</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Data & State ---
+    const colorsEasyMed = ['var(--peach)', 'var(--mint)', 'var(--sky)', 'var(--yellow)', 'var(--lavender)', 'var(--rose)'];
+    const colorsHard = ['var(--peach)', 'var(--mint)', 'var(--sky)', 'var(--yellow)', 'var(--green-light)', 'var(--green-dark)', 'var(--blue-light)', 'var(--blue-dark)'];
+    
+    let state = {
+        difficulty: 'easy',
+        score: 0,
+        timeLeft: 240, // 4 minutes
+        timerInterval: null,
+        phase: 'menu', // menu, memorize, play, gameover
+        targetSequence: [],
+        currentIndex: 0,
+        beadCount: 3,
+        currentColors: []
+    };
+
+    // --- DOM Elements ---
+    const screens = {
+        menu: document.getElementById('menu-screen'),
+        game: document.getElementById('game-screen'),
+        gameover: document.getElementById('game-over-screen')
+    };
+    
+    const ui = {
+        score: document.getElementById('score-display'),
+        timer: document.getElementById('timer-display'),
+        status: document.getElementById('status-text'),
+        slots: document.getElementById('slots-container'),
+        pool: document.getElementById('pool-panel'),
+        finalScore: document.getElementById('final-score'),
+        device: document.getElementById('device-container')
+    };
+
+    // --- Audio Engine (Web Audio API for soft synths) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playTone(freq, type, duration, vol) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    const sound = {
+        pop: () => playTone(600, 'sine', 0.1, 0.2),      // Soft pop for clicking beads
+        chime: () => {                                  // Success chime (ascending)
+            playTone(523.25, 'sine', 0.3, 0.1); // C5
+            setTimeout(() => playTone(659.25, 'sine', 0.3, 0.1), 100); // E5
+            setTimeout(() => playTone(783.99, 'sine', 0.4, 0.15), 200); // G5
+        },
+        error: () => playTone(150, 'triangle', 0.3, 0.3) // Soft thud for mistake
+    };
+
+    // --- Main Logic ---
+
+    function switchScreen(screenName) {
+        Object.values(screens).forEach(s => s.classList.remove('active'));
+        screens[screenName].classList.add('active');
+    }
+
+    function showMenu() {
+        clearInterval(state.timerInterval);
+        switchScreen('menu');
+        state.phase = 'menu';
+    }
+
+    function startGame(difficulty) {
+        state.difficulty = difficulty;
+        state.score = 0;
+        state.timeLeft = 240;
+        
+        if (difficulty === 'easy') { state.beadCount = 3; state.currentColors = colorsEasyMed; }
+        else if (difficulty === 'medium') { state.beadCount = 5; state.currentColors = colorsEasyMed; }
+        else if (difficulty === 'hard') { state.beadCount = 7; state.currentColors = colorsHard; }
+
+        updateScore(0);
+        updateTimerDisplay();
+        switchScreen('game');
+        
+        // Start Global Timer
+        clearInterval(state.timerInterval);
+        state.timerInterval = setInterval(() => {
+            state.timeLeft--;
+            updateTimerDisplay();
+            if (state.timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+
+        startRound();
+    }
+
+    function generateSequence() {
+        state.targetSequence = [];
+        for (let i = 0; i < state.beadCount; i++) {
+            const randomColor = state.currentColors[Math.floor(Math.random() * state.currentColors.length)];
+            state.targetSequence.push(randomColor);
+        }
+    }
+
+    function renderSlots() {
+        ui.slots.innerHTML = '';
+        state.targetSequence.forEach((color, index) => {
+            const slot = document.createElement('div');
+            slot.className = 'bead-slot';
+            slot.id = `slot-${index}`;
+            ui.slots.appendChild(slot);
+        });
+        
+        // Adjust curve based on count
+        const string = document.querySelector('.string');
+        string.style.width = `${state.beadCount * 60}px`;
+        if(state.beadCount === 7) {
+             ui.slots.style.gap = '4px'; // Tighter for 7 beads
+             ui.slots.style.transform = 'scale(0.9)';
+        } else {
+             ui.slots.style.gap = '10px';
+             ui.slots.style.transform = 'scale(1)';
+        }
+    }
+
+    function startRound() {
+        state.phase = 'memorize';
+        state.currentIndex = 0;
+        ui.pool.classList.remove('active');
+        
+        generateSequence();
+        renderSlots();
+
+        // Show target sequence immediately
+        state.targetSequence.forEach((color, i) => {
+            const bead = createBead(color);
+            bead.classList.add('pop-in');
+            document.getElementById(`slot-${i}`).appendChild(bead);
+        });
+
+        let countdown = 5;
+        ui.status.textContent = `จดจำรูปแบบ! (${countdown})`;
+        ui.status.style.color = 'var(--text-dark)';
+
+        const memoTimer = setInterval(() => {
+            if (state.phase !== 'memorize') { // Prevent overlap if back button pressed
+                clearInterval(memoTimer);
+                return;
+            }
+            countdown--;
+            if (countdown > 0) {
+                ui.status.textContent = `จดจำรูปแบบ! (${countdown})`;
+            } else {
+                clearInterval(memoTimer);
+                breakNecklace();
+            }
+        }, 1000);
+    }
+
+    function breakNecklace() {
+        state.phase = 'animating';
+        ui.status.textContent = "สร้อยขาดแล้ว!";
+        sound.error(); // gentle sound for breaking
+
+        // Animate beads falling
+        for (let i = 0; i < state.beadCount; i++) {
+            const slot = document.getElementById(`slot-${i}`);
+            if (slot.firstChild) {
+                slot.firstChild.classList.add('falling');
+                // Remove from DOM after animation
+                setTimeout(() => {
+                    if(slot.firstChild) slot.innerHTML = '';
+                }, 800);
+            }
+        }
+
+        setTimeout(() => {
+            startPlayingPhase();
+        }, 800);
+    }
+
+    function startPlayingPhase() {
+        if(state.phase === 'menu') return;
+        state.phase = 'play';
+        ui.status.textContent = "เลือกลูกปัดร้อยกลับไป!";
+        
+        // Generate pool (unique colors from current set)
+        ui.pool.innerHTML = '';
+        
+        // Ensure all needed colors are in the pool, plus some random ones
+        let poolColors = [...new Set(state.targetSequence)]; 
+        while (poolColors.length < (state.difficulty === 'hard' ? 8 : 6)) {
+             const c = state.currentColors[Math.floor(Math.random() * state.currentColors.length)];
+             if(!poolColors.includes(c)) poolColors.push(c);
+        }
+        
+        // Shuffle pool
+        poolColors.sort(() => Math.random() - 0.5);
+
+        poolColors.forEach(color => {
+            const bead = createBead(color);
+            bead.classList.add('pool-bead', 'pop-in');
+            bead.onclick = () => handleBeadClick(color, bead);
+            ui.pool.appendChild(bead);
+        });
+
+        ui.pool.classList.add('active');
+    }
+
+    function createBead(color) {
+        const bead = document.createElement('div');
+        bead.className = 'bead';
+        bead.style.backgroundColor = color;
+        return bead;
+    }
+
+    function handleBeadClick(color, beadElement) {
+        if (state.phase !== 'play') return;
+
+        const targetColor = state.targetSequence[state.currentIndex];
+        
+        if (color === targetColor) {
+            // Correct
+            sound.pop();
+            const slot = document.getElementById(`slot-${state.currentIndex}`);
+            const newBead = createBead(color);
+            newBead.classList.add('pop-in');
+            slot.appendChild(newBead);
+            
+            state.currentIndex++;
+            
+            if (state.currentIndex >= state.beadCount) {
+                handleRoundComplete();
+            }
+        } else {
+            // Wrong
+            sound.error();
+            updateScore(-2);
+            showFloatingText('-2', beadElement, '#FF6B6B');
+            
+            // Wiggle pool panel
+            ui.pool.classList.remove('wiggle');
+            void ui.pool.offsetWidth; // trigger reflow
+            ui.pool.classList.add('wiggle');
+            
+            // Wiggle clicked bead specifically
+            beadElement.classList.add('wiggle');
+            setTimeout(() => beadElement.classList.remove('wiggle'), 400);
+        }
+    }
+
+    function handleRoundComplete() {
+        state.phase = 'animating';
+        ui.pool.classList.remove('active');
+        ui.status.textContent = "สมบูรณ์แบบ!";
+        ui.status.style.color = 'var(--blue-dark)';
+        
+        sound.chime();
+        updateScore(20);
+        showFloatingText('+20', ui.status, 'var(--blue-dark)');
+        createConfetti();
+
+        setTimeout(() => {
+            if(state.timeLeft > 0) startRound();
+        }, 1500);
+    }
+
+    function updateScore(change) {
+        state.score += change;
+        if(state.score < 0) state.score = 0;
+        ui.score.textContent = `คะแนน: ${state.score}`;
+    }
+
+    function updateTimerDisplay() {
+        const m = Math.floor(state.timeLeft / 60);
+        const s = state.timeLeft % 60;
+        ui.timer.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+        
+        if (state.timeLeft <= 10) {
+            ui.timer.style.color = '#FF6B6B';
+        } else {
+            ui.timer.style.color = 'var(--text-dark)';
+        }
+    }
+
+    function endGame() {
+        clearInterval(state.timerInterval);
+        state.phase = 'gameover';
+        ui.finalScore.textContent = state.score;
+        switchScreen('gameover');
+    }
+
+    // --- Visual Effects ---
+    
+    function showFloatingText(text, relativeElement, color) {
+        const floater = document.createElement('div');
+        floater.className = 'score-floater';
+        floater.textContent = text;
+        floater.style.color = color;
+        
+        const rect = relativeElement.getBoundingClientRect();
+        const containerRect = ui.device.getBoundingClientRect();
+        
+        floater.style.left = `${rect.left - containerRect.left + rect.width/2 - 15}px`;
+        floater.style.top = `${rect.top - containerRect.top}px`;
+        
+        ui.device.appendChild(floater);
+        setTimeout(() => floater.remove(), 1000);
+    }
+
+    function createConfetti() {
+        const colors = ['#FFB5A7', '#A8E6CF', '#FDFD96', '#CDB4DB'];
+        for (let i = 0; i < 30; i++) {
+            const conf = document.createElement('div');
+            conf.className = 'confetti';
+            conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            conf.style.left = '50%';
+            conf.style.top = '30%';
+            
+            // Random scatter
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = 50 + Math.random() * 100;
+            const tx = Math.cos(angle) * velocity;
+            const ty = Math.sin(angle) * velocity - 100; // favor moving up then falling
+            
+            conf.style.transition = 'transform 1s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 1s';
+            ui.device.appendChild(conf);
+            
+            // Trigger animation
+            setTimeout(() => {
+                conf.style.transform = `translate(${tx}px, ${ty}px) rotate(${Math.random()*360}deg)`;
+                conf.style.opacity = '0';
+            }, 10);
+            
+            setTimeout(() => conf.remove(), 1000);
+        }
+    }
+
+    // Init
+    audioCtx.resume(); // Try to unlock audio context on load if possible
+    document.body.addEventListener('click', () => {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+    }, { once: true });
+
+</script>
+</body>
+</html>
