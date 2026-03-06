@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>รหัสลับหีบโบราณ (Safe Cracker)</title>
+    <!-- นำเข้าฟอนต์หัวมน Quicksand และ Noto Sans Thai -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- นำเข้า Tailwind CSS เพื่อความรวดเร็วในการจัด Layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Quicksand', 'Noto Sans Thai', 'sans-serif'],
+                    },
+                    colors: {
+                        cream: '#FDFBF7',
+                        textDark: '#4A4A4A',
+                        paperBorder: '#E2D8C9',
+                        // High Saturation Pastels
+                        c0: '#FFB5A7', // Peach
+                        c1: '#A8E6CF', // Mint
+                        c2: '#A1C9F1', // Sky
+                        c3: '#FDE49C', // Yellow
+                        c4: '#D4C4FB', // Lilac
+                        c5: '#FCA3CC', // Rose
+                        success: '#81C784',
+                        warning: '#FFD54F'
+                    },
+                    boxShadow: {
+                        'paper': '0 4px 6px rgba(0,0,0,0.06), inset 0 2px 4px rgba(255,255,255,0.8)',
+                        'paper-active': '0 1px 2px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.1)',
+                        'hole': 'inset 0 4px 6px rgba(0,0,0,0.15), 0 1px 0 rgba(255,255,255,0.9)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #E5E7EB;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-size: 16px;
+        }
+
+        /* บังคับสัดส่วนหน้าจอ 9:18 สำหรับมือถือ */
+        #game-container {
+            width: 100%;
+            height: 100%;
+            max-width: 450px;
+            aspect-ratio: 9 / 18;
+            background-color: #FDFBF7;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-aspect-ratio: 9/18) {
+            #game-container {
+                height: 95vh;
+                width: auto;
+                border-radius: 2rem;
+            }
+        }
+
+        .paper-panel {
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            border: 2px solid #E2D8C9;
+            box-shadow: var(--tw-shadow-paper);
+        }
+
+        .paper-btn {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            border: 2px solid #E2D8C9;
+            box-shadow: var(--tw-shadow-paper);
+            transition: all 0.15s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .paper-btn:active {
+            transform: translateY(2px);
+            box-shadow: var(--tw-shadow-paper-active);
+        }
+
+        .color-btn {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 1rem;
+            border: 2px solid rgba(0,0,0,0.1);
+            box-shadow: var(--tw-shadow-paper);
+            transition: transform 0.1s;
+        }
+        .color-btn:active {
+            transform: scale(0.9);
+        }
+
+        .slot-hole {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 1rem;
+            background-color: #f0ebe1;
+            box-shadow: var(--tw-shadow-hole);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .slot-filled {
+            width: 100%;
+            height: 100%;
+            border-radius: 0.8rem;
+            box-shadow: var(--tw-shadow-paper);
+            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
+        .wiggle {
+            animation: wiggle 0.4s ease-in-out;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-2deg); }
+            50% { transform: translateX(5px) rotate(2deg); }
+            75% { transform: translateX(-5px) rotate(-2deg); }
+        }
+
+        #confetti-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* ซ่อน Scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-textDark font-sans">
+
+    <div id="game-container">
+        <canvas id="confetti-canvas"></canvas>
+
+        <!-- ================= MAIN MENU ================= -->
+        <div id="screen-menu" class="absolute inset-0 flex flex-col p-6 z-10 bg-cream transition-opacity duration-300">
+            
+            <div class="flex-1 flex flex-col justify-center items-center space-y-8">
+                <!-- Title Panel -->
+                <div class="paper-panel p-6 w-full text-center">
+                    <h1 class="text-3xl font-bold text-c0 mb-2 drop-shadow-sm">รหัสลับหีบโบราณ</h1>
+                    <p class="text-lg font-semibold text-gray-500">Safe Cracker</p>
+                    <div class="w-16 h-1 bg-c1 mx-auto my-4 rounded-full"></div>
+                    <p class="text-[1.1rem] leading-relaxed text-gray-600">
+                        ถอดรหัสสีเพื่อเปิดหีบสมบัติ<br>
+                        ใช้ตรรกะจากคำใบ้เพื่อหาคำตอบ!
+                    </p>
+                </div>
+
+                <!-- Score Board (Menu) -->
+                <div class="paper-panel px-6 py-3 flex items-center justify-between w-full">
+                    <span class="text-xl font-bold text-gray-600">คะแนนรวม</span>
+                    <span id="menu-score" class="text-2xl font-bold text-c2">0</span>
+                </div>
+
+                <!-- Difficulty Selection -->
+                <div class="w-full space-y-4">
+                    <button onclick="startGame('easy')" class="paper-btn w-full p-4 flex flex-col items-center">
+                        <span class="text-2xl font-bold text-success mb-1">ง่าย (Easy)</span>
+                        <span class="text-sm text-gray-500">3 ช่อง | 3 สี | ไม่ซ้ำกัน | ทายได้ 5 ครั้ง</span>
+                    </button>
+                    <button onclick="startGame('medium')" class="paper-btn w-full p-4 flex flex-col items-center">
+                        <span class="text-2xl font-bold text-warning mb-1">ปานกลาง (Medium)</span>
+                        <span class="text-sm text-gray-500">3 ช่อง | 5 สี | ไม่ซ้ำกัน | ทายได้ 6 ครั้ง</span>
+                    </button>
+                    <button onclick="startGame('hard')" class="paper-btn w-full p-4 flex flex-col items-center">
+                        <span class="text-2xl font-bold text-c0 mb-1">ยาก (Hard)</span>
+                        <span class="text-sm text-gray-500">4 ช่อง | 6 สี | สีซ้ำได้ | ทายได้ 6 ครั้ง</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PLAYING SCREEN ================= -->
+        <div id="screen-game" class="absolute inset-0 flex flex-col opacity-0 pointer-events-none z-10 bg-cream transition-opacity duration-300">
+            
+            <!-- Header -->
+            <div class="flex justify-between items-center p-4">
+                <button onclick="returnToMenu()" class="paper-btn p-3 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <div class="paper-panel px-4 py-2 font-bold text-lg text-gray-600">
+                    รอบที่: <span id="turn-display" class="text-c0">1/5</span>
+                </div>
+                <div class="paper-panel px-4 py-2 font-bold text-lg text-gray-600">
+                    <span id="game-score" class="text-c2">0</span> Pt
+                </div>
+            </div>
+
+            <!-- History Area (Scrollable) -->
+            <div id="history-container" class="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3 flex flex-col-reverse">
+                <!-- History items will be injected here -->
+                <div class="text-center text-gray-400 mt-auto text-lg mb-4">
+                    ทายรหัสเพื่อดูคำใบ้ที่นี่
+                </div>
+            </div>
+
+            <!-- Current Input Area -->
+            <div id="input-area" class="paper-panel mx-4 mb-4 p-5 flex flex-col items-center">
+                <div id="current-slots" class="flex space-x-3 mb-6">
+                    <!-- Slots injected here -->
+                </div>
+
+                <!-- Keyboard (Colors) -->
+                <div id="color-keyboard" class="flex flex-wrap justify-center gap-3 w-full">
+                    <!-- Colors injected here -->
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex space-x-4 w-full mt-6">
+                    <button onclick="clearCurrentGuess()" class="paper-btn flex-1 py-3 text-lg font-bold text-gray-500">
+                        ลบทั้งหมด
+                    </button>
+                    <button onclick="submitGuess()" class="paper-btn flex-1 py-3 text-lg font-bold text-white bg-c1 border-c1">
+                        ยืนยัน
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= OVERLAY MESSAGE ================= -->
+        <div id="overlay-msg" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 pointer-events-none z-40 transition-opacity duration-300">
+            <div id="overlay-panel" class="paper-panel p-8 text-center max-w-[80%] transform scale-95 transition-transform duration-300">
+                <h2 id="overlay-title" class="text-3xl font-bold mb-2"></h2>
+                <p id="overlay-desc" class="text-xl text-gray-600 mb-6"></p>
+                <button onclick="nextRound()" class="paper-btn px-8 py-3 text-xl font-bold text-gray-700 w-full">
+                    เล่นต่อ
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- ระบบเสียง (Web Audio API) แบบนุ่มนวล ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(freq, type, duration, vol = 0.1) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            // Soft envelope
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const sfx = {
+            tap: () => playTone(600, 'sine', 0.1, 0.05),
+            fill: () => playTone(800, 'sine', 0.15, 0.08),
+            clear: () => playTone(400, 'triangle', 0.15, 0.05),
+            error: () => playTone(200, 'triangle', 0.3, 0.1),
+            win: () => {
+                playTone(523.25, 'sine', 0.2, 0.1); // C5
+                setTimeout(() => playTone(659.25, 'sine', 0.2, 0.1), 100); // E5
+                setTimeout(() => playTone(783.99, 'sine', 0.4, 0.1), 200); // G5
+            },
+            lose: () => {
+                playTone(400, 'triangle', 0.3, 0.1);
+                setTimeout(() => playTone(350, 'triangle', 0.4, 0.1), 200);
+            }
+        };
+
+        // --- ตั้งค่าเกม ---
+        const colors = [
+            'bg-c0', 'bg-c1', 'bg-c2', 'bg-c3', 'bg-c4', 'bg-c5'
+        ];
+        
+        const difficulties = {
+            easy: { slots: 3, colorCount: 3, maxTurns: 5, allowDupes: false },
+            medium: { slots: 3, colorCount: 5, maxTurns: 6, allowDupes: false },
+            hard: { slots: 4, colorCount: 6, maxTurns: 6, allowDupes: true }
+        };
+
+        let currentConfig = null;
+        let secretCode = [];
+        let currentGuess = [];
+        let turn = 1;
+        let score = 0;
+
+        // --- DOM Elements ---
+        const screenMenu = document.getElementById('screen-menu');
+        const screenGame = document.getElementById('screen-game');
+        const currentSlotsContainer = document.getElementById('current-slots');
+        const keyboardContainer = document.getElementById('color-keyboard');
+        const historyContainer = document.getElementById('history-container');
+        const turnDisplay = document.getElementById('turn-display');
+        const menuScoreDisplay = document.getElementById('menu-score');
+        const gameScoreDisplay = document.getElementById('game-score');
+        const overlayMsg = document.getElementById('overlay-msg');
+        const overlayPanel = document.getElementById('overlay-panel');
+
+        // --- ลอจิกเกม ---
+
+        function startGame(difficulty) {
+            sfx.tap();
+            currentConfig = difficulties[difficulty];
+            generateSecretCode();
+            currentGuess = [];
+            turn = 1;
+            
+            // Switch screen
+            screenMenu.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                screenGame.classList.remove('opacity-0', 'pointer-events-none');
+                setupBoard();
+            }, 300);
+        }
+
+        function returnToMenu() {
+            sfx.clear();
+            screenGame.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                screenMenu.classList.remove('opacity-0', 'pointer-events-none');
+                menuScoreDisplay.innerText = score;
+            }, 300);
+        }
+
+        function generateSecretCode() {
+            secretCode = [];
+            let availableColors = Array.from({length: currentConfig.colorCount}, (_, i) => i);
+            
+            for (let i = 0; i < currentConfig.slots; i++) {
+                if (currentConfig.allowDupes) {
+                    secretCode.push(Math.floor(Math.random() * currentConfig.colorCount));
+                } else {
+                    const rIndex = Math.floor(Math.random() * availableColors.length);
+                    secretCode.push(availableColors[rIndex]);
+                    availableColors.splice(rIndex, 1);
+                }
+            }
+            console.log("Secret Code (shh!):", secretCode);
+        }
+
+        function setupBoard() {
+            updateHeader();
+            historyContainer.innerHTML = '<div class="text-center text-gray-400 mt-auto text-lg mb-4">ทายรหัสเพื่อดูคำใบ้ที่นี่</div>';
+            
+            // Setup Input Slots
+            currentSlotsContainer.innerHTML = '';
+            for(let i=0; i<currentConfig.slots; i++) {
+                currentSlotsContainer.innerHTML += `<div id="slot-${i}" class="slot-hole"></div>`;
+            }
+
+            // Setup Keyboard
+            keyboardContainer.innerHTML = '';
+            for(let i=0; i<currentConfig.colorCount; i++) {
+                let btn = document.createElement('button');
+                btn.className = `color-btn ${colors[i]}`;
+                btn.onclick = () => addColor(i);
+                keyboardContainer.appendChild(btn);
+            }
+            renderCurrentGuess();
+        }
+
+        function updateHeader() {
+            turnDisplay.innerText = `${turn}/${currentConfig.maxTurns}`;
+            gameScoreDisplay.innerText = score;
+        }
+
+        function addColor(colorIndex) {
+            if (currentGuess.length < currentConfig.slots) {
+                sfx.fill();
+                currentGuess.push(colorIndex);
+                renderCurrentGuess();
+            } else {
+                sfx.error();
+                document.getElementById('input-area').classList.add('wiggle');
+                setTimeout(() => document.getElementById('input-area').classList.remove('wiggle'), 400);
+            }
+        }
+
+        function clearCurrentGuess() {
+            if (currentGuess.length > 0) {
+                sfx.clear();
+                currentGuess = [];
+                renderCurrentGuess();
+            }
+        }
+
+        function renderCurrentGuess() {
+            for(let i=0; i<currentConfig.slots; i++) {
+                const slot = document.getElementById(`slot-${i}`);
+                if (i < currentGuess.length) {
+                    slot.innerHTML = `<div class="slot-filled ${colors[currentGuess[i]]}"></div>`;
+                } else {
+                    slot.innerHTML = '';
+                }
+            }
+        }
+
+        function evaluateGuess() {
+            let exact = 0;
+            let partial = 0;
+            let guessCopy = [...currentGuess];
+            let secretCopy = [...secretCode];
+
+            // 1. Check Exact Matches (Green)
+            for (let i = 0; i < currentConfig.slots; i++) {
+                if (guessCopy[i] === secretCopy[i]) {
+                    exact++;
+                    guessCopy[i] = null;
+                    secretCopy[i] = null;
+                }
+            }
+
+            // 2. Check Partial Matches (Yellow)
+            for (let i = 0; i < currentConfig.slots; i++) {
+                if (guessCopy[i] !== null) {
+                    let index = secretCopy.indexOf(guessCopy[i]);
+                    if (index !== -1) {
+                        partial++;
+                        secretCopy[index] = null; // Prevent double counting
+                    }
+                }
+            }
+            return { exact, partial };
+        }
+
+        function submitGuess() {
+            if (currentGuess.length < currentConfig.slots) {
+                sfx.error();
+                document.getElementById('input-area').classList.add('wiggle');
+                setTimeout(() => document.getElementById('input-area').classList.remove('wiggle'), 400);
+                return;
+            }
+
+            sfx.tap();
+            const result = evaluateGuess();
+            addHistory(currentGuess, result);
+
+            if (result.exact === currentConfig.slots) {
+                // Win
+                sfx.win();
+                score += 30;
+                fireConfetti();
+                showOverlay("ปลดล็อกสำเร็จ!", "ยอดเยี่ยม! คุณถอดรหัสได้แล้ว", "text-success");
+            } else if (turn >= currentConfig.maxTurns) {
+                // Lose
+                sfx.lose();
+                showOverlay("รหัสผิดพลาด", "หีบล็อกไปแล้ว ลองใหม่อีกครั้งนะ", "text-c0");
+            } else {
+                // Next turn
+                turn++;
+                currentGuess = [];
+                renderCurrentGuess();
+                updateHeader();
+            }
+        }
+
+        function addHistory(guessArr, result) {
+            // Remove placeholder if exists
+            if (historyContainer.children.length === 1 && historyContainer.children[0].innerText.includes('ทายรหัส')) {
+                historyContainer.innerHTML = '';
+            }
+
+            const row = document.createElement('div');
+            row.className = 'paper-panel p-3 flex justify-between items-center';
+            
+            // Colors guessed
+            let colorsHTML = '<div class="flex space-x-2">';
+            guessArr.forEach(col => {
+                colorsHTML += `<div class="w-6 h-6 rounded-md ${colors[col]} border border-black/10 shadow-sm"></div>`;
+            });
+            colorsHTML += '</div>';
+
+            // Feedback pegs
+            let feedbackHTML = '<div class="flex space-x-1">';
+            for (let i = 0; i < result.exact; i++) {
+                feedbackHTML += `<svg class="w-6 h-6 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>`;
+            }
+            for (let i = 0; i < result.partial; i++) {
+                feedbackHTML += `<svg class="w-6 h-6 text-warning" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"></circle></svg>`;
+            }
+            // Fill empty pegs
+            const emptyPegs = currentConfig.slots - result.exact - result.partial;
+            for(let i=0; i<emptyPegs; i++) {
+                feedbackHTML += `<div class="w-6 h-6 rounded-full border-2 border-gray-200"></div>`;
+            }
+            feedbackHTML += '</div>';
+
+            row.innerHTML = `<span class="text-gray-400 font-bold w-4">#${turn}</span>` + colorsHTML + feedbackHTML;
+            historyContainer.prepend(row); // Add to top since it's column-reverse
+        }
+
+        function showOverlay(title, desc, titleClass) {
+            document.getElementById('overlay-title').innerText = title;
+            document.getElementById('overlay-title').className = `text-3xl font-bold mb-2 ${titleClass}`;
+            document.getElementById('overlay-desc').innerText = desc;
+            
+            overlayMsg.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                overlayPanel.classList.remove('scale-95');
+                overlayPanel.classList.add('scale-100');
+            }, 10);
+        }
+
+        function nextRound() {
+            sfx.tap();
+            overlayMsg.classList.add('opacity-0', 'pointer-events-none');
+            overlayPanel.classList.add('scale-95');
+            overlayPanel.classList.remove('scale-100');
+            
+            // Reset for same difficulty
+            generateSecretCode();
+            currentGuess = [];
+            turn = 1;
+            setupBoard();
+        }
+
+        // --- ระบบพาร์ติเคิล Confetti พื้นฐาน ---
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animationId;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function fireConfetti() {
+            particles = [];
+            const colorsArray = ['#FFB5A7', '#A8E6CF', '#A1C9F1', '#FDE49C', '#FCA3CC'];
+            for (let i = 0; i < 100; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    r: Math.random() * 6 + 4,
+                    dx: Math.random() * 10 - 5,
+                    dy: Math.random() * -10 - 5,
+                    color: colorsArray[Math.floor(Math.random() * colorsArray.length)],
+                    tilt: Math.random() * 10 - 10,
+                    tiltAngle: 0,
+                    tiltAngleInc: (Math.random() * 0.07) + 0.05
+                });
+            }
+            if (!animationId) animateConfetti();
+        }
+
+        function animateConfetti() {
+            requestAnimationFrame(animateConfetti);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            let active = false;
+            particles.forEach(p => {
+                p.tiltAngle += p.tiltAngleInc;
+                p.y += (Math.cos(p.tiltAngle) + 1 + p.r / 2) / 2;
+                p.x += Math.sin(p.tiltAngle) * 2;
+                p.dy += 0.1; // gravity
+                p.x += p.dx;
+                p.y += p.dy;
+
+                ctx.beginPath();
+                ctx.lineWidth = p.r;
+                ctx.strokeStyle = p.color;
+                ctx.moveTo(p.x + p.tilt + p.r, p.y);
+                ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+                ctx.stroke();
+
+                if (p.y < canvas.height) active = true;
+            });
+
+            if (!active) {
+                particles = [];
+            }
+        }
+
+    </script>
+</body>
+</html>

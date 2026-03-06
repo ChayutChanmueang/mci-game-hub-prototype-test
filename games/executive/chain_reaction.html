@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chain Reaction: แก้ปมปัญหาลูกโซ่</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #FDFBF7;
+            --color-peach: #FFCBA4;
+            --color-mint: #A2E4B8;
+            --color-sky: #AEC6CF;
+            --color-yellow: #FDFD96;
+            --color-stroke: #4A4A4A;
+        }
+
+        body {
+            font-family: 'Mali', sans-serif;
+            background-color: #e5e5e5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* 9:18 Mobile Container */
+        #app-container {
+            width: 100%;
+            height: 100vh;
+            max-width: 420px; /* ขยายเล็กน้อยเพื่อรองรับ Card ที่ใหญ่ขึ้น */
+            max-height: 840px;
+            aspect-ratio: 9 / 18;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            border: 4px solid var(--color-stroke);
+            border-radius: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Paper Cut Styles */
+        .paper-panel {
+            background: linear-gradient(135deg, #ffffff, #f0f0f0);
+            border: 3px solid var(--color-stroke);
+            border-radius: 1.5rem;
+            box-shadow: 4px 4px 0px var(--color-stroke);
+        }
+
+        .paper-btn {
+            border: 3px solid var(--color-stroke);
+            border-radius: 1rem;
+            box-shadow: 4px 4px 0px var(--color-stroke);
+            transition: all 0.1s ease;
+            font-weight: 600;
+        }
+
+        .paper-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px var(--color-stroke);
+        }
+
+        .paper-item {
+            border: 3px solid var(--color-stroke);
+            border-radius: 1.25rem;
+            box-shadow: 4px 4px 0px var(--color-stroke);
+            transition: all 0.2s ease;
+            background-color: white;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .paper-item:active {
+            transform: translate(2px, 2px) scale(0.95);
+            box-shadow: 2px 2px 0px var(--color-stroke);
+        }
+
+        /* Animations */
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            50% { transform: rotate(10deg); }
+            75% { transform: rotate(-5deg); }
+        }
+        .animate-wiggle { animation: wiggle 0.4s ease-in-out; }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .animate-pop { animation: pop 0.3s ease-in-out; }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+
+        /* Utilities */
+        .hide { display: none !important; }
+        .text-stroke {
+            -webkit-text-stroke: 1px var(--color-stroke);
+            color: white;
+            text-shadow: 2px 2px 0px var(--color-stroke);
+        }
+        
+        .locked-overlay {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            background-color: var(--color-peach);
+            border: 3px solid var(--color-stroke);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            box-shadow: 2px 2px 0px var(--color-stroke);
+            z-index: 10;
+        }
+
+        #confetti-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <canvas id="confetti-canvas" class="hide"></canvas>
+
+    <!-- MAIN MENU SCREEN -->
+    <div id="screen-menu" class="flex flex-col h-full w-full p-6 relative">
+        <div class="text-center mt-8 mb-6">
+            <h1 class="text-4xl font-bold text-stroke tracking-wide mb-2">Chain<br>Reaction</h1>
+            <p class="text-lg text-[#4A4A4A] font-semibold bg-[var(--color-yellow)] inline-block px-4 py-1 rounded-full border-2 border-[var(--color-stroke)]">แก้ปมปัญหาลูกโซ่</p>
+        </div>
+
+        <div class="paper-panel p-5 mb-6 text-center bg-gradient-to-br from-[var(--color-sky)] to-white">
+            <h2 class="text-xl font-bold mb-2">วิธีการเล่น</h2>
+            <p class="text-md leading-relaxed">
+                หาเครื่องมือและใช้งานตามลำดับขั้นตอนที่ถูกต้องเพื่อแก้ไขสถานการณ์ให้สำเร็จ! 
+            </p>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center space-y-4">
+            <button onclick="selectDifficulty('easy')" class="paper-btn p-4 bg-[var(--color-mint)] flex flex-col items-center">
+                <span class="text-2xl mb-1">ระดับง่าย</span>
+                <span class="text-sm">3 ขั้นตอน - ฝึกคิดเป็นลำดับ (สุ่มด่าน)</span>
+            </button>
+            <button onclick="selectDifficulty('medium')" class="paper-btn p-4 bg-[var(--color-peach)] flex flex-col items-center">
+                <span class="text-2xl mb-1">ระดับปานกลาง</span>
+                <span class="text-sm">5 ขั้นตอน - ซับซ้อนและท้าทายขึ้น (สุ่มด่าน)</span>
+            </button>
+            <button onclick="selectDifficulty('hard')" class="paper-btn p-4 bg-[var(--color-sky)] flex flex-col items-center">
+                <span class="text-2xl mb-1">ระดับยาก</span>
+                <span class="text-sm">มีของหลอก - ต้องเลือกให้ถูกชิ้น (สุ่มด่าน)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME PLAY SCREEN -->
+    <div id="screen-game" class="hide flex flex-col h-full w-full bg-[#FDFBF7] relative">
+        <!-- Header -->
+        <div class="bg-white border-b-4 border-[var(--color-stroke)] p-4 flex justify-between items-center z-10 shadow-sm">
+            <button onclick="returnToMenu()" class="paper-btn bg-[var(--color-yellow)] px-3 py-1 text-xl">◀</button>
+            <div class="flex flex-col items-center">
+                <span class="text-xs font-bold text-[var(--color-stroke)] bg-[var(--color-peach)] px-3 py-0.5 rounded-full mb-1 border-2 border-[var(--color-stroke)]" id="round-display">ด่าน 1/5</span>
+                <span class="text-lg font-bold" id="game-goal-text">เป้าหมาย...</span>
+                <span class="text-sm text-gray-500" id="timer-display">⏱️ 04:00</span>
+            </div>
+            <div class="paper-panel bg-[var(--color-mint)] px-3 py-1 text-center min-w-[60px]">
+                <div class="text-xs">คะแนน</div>
+                <div class="font-bold text-lg" id="score-display">0</div>
+            </div>
+        </div>
+
+        <!-- Feedback Toast -->
+        <div id="feedback-toast" class="absolute top-24 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full border-2 border-[var(--color-stroke)] font-bold text-center shadow-md transition-opacity duration-300 opacity-0 z-20 pointer-events-none whitespace-nowrap">
+            Message
+        </div>
+
+        <!-- Game Area -->
+        <div class="flex-1 p-4 relative overflow-y-auto" id="game-board-container">
+            <div id="game-board" class="flex flex-wrap gap-5 justify-center items-center h-full content-center pb-8">
+                <!-- Items will be injected here -->
+            </div>
+        </div>
+
+        <!-- Inventory / Current Tool -->
+        <div class="bg-white border-t-4 border-[var(--color-stroke)] p-4 flex flex-col items-center z-10 h-36">
+            <span class="text-base font-bold text-gray-600 mb-2">เครื่องมือในมือคุณ:</span>
+            <div id="current-tool-slot" class="w-20 h-20 rounded-2xl border-4 border-dashed border-gray-300 flex items-center justify-center text-5xl bg-gray-50 transition-all duration-300">
+                🖐️
+            </div>
+            <span id="current-tool-name" class="text-sm mt-1 font-bold text-gray-400">มือเปล่า</span>
+        </div>
+    </div>
+
+    <!-- RESULT SCREEN -->
+    <div id="screen-result" class="hide flex flex-col h-full w-full p-6 relative justify-center items-center bg-[var(--color-mint)]">
+        <div class="paper-panel p-8 text-center bg-white w-full max-w-sm flex flex-col items-center">
+            <h1 class="text-4xl font-bold mb-2">สำเร็จ! 🎉</h1>
+            <p class="text-lg mb-6 text-gray-600">คุณแก้ปัญหาลูกโซ่ได้ยอดเยี่ยม</p>
+            
+            <div class="text-6xl font-bold text-[var(--color-stroke)] mb-2" id="final-score">100</div>
+            <p class="text-sm font-bold mb-8">คะแนนรวมของคุณ</p>
+
+            <button onclick="returnToMenu()" class="paper-btn p-4 w-full bg-[var(--color-yellow)] text-xl">
+                เล่นอีกครั้ง
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    /* --- Game Data (10 Levels per difficulty) --- */
+    const levelsData = {
+        easy: [
+            { goal: "เปิดหีบสมบัติ", items: [ { id: 'scissors', icon: '✂️', name: 'กรรไกร', state: 'free', requiredTool: '', color: 'var(--color-sky)' }, { id: 'hammer', icon: '🔨', name: 'ค้อน', state: 'locked', lockIcon: '🪢', lockName: 'เชือกมัด', requiredTool: 'scissors', color: 'var(--color-peach)' }, { id: 'key', icon: '🔑', name: 'กุญแจ', state: 'locked', lockIcon: '🧊', lockName: 'ติดน้ำแข็ง', requiredTool: 'hammer', color: 'var(--color-yellow)' }, { id: 'chest', icon: '🧰', name: 'หีบสมบัติ', state: 'locked', lockIcon: '🔒', lockName: 'ล็อคอยู่', requiredTool: 'key', isFinal: true, color: 'var(--color-mint)' } ] },
+            { goal: "ช่วยน้องหมี", items: [ { id: 'knife', icon: '🔪', name: 'มีด', state: 'free', requiredTool: '', color: 'var(--color-peach)' }, { id: 'rope', icon: '🪢', name: 'เชือก', state: 'locked', lockIcon: '🕸️', lockName: 'ใยแมงมุม', requiredTool: 'knife', color: 'var(--color-sky)' }, { id: 'box', icon: '📦', name: 'กล่อง', state: 'locked', lockIcon: 'สูง', lockName: 'ที่สูง', requiredTool: 'rope', color: 'var(--color-yellow)' }, { id: 'bear', icon: '🧸', name: 'ตุ๊กตาหมี', state: 'locked', lockIcon: '🔒', lockName: 'ปิดผนึก', requiredTool: 'box', isFinal: true, color: 'var(--color-mint)' } ] },
+            { goal: "ดื่มน้ำอัดลม", items: [ { id: 'coin', icon: '🪙', name: 'เหรียญ', state: 'free', requiredTool: '', color: 'var(--color-yellow)' }, { id: 'machine', icon: '🎰', name: 'ตู้กดน้ำ', state: 'locked', lockIcon: '💰', lockName: 'หยอดเหรียญ', requiredTool: 'coin', color: 'var(--color-sky)' }, { id: 'soda', icon: '🥤', name: 'น้ำอัดลม', state: 'locked', lockIcon: '🧊', lockName: 'อยู่ในตู้', requiredTool: 'machine', color: 'var(--color-peach)' }, { id: 'glass', icon: '🥛', name: 'แก้วน้ำ', state: 'locked', lockIcon: '❌', lockName: 'ว่างเปล่า', requiredTool: 'soda', isFinal: true, color: 'var(--color-mint)' } ] },
+            { goal: "เปิดตู้เซฟลับ", items: [ { id: 'match', icon: '🪔', name: 'ไม้ขีดไฟ', state: 'free', requiredTool: '', color: 'var(--color-mint)' }, { id: 'candle', icon: '🕯️', name: 'เทียน', state: 'locked', lockIcon: 'ดับ', lockName: 'ยังไม่จุด', requiredTool: 'match', color: 'var(--color-peach)' }, { id: 'note', icon: '📜', name: 'กระดาษโน้ต', state: 'locked', lockIcon: 'มืด', lockName: 'มองไม่เห็น', requiredTool: 'candle', color: 'var(--color-yellow)' }, { id: 'safe', icon: '🏦', name: 'ตู้เซฟ', state: 'locked', lockIcon: 'รหัส', lockName: 'ติดรหัส', requiredTool: 'note', isFinal: true, color: 'var(--color-sky)' } ] },
+            { goal: "เข้าบ้าน", items: [ { id: 'shovel', icon: '⛏️', name: 'พลั่ว', state: 'free', requiredTool: '', color: 'var(--color-peach)' }, { id: 'dirt', icon: '🪨', name: 'กองหินดิน', state: 'locked', lockIcon: 'ขุด', lockName: 'ต้องขุด', requiredTool: 'shovel', color: 'var(--color-yellow)' }, { id: 'key', icon: '🗝️', name: 'กุญแจโบราณ', state: 'locked', lockIcon: 'ฝัง', lockName: 'โดนฝัง', requiredTool: 'dirt', color: 'var(--color-mint)' }, { id: 'door', icon: '🚪', name: 'ประตู', state: 'locked', lockIcon: '🔒', lockName: 'ล็อคอยู่', requiredTool: 'key', isFinal: true, color: 'var(--color-sky)' } ] },
+            { goal: "กดปุ่มลับ", items: [ { id: 'screw', icon: '🪛', name: 'ไขควง', state: 'free', requiredTool: '', color: 'var(--color-yellow)' }, { id: 'panel', icon: '🎛️', name: 'แผงควบคุม', state: 'locked', lockIcon: 'น็อต', lockName: 'ติดน็อต', requiredTool: 'screw', color: 'var(--color-mint)' }, { id: 'wire', icon: '🔌', name: 'สายไฟ', state: 'locked', lockIcon: 'ขาด', lockName: 'ข้างในแผง', requiredTool: 'panel', color: 'var(--color-sky)' }, { id: 'btn', icon: '🔘', name: 'ปุ่มลับ', state: 'locked', lockIcon: 'ไฟ', lockName: 'ไม่มีไฟ', requiredTool: 'wire', isFinal: true, color: 'var(--color-peach)' } ] },
+            { goal: "ซื้อไอศกรีม", items: [ { id: 'broom', icon: '🧹', name: 'ไม้กวาด', state: 'free', requiredTool: '', color: 'var(--color-sky)' }, { id: 'leaf', icon: '🍂', name: 'กองใบไม้', state: 'locked', lockIcon: 'รก', lockName: 'เกะกะ', requiredTool: 'broom', color: 'var(--color-peach)' }, { id: 'coin', icon: '🪙', name: 'เหรียญ', state: 'locked', lockIcon: 'ซ่อน', lockName: 'ใต้ใบไม้', requiredTool: 'leaf', color: 'var(--color-yellow)' }, { id: 'icecream', icon: '🍦', name: 'รถไอศกรีม', state: 'locked', lockIcon: '💰', lockName: 'ต้องจ่าย', requiredTool: 'coin', isFinal: true, color: 'var(--color-mint)' } ] },
+            { goal: "หาแผนที่", items: [ { id: 'net', icon: '🕸️', name: 'สวิงตัก', state: 'free', requiredTool: '', color: 'var(--color-mint)' }, { id: 'fish', icon: '🐟', name: 'ปลา', state: 'locked', lockIcon: 'น้ำ', lockName: 'อยู่ในน้ำ', requiredTool: 'net', color: 'var(--color-sky)' }, { id: 'cat', icon: '🐈', name: 'แมว', state: 'locked', lockIcon: 'หิว', lockName: 'หิวมาก', requiredTool: 'fish', color: 'var(--color-peach)' }, { id: 'map', icon: '🗺️', name: 'แผนที่', state: 'locked', lockIcon: 'คาบ', lockName: 'แมวคาบไว้', requiredTool: 'cat', isFinal: true, color: 'var(--color-yellow)' } ] },
+            { goal: "ย่างเนื้อ", items: [ { id: 'axe', icon: '🪓', name: 'ขวาน', state: 'free', requiredTool: '', color: 'var(--color-peach)' }, { id: 'wood', icon: '🪵', name: 'ท่อนไม้', state: 'locked', lockIcon: 'ใหญ่', lockName: 'ท่อนใหญ่', requiredTool: 'axe', color: 'var(--color-mint)' }, { id: 'fire', icon: '🔥', name: 'กองไฟ', state: 'locked', lockIcon: 'ดับ', lockName: 'ต้องการฟืน', requiredTool: 'wood', color: 'var(--color-sky)' }, { id: 'meat', icon: '🥩', name: 'เนื้อดิบ', state: 'locked', lockIcon: 'ดิบ', lockName: 'ยังไม่สุก', requiredTool: 'fire', isFinal: true, color: 'var(--color-yellow)' } ] },
+            { goal: "หนีขึ้น ฮ.", items: [ { id: 'card', icon: '💳', name: 'คีย์การ์ด', state: 'free', requiredTool: '', color: 'var(--color-yellow)' }, { id: 'elevator', icon: '🛗', name: 'ลิฟต์', state: 'locked', lockIcon: '🔒', lockName: 'ล็อคชั้น', requiredTool: 'card', color: 'var(--color-sky)' }, { id: 'roof', icon: '🏢', name: 'ดาดฟ้า', state: 'locked', lockIcon: 'สูง', lockName: 'ลิฟต์ไปไม่ถึง', requiredTool: 'elevator', color: 'var(--color-peach)' }, { id: 'heli', icon: '🚁', name: 'เฮลิคอปเตอร์', state: 'locked', lockIcon: 'จอด', lockName: 'รอกุญแจ', requiredTool: 'roof', isFinal: true, color: 'var(--color-mint)' } ] }
+        ],
+        medium: [
+            { goal: "หาทางออกจากห้อง", items: [ { id: 'drawer', icon: '🗄️', name: 'ลิ้นชัก', state: 'locked', lockIcon: '❌', lockName: 'ปิดอยู่', requiredTool: 'hand', color: 'var(--color-peach)' }, { id: 'flashlight', icon: '🔦', name: 'ไฟฉาย', state: 'locked', lockIcon: '📦', lockName: 'ในลิ้นชัก', requiredTool: 'drawer', color: 'var(--color-yellow)' }, { id: 'table', icon: '🪑', name: 'ใต้โต๊ะ', state: 'locked', lockIcon: '🌑', lockName: 'มืดมาก', requiredTool: 'flashlight', color: 'var(--color-sky)' }, { id: 'key', icon: '🗝️', name: 'กุญแจ', state: 'locked', lockIcon: '👀', lockName: 'มองไม่เห็น', requiredTool: 'table', color: 'var(--color-mint)' }, { id: 'door', icon: '🚪', name: 'ประตู', state: 'locked', lockIcon: '🔒', lockName: 'ล็อคอยู่', requiredTool: 'key', isFinal: true, color: '#FFB6C1' } ] },
+            { goal: "สวมมงกุฎ", items: [ { id: 'bag', icon: '🎒', name: 'กระเป๋าเป้', state: 'locked', lockIcon: 'รูด', lockName: 'รูดซิป', requiredTool: 'hand', color: 'var(--color-mint)' }, { id: 'map', icon: '🗺️', name: 'ลายแทง', state: 'locked', lockIcon: 'ซ่อน', lockName: 'ในกระเป๋า', requiredTool: 'bag', color: 'var(--color-sky)' }, { id: 'cave', icon: '🕳️', name: 'ถ้ำลึก', state: 'locked', lockIcon: 'หลง', lockName: 'หาทาง', requiredTool: 'map', color: 'var(--color-peach)' }, { id: 'box', icon: '🧰', name: 'หีบทอง', state: 'locked', lockIcon: 'ฝุ่น', lockName: 'ในถ้ำ', requiredTool: 'cave', color: 'var(--color-yellow)' }, { id: 'crown', icon: '👑', name: 'มงกุฎ', state: 'locked', lockIcon: '🔒', lockName: 'ล็อคหีบ', requiredTool: 'box', isFinal: true, color: '#e5e5e5' } ] },
+            { goal: "ออกจากบ้าน", items: [ { id: 'fridge', icon: '🧊', name: 'ตู้เย็น', state: 'locked', lockIcon: 'เปิด', lockName: 'ปิดอยู่', requiredTool: 'hand', color: 'var(--color-sky)' }, { id: 'meat', icon: '🥩', name: 'เนื้อสเต็ก', state: 'locked', lockIcon: 'เย็น', lockName: 'ในตู้เย็น', requiredTool: 'fridge', color: 'var(--color-peach)' }, { id: 'dog', icon: '🐕', name: 'สุนัขเฝ้า', state: 'locked', lockIcon: 'ดุ', lockName: 'ขวางทาง', requiredTool: 'meat', color: 'var(--color-yellow)' }, { id: 'key', icon: '🗝️', name: 'กุญแจรั้ว', state: 'locked', lockIcon: 'ทับ', lockName: 'หมาทับไว้', requiredTool: 'dog', color: 'var(--color-mint)' }, { id: 'gate', icon: '⛩️', name: 'ประตูรั้ว', state: 'locked', lockIcon: '🔒', lockName: 'ล็อค', requiredTool: 'key', isFinal: true, color: '#FFB6C1' } ] },
+            { goal: "นั่งรถกลับบ้าน", items: [ { id: 'jacket', icon: '🧥', name: 'เสื้อโค้ท', state: 'locked', lockIcon: 'แขวน', lockName: 'บนราว', requiredTool: 'hand', color: 'var(--color-yellow)' }, { id: 'pocket', icon: '👖', name: 'กระเป๋าเสื้อ', state: 'locked', lockIcon: 'ล้วง', lockName: 'ยังไม่ค้น', requiredTool: 'jacket', color: 'var(--color-mint)' }, { id: 'coin', icon: '🪙', name: 'ตังค์ทอน', state: 'locked', lockIcon: 'ลึก', lockName: 'อยู่ก้นเป๋า', requiredTool: 'pocket', color: 'var(--color-peach)' }, { id: 'bus', icon: '🚌', name: 'รถเมล์', state: 'locked', lockIcon: '💰', lockName: 'ต้องจ่าย', requiredTool: 'coin', color: 'var(--color-sky)' }, { id: 'home', icon: '🏠', name: 'บ้าน', state: 'locked', lockIcon: 'ไกล', lockName: 'ต้องนั่งรถ', requiredTool: 'bus', isFinal: true, color: '#e5e5e5' } ] },
+            { goal: "ปลูกดอกไม้", items: [ { id: 'bag', icon: '👜', name: 'ถุงผ้า', state: 'locked', lockIcon: 'มัด', lockName: 'ผูกปม', requiredTool: 'hand', color: 'var(--color-peach)' }, { id: 'seed', icon: '🌱', name: 'เมล็ด', state: 'locked', lockIcon: 'ซ่อน', lockName: 'ในถุง', requiredTool: 'bag', color: 'var(--color-mint)' }, { id: 'pot', icon: '🪴', name: 'กระถาง', state: 'locked', lockIcon: 'ว่าง', lockName: 'ไม่มีเมล็ด', requiredTool: 'seed', color: 'var(--color-yellow)' }, { id: 'water', icon: '💧', name: 'ฝักบัว', state: 'locked', lockIcon: 'รอ', lockName: 'รอรดน้ำ', requiredTool: 'pot', color: 'var(--color-sky)' }, { id: 'flower', icon: '🌻', name: 'ดอกทานตะวัน', state: 'locked', lockIcon: 'แห้ง', lockName: 'ต้องการน้ำ', requiredTool: 'water', isFinal: true, color: '#FFB6C1' } ] },
+            { goal: "โหลดไฟล์ลับ", items: [ { id: 'mail', icon: '📮', name: 'ตู้จดหมาย', state: 'locked', lockIcon: 'ปิด', lockName: 'ปิดอยู่', requiredTool: 'hand', color: 'var(--color-sky)' }, { id: 'letter', icon: '✉️', name: 'จดหมาย', state: 'locked', lockIcon: 'ซอง', lockName: 'ในตู้', requiredTool: 'mail', color: 'var(--color-yellow)' }, { id: 'code', icon: '🔢', name: 'รหัสผ่าน', state: 'locked', lockIcon: 'พับ', lockName: 'ในจดหมาย', requiredTool: 'letter', color: 'var(--color-peach)' }, { id: 'pc', icon: '💻', name: 'คอมพิวเตอร์', state: 'locked', lockIcon: '🔒', lockName: 'ติดรหัส', requiredTool: 'code', color: 'var(--color-mint)' }, { id: 'file', icon: '📁', name: 'ไฟล์ลับ', state: 'locked', lockIcon: 'ค้น', lockName: 'ยังไม่โหลด', requiredTool: 'pc', isFinal: true, color: '#e5e5e5' } ] },
+            { goal: "กินเค้ก", items: [ { id: 'oven', icon: '🎛️', name: 'เตาอบ', state: 'locked', lockIcon: 'ร้อน', lockName: 'อบอยู่', requiredTool: 'hand', color: 'var(--color-mint)' }, { id: 'cake', icon: '🎂', name: 'เค้ก', state: 'locked', lockIcon: 'ในเตา', lockName: 'ยังไม่ออก', requiredTool: 'oven', color: 'var(--color-sky)' }, { id: 'knife', icon: '🔪', name: 'มีดหั่น', state: 'locked', lockIcon: 'รอ', lockName: 'รอเค้ก', requiredTool: 'cake', color: 'var(--color-peach)' }, { id: 'slice', icon: '🍰', name: 'เค้กชิ้น', state: 'locked', lockIcon: 'ก้อน', lockName: 'ยังไม่ตัด', requiredTool: 'knife', color: 'var(--color-yellow)' }, { id: 'plate', icon: '🍽️', name: 'จาน', state: 'locked', lockIcon: 'ว่าง', lockName: 'ไม่มีขนม', requiredTool: 'slice', isFinal: true, color: '#FFB6C1' } ] },
+            { goal: "ซ่อมหุ่นยนต์", items: [ { id: 'safe', icon: '🏦', name: 'ตู้เซฟ', state: 'locked', lockIcon: 'หมุน', lockName: 'หมุนเปิด', requiredTool: 'hand', color: 'var(--color-peach)' }, { id: 'blue', icon: '📄', name: 'พิมพ์เขียว', state: 'locked', lockIcon: 'ซ่อน', lockName: 'ในตู้', requiredTool: 'safe', color: 'var(--color-sky)' }, { id: 'tools', icon: '🧰', name: 'กล่องเครื่องมือ', state: 'locked', lockIcon: 'งง', lockName: 'ไม่รู้วิธี', requiredTool: 'blue', color: 'var(--color-mint)' }, { id: 'parts', icon: '⚙️', name: 'อะไหล่', state: 'locked', lockIcon: 'ถอด', lockName: 'ต้องใช้ช่าง', requiredTool: 'tools', color: 'var(--color-yellow)' }, { id: 'robot', icon: '🤖', name: 'หุ่นยนต์', state: 'locked', lockIcon: 'พัง', lockName: 'รออะไหล่', requiredTool: 'parts', isFinal: true, color: '#e5e5e5' } ] },
+            { goal: "ไปพบหัวหน้า", items: [ { id: 'wardrobe', icon: '🚪', name: 'ตู้เสื้อผ้า', state: 'locked', lockIcon: 'เปิด', lockName: 'ปิดอยู่', requiredTool: 'hand', color: 'var(--color-sky)' }, { id: 'suit', icon: '👔', name: 'ชุดสูท', state: 'locked', lockIcon: 'แขวน', lockName: 'ในตู้', requiredTool: 'wardrobe', color: 'var(--color-mint)' }, { id: 'car', icon: '🚗', name: 'รถยนต์', state: 'locked', lockIcon: 'ชุด', lockName: 'ยังไม่แต่งตัว', requiredTool: 'suit', color: 'var(--color-yellow)' }, { id: 'office', icon: '🏢', name: 'บริษัท', state: 'locked', lockIcon: 'ไกล', lockName: 'ต้องขับรถ', requiredTool: 'car', color: 'var(--color-peach)' }, { id: 'boss', icon: '🧑‍💼', name: 'หัวหน้า', state: 'locked', lockIcon: 'รอ', lockName: 'ยังไม่ถึง', requiredTool: 'office', isFinal: true, color: '#FFB6C1' } ] },
+            { goal: "เปิดกล่องลับ", items: [ { id: 'shelf', icon: '📚', name: 'ชั้นหนังสือ', state: 'locked', lockIcon: 'ค้น', lockName: 'เรียงอยู่', requiredTool: 'hand', color: 'var(--color-yellow)' }, { id: 'book', icon: '📖', name: 'หนังสือเก่า', state: 'locked', lockIcon: 'ซ่อน', lockName: 'บนชั้น', requiredTool: 'shelf', color: 'var(--color-peach)' }, { id: 'mark', icon: '🔖', name: 'ที่คั่น', state: 'locked', lockIcon: 'คั่น', lockName: 'ในหนังสือ', requiredTool: 'book', color: 'var(--color-sky)' }, { id: 'code', icon: '🔑', name: 'รหัสลับ', state: 'locked', lockIcon: 'จด', lockName: 'หลังที่คั่น', requiredTool: 'mark', color: 'var(--color-mint)' }, { id: 'box', icon: '📦', name: 'กล่องลับ', state: 'locked', lockIcon: '🔒', lockName: 'ติดรหัส', requiredTool: 'code', isFinal: true, color: '#e5e5e5' } ] }
+        ],
+        hard: [
+            { goal: "รดน้ำต้นไม้", items: [ { id: 'coin', icon: '🪙', name: 'เหรียญ', state: 'free', requiredTool: '', color: 'var(--color-yellow)' }, { id: 'machine', icon: '🎰', name: 'ตู้ไข่', state: 'locked', lockIcon: '💰', lockName: 'หยอดตังค์', requiredTool: 'coin', color: 'var(--color-sky)' }, { id: 'seed', icon: '🌱', name: 'เมล็ด', state: 'locked', lockIcon: '🥚', lockName: 'ในไข่', requiredTool: 'machine', color: 'var(--color-mint)' }, { id: 'pot', icon: '🪴', name: 'กระถาง', state: 'locked', lockIcon: '❌', lockName: 'ว่างเปล่า', requiredTool: 'seed', color: 'var(--color-peach)' }, { id: 'water', icon: '💧', name: 'บัวรดน้ำ', state: 'locked', lockIcon: '🚰', lockName: 'รอปลูกก่อน', requiredTool: 'pot', isFinal: true, color: '#AEC6CF' }, { id: 'decoy1', icon: '📱', name: 'มือถือ', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy2', icon: '🍎', name: 'แอปเปิ้ล', state: 'free', isDecoy: true, color: '#FFB6C1' }, { id: 'decoy3', icon: '🔧', name: 'ประแจ', state: 'free', isDecoy: true, color: '#e5e5e5' } ] },
+            { goal: "ระเบิดถ้ำ", items: [ { id: 'crowbar', icon: '⛏️', name: 'ชะแลง', state: 'free', requiredTool: '', color: 'var(--color-peach)' }, { id: 'crate', icon: '📦', name: 'ลังไม้', state: 'locked', lockIcon: 'ตะปู', lockName: 'ตอกแน่น', requiredTool: 'crowbar', color: 'var(--color-sky)' }, { id: 'dyna', icon: '🧨', name: 'ไดนาไมต์', state: 'locked', lockIcon: 'ซ่อน', lockName: 'ในลัง', requiredTool: 'crate', color: 'var(--color-mint)' }, { id: 'rock', icon: '🪨', name: 'กองหิน', state: 'locked', lockIcon: 'ตัน', lockName: 'ทางตัน', requiredTool: 'dyna', color: 'var(--color-yellow)' }, { id: 'cave', icon: '🕳️', name: 'ถ้ำสมบัติ', state: 'locked', lockIcon: 'หิน', lockName: 'หินขวาง', requiredTool: 'rock', isFinal: true, color: '#AEC6CF' }, { id: 'decoy1', icon: '🔨', name: 'ค้อนยาง', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy2', icon: '🗝️', name: 'กุญแจ', state: 'free', isDecoy: true, color: '#FFB6C1' }, { id: 'decoy3', icon: '📖', name: 'หนังสือ', state: 'free', isDecoy: true, color: '#e5e5e5' } ] },
+            { goal: "ส่งข้อมูลลับ", items: [ { id: 'card', icon: '💳', name: 'คีย์การ์ด', state: 'free', requiredTool: '', color: 'var(--color-sky)' }, { id: 'server', icon: '🖥️', name: 'ห้องเซิร์ฟ', state: 'locked', lockIcon: '🔒', lockName: 'ล็อคประตู', requiredTool: 'card', color: 'var(--color-peach)' }, { id: 'pass', icon: '🔑', name: 'รหัสผ่าน', state: 'locked', lockIcon: 'ซ่อน', lockName: 'ในห้อง', requiredTool: 'server', color: 'var(--color-yellow)' }, { id: 'laptop', icon: '💻', name: 'แล็ปท็อป', state: 'locked', lockIcon: 'รหัส', lockName: 'ล็อคเครื่อง', requiredTool: 'pass', color: 'var(--color-mint)' }, { id: 'hacker', icon: '🕵️', name: 'สายลับ', state: 'locked', lockIcon: 'รอ', lockName: 'รอข้อมูล', requiredTool: 'laptop', isFinal: true, color: '#FFB6C1' }, { id: 'decoy1', icon: '🖱️', name: 'เมาส์', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy2', icon: '☕', name: 'กาแฟ', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy3', icon: '👓', name: 'แว่นตา', state: 'free', isDecoy: true, color: '#FFCBA4' } ] },
+            { goal: "จับกระต่าย", items: [ { id: 'wand', icon: '🪄', name: 'ไม้กายสิทธิ์', state: 'free', requiredTool: '', color: 'var(--color-mint)' }, { id: 'hat', icon: '🎩', name: 'หมวกกล', state: 'locked', lockIcon: 'ว่าง', lockName: 'ต้องร่ายเวท', requiredTool: 'wand', color: 'var(--color-yellow)' }, { id: 'rabbit', icon: '🐇', name: 'กระต่าย', state: 'locked', lockIcon: 'ซ่อน', lockName: 'ในหมวก', requiredTool: 'hat', color: 'var(--color-sky)' }, { id: 'carrot', icon: '🥕', name: 'แครอท', state: 'locked', lockIcon: 'หิว', lockName: 'ต้องป้อน', requiredTool: 'rabbit', color: 'var(--color-peach)' }, { id: 'cage', icon: '🪤', name: 'กรง', state: 'locked', lockIcon: 'ล่อ', lockName: 'รอเข้ากรง', requiredTool: 'carrot', isFinal: true, color: '#AEC6CF' }, { id: 'decoy1', icon: '🪙', name: 'เหรียญกล', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy2', icon: '🃏', name: 'ไพ่', state: 'free', isDecoy: true, color: '#FFB6C1' }, { id: 'decoy3', icon: '🧣', name: 'ผ้าพันคอ', state: 'free', isDecoy: true, color: '#e5e5e5' } ] },
+            { goal: "ทำสร้อยไข่มุก", items: [ { id: 'gog', icon: '🥽', name: 'แว่นดำน้ำ', state: 'free', requiredTool: '', color: 'var(--color-sky)' }, { id: 'sea', icon: '🌊', name: 'ทะเลลึก', state: 'locked', lockIcon: 'ลึก', lockName: 'มองไม่เห็น', requiredTool: 'gog', color: 'var(--color-peach)' }, { id: 'oys', icon: '🦪', name: 'หอยนางรม', state: 'locked', lockIcon: 'ใต้น้ำ', lockName: 'ก้นทะเล', requiredTool: 'sea', color: 'var(--color-mint)' }, { id: 'pearl', icon: '⚪', name: 'ไข่มุก', state: 'locked', lockIcon: 'เปลือก', lockName: 'ง้างเปลือก', requiredTool: 'oys', color: 'var(--color-yellow)' }, { id: 'neck', icon: '📿', name: 'สร้อยคอ', state: 'locked', lockIcon: 'ร้อย', lockName: 'รอเม็ดมุก', requiredTool: 'pearl', isFinal: true, color: '#FFB6C1' }, { id: 'decoy1', icon: '🧴', name: 'ครีมกันแดด', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy2', icon: '🐚', name: 'หอยสังข์', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy3', icon: '🩱', name: 'ชุดว่ายน้ำ', state: 'free', isDecoy: true, color: '#A2E4B8' } ] },
+            { goal: "ซ่อมเสื้อ", items: [ { id: 'mag', icon: '🧲', name: 'แม่เหล็ก', state: 'free', requiredTool: '', color: 'var(--color-peach)' }, { id: 'hay', icon: '🌾', name: 'กองฟาง', state: 'locked', lockIcon: 'รก', lockName: 'ดูดขึ้นมา', requiredTool: 'mag', color: 'var(--color-yellow)' }, { id: 'needle', icon: '🪡', name: 'เข็ม', state: 'locked', lockIcon: 'ซ่อน', lockName: 'ในกองฟาง', requiredTool: 'hay', color: 'var(--color-sky)' }, { id: 'thread', icon: '🧵', name: 'ด้าย', state: 'locked', lockIcon: 'ร้อย', lockName: 'ร้อยด้าย', requiredTool: 'needle', color: 'var(--color-mint)' }, { id: 'shirt', icon: '👕', name: 'เสื้อขาด', state: 'locked', lockIcon: 'ขาด', lockName: 'รอเย็บ', requiredTool: 'thread', isFinal: true, color: '#AEC6CF' }, { id: 'decoy1', icon: '✂️', name: 'กรรไกร', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy2', icon: '🔘', name: 'กระดุม', state: 'free', isDecoy: true, color: '#FFB6C1' }, { id: 'decoy3', icon: '📌', name: 'หมุด', state: 'free', isDecoy: true, color: '#e5e5e5' } ] },
+            { goal: "เช็คอินโรงแรม", items: [ { id: 'ticket', icon: '🎟️', name: 'ตั๋วรถไฟ', state: 'free', requiredTool: '', color: 'var(--color-yellow)' }, { id: 'gate', icon: '🚧', name: 'ที่กั้น', state: 'locked', lockIcon: 'สแกน', lockName: 'ต้องสแกน', requiredTool: 'ticket', color: 'var(--color-sky)' }, { id: 'train', icon: '🚆', name: 'รถไฟ', state: 'locked', lockIcon: 'รอ', lockName: 'รอชานชาลา', requiredTool: 'gate', color: 'var(--color-mint)' }, { id: 'station', icon: '🚉', name: 'สถานี', state: 'locked', lockIcon: 'ไกล', lockName: 'นั่งไป', requiredTool: 'train', color: 'var(--color-peach)' }, { id: 'hotel', icon: '🏨', name: 'โรงแรม', state: 'locked', lockIcon: 'เดิน', lockName: 'จากสถานี', requiredTool: 'station', isFinal: true, color: '#FFB6C1' }, { id: 'decoy1', icon: '🗺️', name: 'แผนที่', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy2', icon: '👛', name: 'กระเป๋าตังค์', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy3', icon: '⌚', name: 'นาฬิกา', state: 'free', isDecoy: true, color: '#FDFD96' } ] },
+            { goal: "จับผี", items: [ { id: 'flash', icon: '🔦', name: 'ไฟฉาย', state: 'free', requiredTool: '', color: 'var(--color-mint)' }, { id: 'attic', icon: '🏚️', name: 'ห้องใต้หลังคา', state: 'locked', lockIcon: 'มืด', lockName: 'ส่องไฟ', requiredTool: 'flash', color: 'var(--color-sky)' }, { id: 'ghost', icon: '👻', name: 'ผีน้อย', state: 'locked', lockIcon: 'ซ่อน', lockName: 'มุมมืด', requiredTool: 'attic', color: 'var(--color-peach)' }, { id: 'vac', icon: '🌪️', name: 'เครื่องดูด', state: 'locked', lockIcon: 'เป้า', lockName: 'หาเป้าหมาย', requiredTool: 'ghost', color: 'var(--color-yellow)' }, { id: 'buster', icon: '🚫', name: 'ที่เก็บผี', state: 'locked', lockIcon: 'รอ', lockName: 'ดูดเข้าเครื่อง', requiredTool: 'vac', isFinal: true, color: '#AEC6CF' }, { id: 'decoy1', icon: '🧹', name: 'ไม้กวาด', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy2', icon: '📦', name: 'กล่องเปล่า', state: 'free', isDecoy: true, color: '#FFB6C1' }, { id: 'decoy3', icon: '🪞', name: 'กระจก', state: 'free', isDecoy: true, color: '#e5e5e5' } ] },
+            { goal: "จุดกองไฟ", items: [ { id: 'axe', icon: '🪓', name: 'ขวาน', state: 'free', requiredTool: '', color: 'var(--color-sky)' }, { id: 'tree', icon: '🌲', name: 'ต้นไม้', state: 'locked', lockIcon: 'ตัด', lockName: 'โค่นต้นไม้', requiredTool: 'axe', color: 'var(--color-mint)' }, { id: 'wood', icon: '🪵', name: 'ฟืน', state: 'locked', lockIcon: 'ใหญ่', lockName: 'สับเป็นท่อน', requiredTool: 'tree', color: 'var(--color-peach)' }, { id: 'match', icon: '🪔', name: 'ไม้ขีดไฟ', state: 'locked', lockIcon: 'จุด', lockName: 'เตรียมฟืน', requiredTool: 'wood', color: 'var(--color-yellow)' }, { id: 'fire', icon: '🔥', name: 'กองไฟ', state: 'locked', lockIcon: 'หนาว', lockName: 'จุดไฟ', requiredTool: 'match', isFinal: true, color: '#FFB6C1' }, { id: 'decoy1', icon: '🔪', name: 'มีดเล็ก', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy2', icon: '🪢', name: 'เชือก', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy3', icon: '🍂', name: 'ใบไม้', state: 'free', isDecoy: true, color: '#A2E4B8' } ] },
+            { goal: "ปรุงยาวิเศษ", items: [ { id: 'recipe', icon: '📜', name: 'ตำราเวท', state: 'free', requiredTool: '', color: 'var(--color-peach)' }, { id: 'pot', icon: '🍲', name: 'หม้อต้ม', state: 'locked', lockIcon: 'วิธี', lockName: 'ดูตำราก่อน', requiredTool: 'recipe', color: 'var(--color-sky)' }, { id: 'herb', icon: '🌿', name: 'สมุนไพร', state: 'locked', lockIcon: 'หม้อ', lockName: 'ใส่ลงไป', requiredTool: 'pot', color: 'var(--color-mint)' }, { id: 'potion', icon: '🧪', name: 'น้ำยา', state: 'locked', lockIcon: 'เคี่ยว', lockName: 'คนให้เข้ากัน', requiredTool: 'herb', color: 'var(--color-yellow)' }, { id: 'witch', icon: '🧙‍♀️', name: 'แม่มด', state: 'locked', lockIcon: 'รอ', lockName: 'รอดื่ม', requiredTool: 'potion', isFinal: true, color: '#AEC6CF' }, { id: 'decoy1', icon: '🥄', name: 'ช้อนคน', state: 'free', isDecoy: true, color: '#e5e5e5' }, { id: 'decoy2', icon: '🍵', name: 'ถ้วยชา', state: 'free', isDecoy: true, color: '#FFB6C1' }, { id: 'decoy3', icon: '🍽️', name: 'จาน', state: 'free', isDecoy: true, color: '#e5e5e5' } ] }
+        ]
+    };
+
+    /* --- Game State --- */
+    let currentDifficulty = '';
+    let currentLevelSequence = [];
+    let currentRoundIndex = 0;
+    const TOTAL_ROUNDS = 5;
+    let isTransitioning = false;
+    let currentLevel = null;
+    let score = 0;
+    let timeLeft = 240; // 4 minutes
+    let timerInterval = null;
+    let currentTool = { id: 'hand', icon: '🖐️', name: 'มือเปล่า' };
+
+    /* --- Audio System (Web Audio API) --- */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playTone(freq, type, duration, vol) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + duration);
+    }
+
+    function playSuccessChime() {
+        playTone(523.25, 'sine', 0.1, 0.3); // C5
+        setTimeout(() => playTone(659.25, 'sine', 0.2, 0.3), 100); // E5
+        setTimeout(() => playTone(783.99, 'sine', 0.4, 0.3), 200); // G5
+    }
+
+    function playErrorBoop() {
+        playTone(150, 'triangle', 0.3, 0.4);
+    }
+
+    function playWinFanfare() {
+        playTone(523.25, 'square', 0.2, 0.2);
+        setTimeout(() => playTone(659.25, 'square', 0.2, 0.2), 200);
+        setTimeout(() => playTone(783.99, 'square', 0.2, 0.2), 400);
+        setTimeout(() => playTone(1046.50, 'square', 0.6, 0.2), 600);
+    }
+
+    /* --- UI Functions --- */
+    const screens = {
+        menu: document.getElementById('screen-menu'),
+        game: document.getElementById('screen-game'),
+        result: document.getElementById('screen-result')
+    };
+
+    function showScreen(screenName) {
+        Object.values(screens).forEach(s => s.classList.add('hide'));
+        screens[screenName].classList.remove('hide');
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('score-display').innerText = score;
+        const el = document.getElementById('score-display').parentElement;
+        el.classList.remove('animate-pop');
+        void el.offsetWidth; // trigger reflow
+        el.classList.add('animate-pop');
+    }
+
+    function showFeedback(text, isPositive) {
+        const toast = document.getElementById('feedback-toast');
+        toast.innerText = text;
+        toast.className = `absolute top-24 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full border-3 font-bold text-center shadow-lg transition-all duration-300 z-50 whitespace-nowrap text-sm ${isPositive ? 'bg-[var(--color-mint)] border-[var(--color-stroke)] text-gray-800' : 'bg-[#FFB6C1] border-[var(--color-stroke)] text-gray-800'}`;
+        
+        toast.style.opacity = '1';
+        toast.style.transform = 'translate(-50%, 0)';
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translate(-50%, -10px)';
+        }, 1500);
+    }
+
+    function updateToolUI(icon, name) {
+        const slot = document.getElementById('current-tool-slot');
+        const nameEl = document.getElementById('current-tool-name');
+        
+        slot.innerHTML = icon;
+        nameEl.innerText = name;
+        slot.classList.remove('border-dashed', 'border-gray-300', 'bg-gray-50');
+        slot.classList.add('border-solid', 'border-[var(--color-stroke)]', 'bg-[var(--color-yellow)]', 'animate-pop');
+        
+        setTimeout(() => {
+            slot.classList.remove('animate-pop');
+        }, 300);
+    }
+
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    /* --- Game Logic --- */
+    function selectDifficulty(diff) {
+        currentDifficulty = diff;
+        startGame();
+    }
+
+    function startGame() {
+        // Reset State
+        score = 0;
+        timeLeft = 240;
+        currentRoundIndex = 0;
+        isTransitioning = false;
+        
+        // Randomly pick 5 unique levels for the selected difficulty
+        const diffLevels = levelsData[currentDifficulty];
+        const shuffledLevels = [...diffLevels].sort(() => Math.random() - 0.5);
+        currentLevelSequence = shuffledLevels.slice(0, TOTAL_ROUNDS);
+
+        // Update UI
+        document.getElementById('timer-display').innerText = `⏱️ ${formatTime(timeLeft)}`;
+        updateScoreDisplay();
+        
+        loadSubLevel();
+        
+        // Timer
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if(isTransitioning) return; // หยุดเวลาชั่วคราวตอนสลับด่าน
+            timeLeft--;
+            document.getElementById('timer-display').innerText = `⏱️ ${formatTime(timeLeft)}`;
+            if (timeLeft <= 0) {
+                endGame(false);
+            }
+        }, 1000);
+
+        showScreen('game');
+    }
+
+    function loadSubLevel() {
+        isTransitioning = false;
+        currentTool = { id: 'hand', icon: '🖐️', name: 'มือเปล่า' };
+        
+        // Deep copy the current sub-level
+        currentLevel = JSON.parse(JSON.stringify(currentLevelSequence[currentRoundIndex]));
+        
+        // Shuffle items
+        currentLevel.items.sort(() => Math.random() - 0.5);
+
+        // Update UI
+        document.getElementById('round-display').innerText = `ด่าน ${currentRoundIndex + 1}/${TOTAL_ROUNDS}`;
+        document.getElementById('game-goal-text').innerText = `เป้าหมาย: ${currentLevel.goal}`;
+        
+        // Reset Tool UI
+        const slot = document.getElementById('current-tool-slot');
+        slot.innerHTML = '🖐️';
+        document.getElementById('current-tool-name').innerText = 'มือเปล่า';
+        slot.className = 'w-20 h-20 rounded-2xl border-4 border-dashed border-gray-300 flex items-center justify-center text-5xl bg-gray-50 transition-all duration-300';
+
+        renderBoard();
+    }
+
+    function renderBoard() {
+        const board = document.getElementById('game-board');
+        board.innerHTML = '';
+        
+        currentLevel.items.forEach((item, index) => {
+            const el = document.createElement('div');
+            // Add float animation with varied delays, adjusted size for bigger UI
+            el.className = `paper-item flex flex-col items-center justify-center w-[110px] h-[130px] p-2 animate-float shrink-0`;
+            el.style.backgroundColor = item.color;
+            el.style.animationDelay = `${index * 0.2}s`;
+            el.id = `item-${item.id}`;
+            
+            let innerHTML = `<span class="text-6xl mb-2 select-none pointer-events-none drop-shadow-sm">${item.icon}</span>
+                             <span class="text-[15px] font-bold text-gray-800 text-center leading-tight pointer-events-none">${item.name}</span>`;
+            
+            if (item.state === 'locked') {
+                innerHTML += `<div class="locked-overlay pointer-events-none" id="lock-${item.id}">
+                                <span>${item.lockIcon}</span>
+                              </div>`;
+                el.style.filter = "brightness(0.9)";
+            }
+
+            el.innerHTML = innerHTML;
+            el.onclick = () => handleItemClick(item, el);
+            board.appendChild(el);
+        });
+    }
+
+    function handleItemClick(item, element) {
+        // If already used or transitioning, ignore
+        if (item.state === 'used' || isTransitioning) return;
+
+        // Check if item is a decoy
+        if (item.isDecoy) {
+            playErrorBoop();
+            element.classList.remove('animate-wiggle');
+            void element.offsetWidth;
+            element.classList.add('animate-wiggle');
+            score -= 5;
+            updateScoreDisplay();
+            showFeedback("-5 ไม่ใช่ของที่ต้องการนะ", false);
+            return;
+        }
+
+        // Check if item can be interacted with
+        if (item.state === 'free' || item.requiredTool === currentTool.id) {
+            // Success Interaction
+            playSuccessChime();
+            score += 20;
+            updateScoreDisplay();
+            
+            // Visual feedback
+            element.classList.remove('animate-pop');
+            void element.offsetWidth;
+            element.classList.add('animate-pop');
+
+            // If it was locked, unlock it visually
+            if (item.state === 'locked') {
+                const lockEl = document.getElementById(`lock-${item.id}`);
+                if(lockEl) lockEl.classList.add('hide');
+                element.style.filter = "brightness(1)";
+                showFeedback(`+20 ใช้ ${currentTool.name} สำเร็จ!`, true);
+            } else {
+                 showFeedback(`+20 หยิบ ${item.name} แล้ว`, true);
+            }
+
+            // Update state
+            item.state = 'used';
+            element.style.opacity = '0.5';
+            element.style.cursor = 'default';
+
+            // Set as current tool if it unlocks something else or is final
+            currentTool = { id: item.id, icon: item.icon, name: item.name };
+            updateToolUI(item.icon, item.name);
+
+            // Check win condition
+            if (item.isFinal) {
+                isTransitioning = true; // ล็อคการกดปุ่มชั่วคราว
+                if (currentRoundIndex < TOTAL_ROUNDS - 1) {
+                    showFeedback(`🎉 สำเร็จ! เตรียมไปด่านที่ ${currentRoundIndex + 2}...`, true);
+                    currentRoundIndex++;
+                    // หน่วงเวลา 1.5 วินาทีแล้วโหลดด่านถัดไป
+                    setTimeout(() => loadSubLevel(), 1500);
+                } else {
+                    // จบ 5 ด่าน
+                    setTimeout(() => endGame(true), 500);
+                }
+            }
+
+        } else {
+            // Failed Interaction (Wrong tool)
+            playErrorBoop();
+            element.classList.remove('animate-wiggle');
+            void element.offsetWidth;
+            element.classList.add('animate-wiggle');
+            
+            score -= 5;
+            updateScoreDisplay();
+            
+            let msg = "-5 ใช้เครื่องมือไม่ถูกนะ";
+            if(item.state === 'locked') {
+                msg = `-5 ติด ${item.lockName}`;
+            }
+            showFeedback(msg, false);
+        }
+    }
+
+    function endGame(isWin) {
+        clearInterval(timerInterval);
+        
+        if (isWin) {
+            playWinFanfare();
+            triggerConfetti();
+            document.getElementById('final-score').innerText = score;
+            showScreen('result');
+        } else {
+            alert("หมดเวลา! ลองใหม่อีกครั้งนะ");
+            returnToMenu();
+        }
+    }
+
+    function returnToMenu() {
+        clearInterval(timerInterval);
+        showScreen('menu');
+        const canvas = document.getElementById('confetti-canvas');
+        canvas.classList.add('hide');
+    }
+
+    /* --- Simple Confetti System --- */
+    function triggerConfetti() {
+        const canvas = document.getElementById('confetti-canvas');
+        canvas.classList.remove('hide');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const particles = [];
+        const colors = ['#FFCBA4', '#A2E4B8', '#AEC6CF', '#FDFD96'];
+
+        for (let i = 0; i < 100; i++) {
+            particles.push({
+                x: canvas.width / 2,
+                y: canvas.height / 2 + 100,
+                r: Math.random() * 6 + 4,
+                dx: Math.random() * 10 - 5,
+                dy: Math.random() * -15 - 5,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                tilt: Math.floor(Math.random() * 10) - 10,
+                tiltAngleIncrement: (Math.random() * 0.07) + 0.05,
+                tiltAngle: 0
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let active = false;
+            particles.forEach(p => {
+                p.tiltAngle += p.tiltAngleIncrement;
+                p.y += (Math.cos(p.tiltAngle) + p.dy + p.r / 2) / 2;
+                p.x += Math.sin(p.tiltAngle) * 2 + p.dx;
+                p.dy += 0.2; // gravity
+
+                if (p.y <= canvas.height) active = true;
+
+                ctx.beginPath();
+                ctx.lineWidth = p.r;
+                ctx.strokeStyle = p.color;
+                ctx.moveTo(p.x + p.tilt + p.r, p.y);
+                ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+                ctx.stroke();
+            });
+
+            if (active) {
+                requestAnimationFrame(draw);
+            }
+        }
+        draw();
+    }
+
+</script>
+</body>
+</html>

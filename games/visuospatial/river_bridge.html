@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>River Bridge</title>
+    <!-- ใช้ฟอนต์ Nunito ซึ่งเป็น Rounded Sans Serif อ่านง่าย สบายตา -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #FFF9F0; /* Cream/Off-white */
+            --primary-color: #FFB7B2; /* Peach */
+            --secondary-color: #E2F0CB; /* Soft Mint */
+            --accent-color: #B5EAEA; /* Sky Blue */
+            --text-color: #5D5D5D;
+            --stroke-color: #E0D4C8;
+            --danger-color: #FFDAC1; 
+            --wood-color: #E6C2A5;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Nunito', sans-serif;
+            overflow: hidden;
+        }
+
+        /* คุมสัดส่วนหน้าจอให้เป็น 9:18 (มือถือแนวตั้ง) */
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 450px; /* จำกัดความกว้างบนจอคอม */
+            aspect-ratio: 9 / 18;
+            background-color: var(--bg-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* UI Overlays */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* ให้คลิกทะลุไปที่ canvas ได้ถ้าไม่มีปุ่ม */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel {
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 3px solid var(--stroke-color);
+            border-radius: 24px;
+            padding: 24px;
+            margin: 20px;
+            text-align: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+            pointer-events: auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 36px;
+            font-weight: 900;
+            margin: 0 0 10px 0;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+        }
+
+        p {
+            color: var(--text-color);
+            font-size: 18px;
+            line-height: 1.6;
+            margin: 0 0 20px 0;
+        }
+
+        /* Buttons */
+        .btn {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            border: 3px solid var(--stroke-color);
+            border-radius: 20px;
+            padding: 16px 20px;
+            font-size: 20px;
+            font-weight: 700;
+            font-family: 'Nunito', sans-serif;
+            width: 100%;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 0 var(--stroke-color);
+            pointer-events: auto;
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 var(--stroke-color);
+        }
+
+        .btn.primary {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: #EAA49F;
+            box-shadow: 0 4px 0 #EAA49F;
+            font-size: 24px;
+            margin-top: 10px;
+        }
+
+        .btn.primary:active {
+            box-shadow: 0 0 0 #EAA49F;
+        }
+
+        .btn-diff {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .btn-diff span {
+            font-size: 14px;
+            font-weight: 400;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        .btn.active {
+            background-color: var(--accent-color);
+            border-color: #9ECBDB;
+            box-shadow: 0 2px 0 #9ECBDB;
+            transform: translateY(2px);
+        }
+
+        /* HUD */
+        #hud {
+            display: none;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 20px;
+            pointer-events: none;
+            position: absolute;
+            top: 0;
+            width: 100%;
+        }
+
+        .hud-box {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--stroke-color);
+            border-radius: 16px;
+            padding: 10px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--text-color);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            pointer-events: auto;
+        }
+
+        .back-btn {
+            background-color: white;
+            border: 2px solid var(--stroke-color);
+            border-radius: 16px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 var(--stroke-color);
+            pointer-events: auto;
+        }
+
+        .back-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 var(--stroke-color);
+        }
+
+        /* Screens */
+        #main-menu, #game-over {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-over {
+            display: none;
+        }
+
+        /* Wiggle Animation */
+        @keyframes wiggle {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-2deg); }
+            50% { transform: translateX(5px) rotate(2deg); }
+            75% { transform: translateX(-5px) rotate(-1deg); }
+            100% { transform: translateX(0); }
+        }
+
+        .wiggle {
+            animation: wiggle 0.4s ease-in-out;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="ui-layer">
+        <div class="panel">
+            <h1>River Bridge</h1>
+            <p>กะระยะความยาวของสะพานไม้ให้พอดี เพื่อข้ามฝั่งแม่น้ำ<br><small>กดค้างเพื่อยืดไม้ ปล่อยเพื่อพาดสะพาน</small></p>
+            
+            <div style="text-align: left; margin-bottom: 10px; color: var(--text-color); font-weight: bold;">เลือกระดับความยาก:</div>
+            
+            <button class="btn btn-diff active" id="btn-easy" onclick="setDifficulty('easy')">
+                Easy
+                <span>ตลิ่งกว้าง ระยะใกล้ พลาดได้นิดหน่อย</span>
+            </button>
+            <button class="btn btn-diff" id="btn-medium" onclick="setDifficulty('medium')">
+                Medium
+                <span>ตลิ่งแคบลง ระยะทางไกลขึ้น</span>
+            </button>
+            <button class="btn btn-diff" id="btn-hard" onclick="setDifficulty('hard')">
+                Hard
+                <span>มีลมแรง ถ้ายาวเกินไปไม้จะหัก!</span>
+            </button>
+
+            <button class="btn primary" onclick="startGame()">เริ่มเกม</button>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div class="back-btn" onclick="returnToMenu()">🏠</div>
+        <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+            <div class="hud-box" id="score-display">คะแนน: 0</div>
+            <div class="hud-box" id="time-display" style="color: #FF8BA7;">เวลา: 3:00</div>
+        </div>
+    </div>
+
+    <!-- Game Over -->
+    <div id="game-over" class="ui-layer">
+        <div class="panel">
+            <h1>หมดเวลา!</h1>
+            <p>คะแนนที่คุณทำได้</p>
+            <h1 style="font-size: 48px; color: var(--accent-color);" id="final-score">0</h1>
+            <button class="btn primary" onclick="returnToMenu()">กลับหน้าหลัก</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Audio System (Web Audio API - Soft sounds) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+        }
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'grow') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.linearRampToValueAtTime(400, now + 0.1);
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.1, now + 0.05);
+            gainNode.gain.linearRampToValueAtTime(0, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        } else if (type === 'success') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, now); // A4
+            osc.frequency.setValueAtTime(554.37, now + 0.1); // C#5
+            osc.frequency.setValueAtTime(659.25, now + 0.2); // E5
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.2, now + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+            osc.start(now);
+            osc.stop(now + 0.5);
+        } else if (type === 'perfect') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, now); // C5
+            osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+            osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+            osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.2, now + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+            osc.start(now);
+            osc.stop(now + 0.8);
+        } else if (type === 'fail' || type === 'splash') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.15, now + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        } else if (type === 'snap') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.2, now + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        }
+    }
+
+
+    // --- Game Setup & Canvas ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('game-container');
+
+    let cw, ch;
+    function resizeCanvas() {
+        cw = container.clientWidth;
+        ch = container.clientHeight;
+        canvas.width = cw;
+        canvas.height = ch;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // --- Game Variables ---
+    let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER
+    let difficulty = 'easy';
+    let score = 0;
+    let timeLeft = 180; // 3 minutes
+    let timerInterval;
+
+    // Colors (Paper cut style)
+    const colors = {
+        bgTop: '#FFF9F0',
+        bgBottom: '#FFE3D8',
+        waterTop: '#A1E3F9',
+        waterBottom: '#82C4DA',
+        platform: '#E2F0CB',
+        platformSide: '#C5D8A4',
+        bridge: '#E6C2A5',
+        playerHead: '#FFB7B2',
+        playerBody: '#FF9B93',
+        perfectZone: '#FFD700'
+    };
+
+    // States for gameplay loop
+    const STATE = {
+        IDLE: 0,
+        GROWING: 1,
+        FALLING: 2,
+        WALKING: 3,
+        FAIL_FALLING: 4,
+        SWIMMING: 5
+    };
+    let playState = STATE.IDLE;
+
+    // Entities
+    let currentPlatformIndex = 0;
+    let platforms = [];
+    let pastBridges = []; // เก็บสะพานที่สร้างสำเร็จแล้ว
+    let player = {};
+    let bridge = {};
+    let particles = [];
+    let windParticles = [];
+    let floatingTexts = [];
+
+    let cameraOffsetX = 0;
+    let targetCameraOffsetX = 0;
+
+    // --- Configurations by Difficulty ---
+    const diffConfig = {
+        easy: { minPlatWidth: 80, maxPlatWidth: 140, minDistance: 50, maxDistance: 150, wind: false },
+        medium: { minPlatWidth: 40, maxPlatWidth: 90, minDistance: 80, maxDistance: 220, wind: false },
+        hard: { minPlatWidth: 30, maxPlatWidth: 70, minDistance: 100, maxDistance: 250, wind: true, maxBridgeLength: 300 }
+    };
+
+    // --- Utility Functions ---
+    function drawPaperRect(x, y, w, h, color, sideColor, radius = 8) {
+        ctx.save();
+        // Shadow for paper effect
+        ctx.shadowColor = 'rgba(0,0,0,0.1)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 5;
+
+        // Main Surface
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, [radius, radius, 0, 0]);
+        ctx.fill();
+
+        ctx.shadowColor = 'transparent'; // Turn off shadow for side
+        // Side/Depth
+        ctx.fillStyle = sideColor;
+        ctx.fillRect(x, y + 15, w, h - 15);
+        
+        // Outline (Stroke)
+        ctx.strokeStyle = '#E0D4C8';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // --- Entity Initializers ---
+    function resetGameData() {
+        score = 0;
+        timeLeft = 180;
+        cameraOffsetX = 0;
+        targetCameraOffsetX = 0;
+        particles = [];
+        floatingTexts = [];
+        pastBridges = [];
+        currentPlatformIndex = 0;
+        updateHUD();
+
+        const config = diffConfig[difficulty];
+        
+        // Initial Platform
+        platforms = [{
+            x: 0,
+            w: 120,
+            y: ch * 0.7,
+            perfectCenter: 60
+        }];
+
+        // Generate next platform
+        generateNextPlatform();
+
+        // Player
+        player = {
+            x: platforms[0].w - 30,
+            y: platforms[0].y,
+            w: 24,
+            h: 36,
+            speed: 150 // pixels per second
+        };
+
+        // Bridge
+        resetBridge();
+        
+        // Wind
+        windParticles = [];
+        if (config.wind) {
+            for(let i=0; i<20; i++) {
+                windParticles.push({
+                    x: Math.random() * cw,
+                    y: Math.random() * ch,
+                    speed: 50 + Math.random() * 100,
+                    length: 10 + Math.random() * 30
+                });
+            }
+        }
+    }
+
+    function generateNextPlatform() {
+        const config = diffConfig[difficulty];
+        const lastPlat = platforms[platforms.length - 1];
+        
+        const distance = config.minDistance + Math.random() * (config.maxDistance - config.minDistance);
+        const width = config.minPlatWidth + Math.random() * (config.maxPlatWidth - config.minPlatWidth);
+        
+        platforms.push({
+            x: lastPlat.x + lastPlat.w + distance,
+            w: width,
+            y: ch * 0.7,
+            perfectCenter: lastPlat.x + lastPlat.w + distance + (width / 2)
+        });
+    }
+
+    function resetBridge() {
+        const currentPlat = platforms[currentPlatformIndex];
+        bridge = {
+            x: currentPlat.x + currentPlat.w,
+            y: currentPlat.y,
+            length: 0,
+            angle: -Math.PI / 2, // -90 องศา ชี้ขึ้นไปด้านบน
+            isSnapping: false
+        };
+        playState = STATE.IDLE;
+    }
+
+    // --- Input Handling ---
+    function handleInputStart(e) {
+        if (gameState !== 'PLAYING') return;
+        initAudio();
+        
+        if (playState === STATE.IDLE) {
+            playState = STATE.GROWING;
+            growAudioTimer = 0;
+        }
+    }
+
+    function handleInputEnd(e) {
+        if (gameState !== 'PLAYING') return;
+        
+        if (playState === STATE.GROWING) {
+            playState = STATE.FALLING;
+        }
+    }
+
+    container.addEventListener('mousedown', handleInputStart);
+    container.addEventListener('touchstart', handleInputStart);
+    window.addEventListener('mouseup', handleInputEnd);
+    window.addEventListener('touchend', handleInputEnd);
+
+    // --- Update Logic ---
+    let lastTime = 0;
+    let growAudioTimer = 0;
+
+    function update(time) {
+        const dt = (time - lastTime) / 1000 || 0;
+        lastTime = time;
+
+        if (gameState !== 'PLAYING') return;
+
+        // Camera Follow (Smooth Pan)
+        cameraOffsetX += (targetCameraOffsetX - cameraOffsetX) * 5 * dt;
+
+        // Wind Update
+        if (diffConfig[difficulty].wind) {
+            windParticles.forEach(p => {
+                p.x -= p.speed * dt;
+                if (p.x < -p.length) p.x = cw + p.length;
+            });
+        }
+
+        // State Machine
+        switch (playState) {
+            case STATE.GROWING:
+                bridge.length += 200 * dt; // Growth speed
+                
+                // Sound effect tick
+                growAudioTimer += dt;
+                if(growAudioTimer > 0.1) {
+                    playSound('grow');
+                    growAudioTimer = 0;
+                }
+
+                // Hard mode break mechanic
+                if (diffConfig[difficulty].wind && bridge.length > diffConfig[difficulty].maxBridgeLength) {
+                    playSound('snap');
+                    triggerWiggle();
+                    bridge.isSnapping = true;
+                    playState = STATE.FAIL_FALLING;
+                    createFloatingText("-5", player.x, player.y - 40, '#FF6B6B');
+                    updateScore(-5);
+                }
+                break;
+
+            case STATE.FALLING:
+                bridge.angle += 5 * dt; // หมุนสะพานลงมา (Falling speed)
+                if (bridge.angle >= 0) { // 0 องศา คือพาดลงขนานพื้นพอดี
+                    bridge.angle = 0;
+                    checkBridgeResult();
+                }
+                break;
+
+            case STATE.WALKING:
+                player.x += player.speed * dt;
+                const targetPlat = platforms[currentPlatformIndex + 1];
+                
+                if (player.x >= targetPlat.x + targetPlat.w - 30) {
+                    player.x = targetPlat.x + targetPlat.w - 30;
+                    
+                    // บันทึกสะพานปัจจุบันเก็บไว้ใน List ของสะพานเก่า เพื่อให้แสดงผลค้างไว้
+                    pastBridges.push({...bridge});
+                    
+                    // เลื่อนไปยังแพลตฟอร์มถัดไป
+                    currentPlatformIndex++;
+                    generateNextPlatform();
+                    
+                    // สั่งให้กล้องแพนตามแพลตฟอร์มใหม่
+                    targetCameraOffsetX = platforms[currentPlatformIndex].x + platforms[currentPlatformIndex].w - 120;
+                    
+                    // รีเซ็ตสถานะสะพานใหม่
+                    resetBridge();
+                }
+                break;
+                
+            case STATE.FAIL_FALLING:
+                bridge.angle += 5 * dt;
+                if (bridge.angle > Math.PI / 2) bridge.angle = Math.PI / 2; // ห้อยตกลงน้ำ
+                player.x += player.speed * 0.8 * dt;
+                player.y += 300 * dt; // Fall down
+                
+                if (player.y > ch) {
+                    playSound('splash');
+                    playState = STATE.SWIMMING;
+                    setTimeout(() => {
+                        // กลับมาจุดเริ่มต้นของแพลตฟอร์มปัจจุบันที่พลาด
+                        player.x = platforms[currentPlatformIndex].x + platforms[currentPlatformIndex].w - 30;
+                        player.y = platforms[currentPlatformIndex].y;
+                        resetBridge();
+                    }, 1000);
+                }
+                break;
+        }
+
+        // Particles
+        particles.forEach((p, index) => {
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.vy += 400 * dt; // Gravity
+            p.life -= dt;
+            if (p.life <= 0) particles.splice(index, 1);
+        });
+
+        floatingTexts.forEach((t, index) => {
+            t.y -= 50 * dt;
+            t.life -= dt;
+            if(t.life <= 0) floatingTexts.splice(index, 1);
+        });
+    }
+
+    function checkBridgeResult() {
+        const bridgeEnd = bridge.x + bridge.length;
+        const targetPlat = platforms[currentPlatformIndex + 1];
+        
+        // Perfect Zone (Center 10px)
+        const perfectMin = targetPlat.perfectCenter - 8;
+        const perfectMax = targetPlat.perfectCenter + 8;
+
+        if (bridgeEnd >= targetPlat.x && bridgeEnd <= targetPlat.x + targetPlat.w) {
+            // Success
+            if (bridgeEnd >= perfectMin && bridgeEnd <= perfectMax) {
+                // Perfect
+                playSound('perfect');
+                spawnConfetti(targetPlat.perfectCenter, targetPlat.y);
+                createFloatingText("Perfect! +20", targetPlat.perfectCenter, targetPlat.y - 20, '#FFD700');
+                updateScore(20);
+            } else {
+                // Normal cross
+                playSound('success');
+                createFloatingText("+10", targetPlat.x + targetPlat.w/2, targetPlat.y - 20, '#4CAF50');
+                updateScore(10);
+            }
+            playState = STATE.WALKING;
+        } else {
+            // Fail (Too short or too long)
+            playSound('fail');
+            triggerWiggle();
+            createFloatingText("-5", player.x, player.y - 40, '#FF6B6B');
+            updateScore(-5);
+            playState = STATE.FAIL_FALLING;
+        }
+    }
+
+    function updateScore(amount) {
+        score += amount;
+        if(score < 0) score = 0;
+        document.getElementById('score-display').innerText = `คะแนน: ${score}`;
+    }
+
+    // --- Rendering ---
+    function draw() {
+        // Background Gradient
+        const gradient = ctx.createLinearGradient(0, 0, 0, ch);
+        gradient.addColorStop(0, colors.bgTop);
+        gradient.addColorStop(1, colors.bgBottom);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, cw, ch);
+
+        ctx.save();
+        // Camera translation
+        ctx.translate(-cameraOffsetX, 0);
+
+        // Draw Water
+        const waterY = ch * 0.85;
+        ctx.fillStyle = colors.waterTop;
+        ctx.beginPath();
+        // สร้างคลื่นน้ำครอบคลุมพื้นที่กล้อง
+        ctx.moveTo(cameraOffsetX, waterY);
+        for(let i = cameraOffsetX; i <= cameraOffsetX + cw + 100; i += 20) {
+            ctx.lineTo(i, waterY + Math.sin(i * 0.05 + lastTime * 0.002) * 5);
+        }
+        ctx.lineTo(cameraOffsetX + cw + 100, ch);
+        ctx.lineTo(cameraOffsetX, ch);
+        ctx.fill();
+
+        // Draw Wind
+        if (diffConfig[difficulty].wind) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            windParticles.forEach(p => {
+                // เลื่อนพาร์ติเคิลลมตามกล้องเพื่อให้เห็นอยู่เสมอ
+                let drawX = p.x + cameraOffsetX; 
+                ctx.beginPath();
+                ctx.moveTo(drawX, p.y);
+                ctx.lineTo(drawX + p.length, p.y);
+                ctx.stroke();
+            });
+        }
+
+        // Draw Platforms (ตลิ่งทั้งหมดในโลกของเกม)
+        platforms.forEach((p, i) => {
+            // เช็คคร่าวๆ ว่าตลิ่งยังอยู่ในหน้าจอหรือไม่ (ช่วยลดการประมวลผลวาดภาพ)
+            if(p.x + p.w > cameraOffsetX - 200 && p.x < cameraOffsetX + cw + 200) {
+                drawPaperRect(p.x, p.y, p.w, ch - p.y, colors.platform, colors.platformSide, 8);
+                
+                // Draw Perfect Point (จุดเหลือง) สำหรับตลิ่งเป้าหมายถัดไปเท่านั้น
+                if (i === currentPlatformIndex + 1) {
+                    ctx.fillStyle = colors.perfectZone;
+                    ctx.fillRect(p.perfectCenter - 8, p.y, 16, 6);
+                }
+            }
+        });
+
+        // Draw Past Bridges (สะพานเก่าที่พาดทิ้งไว้)
+        pastBridges.forEach(b => {
+            if(b.x + b.length > cameraOffsetX - 200 && b.x < cameraOffsetX + cw + 200) {
+                ctx.save();
+                ctx.translate(b.x, b.y);
+                ctx.rotate(b.angle);
+                ctx.fillStyle = colors.bridge;
+                ctx.strokeStyle = '#C29C81';
+                ctx.lineWidth = 2;
+                ctx.fillRect(0, -6, b.length, 6);
+                ctx.strokeRect(0, -6, b.length, 6);
+                ctx.restore();
+            }
+        });
+
+        // Draw Current Active Bridge
+        if (bridge.length > 0) {
+            ctx.save();
+            ctx.translate(bridge.x, bridge.y);
+            ctx.rotate(bridge.angle);
+            
+            ctx.fillStyle = colors.bridge;
+            ctx.strokeStyle = '#C29C81';
+            ctx.lineWidth = 2;
+
+            if (bridge.isSnapping) {
+                 // Draw broken bridge
+                 ctx.fillRect(0, -6, bridge.length / 2, 6);
+                 ctx.save();
+                 ctx.translate(bridge.length / 2, 0);
+                 ctx.rotate(Math.PI / 4);
+                 ctx.fillRect(0, -6, bridge.length / 2, 6);
+                 ctx.restore();
+            } else {
+                 ctx.fillRect(0, -6, bridge.length, 6);
+                 ctx.strokeRect(0, -6, bridge.length, 6);
+            }
+            ctx.restore();
+        }
+
+        // Draw Player
+        drawPlayer();
+
+        // Draw Particles (เอฟเฟกต์คอนเฟตติ)
+        particles.forEach(p => {
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // Draw Floating Text (+10, +20, -5)
+        floatingTexts.forEach(t => {
+            ctx.fillStyle = t.color;
+            ctx.font = 'bold 24px Nunito';
+            ctx.textAlign = 'center';
+            // Outline
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 4;
+            ctx.strokeText(t.text, t.x, t.y);
+            ctx.fillText(t.text, t.x, t.y);
+        });
+
+        ctx.restore();
+    }
+
+    function drawPlayer() {
+        ctx.save();
+        ctx.translate(player.x, player.y);
+
+        // Body
+        ctx.fillStyle = colors.playerBody;
+        ctx.beginPath();
+        ctx.roundRect(-player.w/2, -player.h/2, player.w, player.h/2, 4);
+        ctx.fill();
+
+        // Head
+        ctx.fillStyle = colors.playerHead;
+        ctx.beginPath();
+        ctx.arc(0, -player.h/2 - 5, player.w/1.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Eyes
+        ctx.fillStyle = '#5D5D5D';
+        ctx.beginPath();
+        ctx.arc(4, -player.h/2 - 8, 2, 0, Math.PI*2);
+        ctx.arc(12, -player.h/2 - 8, 2, 0, Math.PI*2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    // --- Effects ---
+    function spawnConfetti(x, y) {
+        const colors = ['#FFD700', '#FF6B6B', '#4CAF50', '#B5EAEA'];
+        for (let i = 0; i < 30; i++) {
+            particles.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 300,
+                vy: -Math.random() * 400 - 100,
+                size: Math.random() * 4 + 2,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                life: 1 + Math.random()
+            });
+        }
+    }
+
+    function createFloatingText(text, x, y, color) {
+        floatingTexts.push({ text, x, y, color, life: 1.5 });
+    }
+
+    function triggerWiggle() {
+        container.classList.remove('wiggle');
+        void container.offsetWidth; // trigger reflow
+        container.classList.add('wiggle');
+    }
+
+    // --- UI & Flow ---
+    function setDifficulty(level) {
+        difficulty = level;
+        document.querySelectorAll('.btn-diff').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('btn-' + level).classList.add('active');
+    }
+
+    function startGame() {
+        initAudio();
+        gameState = 'PLAYING';
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('game-over').style.display = 'none';
+        document.getElementById('hud').style.display = 'flex';
+        
+        resetGameData();
+        
+        // Start Timer
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            document.getElementById('time-display').innerText = `เวลา: ${mins}:${secs.toString().padStart(2, '0')}`;
+            
+            if(timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function endGame() {
+        gameState = 'GAMEOVER';
+        clearInterval(timerInterval);
+        document.getElementById('hud').style.display = 'none';
+        document.getElementById('game-over').style.display = 'flex';
+        document.getElementById('final-score').innerText = score;
+    }
+
+    function returnToMenu() {
+        gameState = 'MENU';
+        clearInterval(timerInterval);
+        document.getElementById('hud').style.display = 'none';
+        document.getElementById('game-over').style.display = 'none';
+        document.getElementById('main-menu').style.display = 'flex';
+    }
+
+    function updateHUD() {
+        document.getElementById('score-display').innerText = `คะแนน: ${score}`;
+        document.getElementById('time-display').innerText = `เวลา: 3:00`;
+    }
+
+    // --- Main Loop ---
+    function loop(time) {
+        update(time);
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+
+</script>
+
+</body>
+</html>

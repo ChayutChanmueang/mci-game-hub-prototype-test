@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Toy Maker - ช่างไม้ประกอบของ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Mali', 'sans-serif'],
+                    },
+                    colors: {
+                        paper: '#FFFDF5',
+                        primary: '#FFB899',   // Peach
+                        secondary: '#A3E4D7', // Mint
+                        accent: '#AED6F1',    // Sky blue
+                        warning: '#F9E79F',   // Soft yellow
+                        dark: '#5D6D7E',
+                        board: '#FDF2E9'
+                    },
+                    boxShadow: {
+                        'paper': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'btn': '0 4px 0 0 rgba(0,0,0,0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #E5E7EB;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            max-width: 450px;
+            max-height: 900px;
+            aspect-ratio: 9/18;
+            background-color: #FFFDF5;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .paper-panel {
+            background: white;
+            border-radius: 20px;
+            border: 3px solid #E5E7EB;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+        }
+
+        .game-btn {
+            border: 3px solid rgba(0,0,0,0.1);
+            border-radius: 16px;
+            box-shadow: 0 6px 0 0 rgba(0,0,0,0.1);
+            transition: all 0.1s;
+            cursor: pointer;
+        }
+        .game-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 0 rgba(0,0,0,0.1);
+        }
+
+        .draggable-part {
+            position: relative;
+            cursor: grab;
+            border: 2px solid rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transition: transform 0.1s, box-shadow 0.1s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: rgba(0,0,0,0.6);
+            user-select: none;
+            z-index: 10;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+            text-align: center;
+            line-height: 1.1;
+            touch-action: none;
+            flex-shrink: 0;
+        }
+        .draggable-part:active, .is-dragging {
+            cursor: grabbing;
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 50 !important;
+        }
+
+        .assembled {
+            position: absolute !important;
+            cursor: default !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+            z-index: 5 !important;
+            transition: all 0.3s ease-out;
+            margin: 0 !important;
+        }
+
+        .assembly-zone {
+            border: 4px dashed #D5D8DC;
+            border-radius: 24px;
+            position: relative;
+            background-color: rgba(253, 242, 233, 0.5);
+        }
+
+        /* Animations */
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px) rotate(-3deg); }
+            50% { transform: translateX(8px) rotate(3deg); }
+            75% { transform: translateX(-8px) rotate(-3deg); }
+        }
+        .animate-wiggle { animation: wiggle 0.4s ease-in-out; }
+
+        @keyframes snap {
+            0% { transform: scale(1.1); filter: brightness(1.2); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+        .animate-snap { animation: snap 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+        }
+        .score-popup {
+            position: absolute;
+            font-weight: bold;
+            font-size: 24px;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            z-index: 100;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        /* Custom Scrollbar for Level List */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+    </style>
+</head>
+<body class="text-dark">
+
+<div id="game-container" class="flex flex-col">
+    
+    <!-- Screen: Main Menu (Difficulty Select) -->
+    <div id="screen-menu" class="w-full h-full flex flex-col items-center p-6 space-y-6 absolute inset-0 bg-paper transition-opacity duration-300">
+        
+        <div class="paper-panel p-6 w-full text-center space-y-4 mt-8">
+            <h1 class="text-4xl font-bold text-primary mb-2" style="text-shadow: 0 2px 0 rgba(0,0,0,0.1);">Toy Maker</h1>
+            <h2 class="text-xl font-semibold text-dark/80 bg-gray-100 rounded-full py-1 px-4 inline-block">ช่างไม้ประกอบของ</h2>
+            <p class="text-md text-dark/70 mt-4">ลากชิ้นส่วนมาประกอบตามลำดับตรรกะ</p>
+        </div>
+
+        <div class="paper-panel p-4 w-full flex-grow flex flex-col justify-center space-y-4">
+            <h3 class="font-bold text-center text-xl text-dark mb-2">เลือกระดับความยาก</h3>
+            
+            <button onclick="showLevelSelect('easy')" class="game-btn bg-secondary text-dark p-4 flex flex-col items-center">
+                <span class="text-2xl font-bold">ง่าย (Easy)</span>
+                <span class="text-sm opacity-80 mt-1">3-4 ชิ้นส่วน, ไม่มีของหลอก</span>
+            </button>
+            
+            <button onclick="showLevelSelect('medium')" class="game-btn bg-warning text-dark p-4 flex flex-col items-center">
+                <span class="text-2xl font-bold">ปานกลาง (Medium)</span>
+                <span class="text-sm opacity-80 mt-1">4-6 ชิ้นส่วน, ลำดับซับซ้อนขึ้น</span>
+            </button>
+
+            <button onclick="showLevelSelect('hard')" class="game-btn bg-primary text-white p-4 flex flex-col items-center">
+                <span class="text-2xl font-bold">ยาก (Hard)</span>
+                <span class="text-sm opacity-90 mt-1">5-8 ชิ้นส่วน + ชิ้นส่วนหลอกกวนใจ</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Screen: Level Select -->
+    <div id="screen-level-select" class="w-full h-full flex flex-col absolute inset-0 bg-paper opacity-0 pointer-events-none transition-opacity duration-300 hidden">
+        <div class="h-20 w-full flex items-center px-4 bg-white/50 backdrop-blur-sm border-b-2 border-gray-200 z-20 shadow-sm shrink-0">
+            <button onclick="showMenu()" class="game-btn bg-white w-12 h-12 flex items-center justify-center text-xl font-bold text-dark">
+                &larr;
+            </button>
+            <div class="flex-grow text-center">
+                <span id="diff-title" class="text-2xl font-bold text-primary">เลือกระดับ</span>
+            </div>
+            <div class="w-12 h-12"></div> <!-- Spacer -->
+        </div>
+
+        <div class="flex-grow overflow-hidden p-4">
+            <div class="paper-panel w-full h-full flex flex-col p-2">
+                <div id="level-list" class="flex-grow overflow-y-auto space-y-3 p-2">
+                    <!-- รายชื่อด่านจะถูกสร้างตรงนี้ -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen: GamePlay -->
+    <div id="screen-game" class="w-full h-full flex flex-col absolute inset-0 bg-paper opacity-0 pointer-events-none transition-opacity duration-300 hidden">
+        
+        <div class="h-20 w-full flex items-center justify-between px-4 bg-white/50 backdrop-blur-sm border-b-2 border-gray-200 z-20 shadow-sm">
+            <button onclick="backToLevelSelect()" class="game-btn bg-white w-12 h-12 flex items-center justify-center text-xl font-bold text-dark">
+                &larr;
+            </button>
+            <div class="flex flex-col items-center">
+                <span class="text-sm font-bold text-gray-500 uppercase tracking-wider">Score</span>
+                <span id="score-display" class="text-2xl font-bold text-primary">0</span>
+            </div>
+            <div class="flex flex-col items-center game-btn bg-white px-4 py-1">
+                <span class="text-xs font-bold text-gray-500">เวลา</span>
+                <span id="time-display" class="text-lg font-bold text-dark">04:00</span>
+            </div>
+        </div>
+
+        <div class="flex-grow p-4 relative flex flex-col items-center justify-center">
+            <h2 id="target-name" class="text-2xl font-bold text-dark mb-4 text-center w-full absolute top-4">แบบแปลน: ???</h2>
+            
+            <div id="build-zone" class="assembly-zone w-[280px] h-[320px] flex items-center justify-center mt-8">
+                <!-- ชิ้นส่วนถูกนำมาประกอบที่นี่ -->
+                <div class="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="h-[250px] bg-board border-t-4 border-dark/10 rounded-t-3xl p-4 relative z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] flex flex-col">
+            <h3 class="text-center font-bold text-dark/60 mb-2 shrink-0">กล่องอะไหล่ (ลากเพื่อประกอบ)</h3>
+            <div id="parts-drawer" class="w-full flex-grow relative overflow-y-auto flex flex-wrap justify-center items-center gap-4 content-start pb-4">
+                <!-- ชิ้นส่วนกระจัดกระจายอยู่ที่นี่ -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen: Result -->
+    <div id="screen-result" class="w-full h-full flex flex-col items-center justify-center p-6 absolute inset-0 bg-black/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 z-50 hidden">
+        <div class="paper-panel p-8 w-full max-w-sm text-center flex flex-col items-center space-y-6 animate-snap">
+            <h2 id="result-title" class="text-4xl font-bold text-primary">สำเร็จ!</h2>
+            <div class="text-6xl my-4">🎉</div>
+            <div class="text-xl">คะแนนรวมของคุณ</div>
+            <div id="final-score" class="text-5xl font-bold text-secondary text-shadow">150</div>
+            
+            <button onclick="backToLevelSelect()" class="game-btn bg-primary text-white text-xl py-3 px-8 mt-6 w-full font-bold">
+                เล่นด่านอื่นต่อ
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Database of 30 Levels ---
+    // Color Palette mapping for shorter code
+    const C = { w: '#FFB899', wl: '#F9E79F', m: '#A3E4D7', b: '#AED6F1', d: '#5D6D7E', r: '#F1948A', g: '#82E0AA' };
+
+    const levelsDb = {
+        easy: [
+            { name: "ด่าน 1: เก้าอี้ไม้", fakes: [], parts: [
+                { id: 'l', name: 'ขา', req: [], color: C.wl, w: 100, h: 100, targetX: 90, targetY: 170, shape: 'border-radius: 5px;' },
+                { id: 's', name: 'เบาะ', req: ['l'], color: C.w, w: 140, h: 30, targetX: 70, targetY: 140, shape: 'border-radius: 15px;' },
+                { id: 'b', name: 'พนักพิง', req: ['s'], color: C.wl, w: 100, h: 90, targetX: 90, targetY: 50, shape: 'border-radius: 20px 20px 0 0;' }
+            ]},
+            { name: "ด่าน 2: โต๊ะทำงาน", fakes: [], parts: [
+                { id: 'l', name: 'ขาโต๊ะ', req: [], color: C.d, w: 160, h: 100, targetX: 60, targetY: 160, shape: 'border-radius: 5px;' },
+                { id: 't', name: 'หน้าโต๊ะ', req: ['l'], color: C.w, w: 200, h: 30, targetX: 40, targetY: 130, shape: 'border-radius: 10px;' },
+            ]},
+            { name: "ด่าน 3: ต้นไม้", fakes: [], parts: [
+                { id: 'g', name: 'พื้นดิน', req: [], color: C.wl, w: 160, h: 30, targetX: 60, targetY: 220, shape: 'border-radius: 15px;' },
+                { id: 't', name: 'ลำต้น', req: ['g'], color: C.w, w: 40, h: 100, targetX: 120, targetY: 120, shape: 'border-radius: 5px;' },
+                { id: 'l', name: 'พุ่มไม้', req: ['t'], color: C.g, w: 140, h: 120, targetX: 70, targetY: 20, shape: 'border-radius: 50%;' }
+            ]},
+            { name: "ด่าน 4: ค้อน", fakes: [], parts: [
+                { id: 'h', name: 'ด้ามจับ', req: [], color: C.w, w: 30, h: 140, targetX: 125, targetY: 100, shape: 'border-radius: 5px;' },
+                { id: 'm', name: 'หัวค้อน', req: ['h'], color: C.d, w: 100, h: 50, targetX: 90, targetY: 50, shape: 'border-radius: 10px;' }
+            ]},
+            { name: "ด่าน 5: ไอศกรีม", fakes: [], parts: [
+                { id: 'c', name: 'โคน', req: [], color: C.w, w: 80, h: 120, targetX: 100, targetY: 150, shape: 'clip-path: polygon(0 0, 100% 0, 50% 100%);' },
+                { id: 's', name: 'ไอศกรีม', req: ['c'], color: C.b, w: 100, h: 100, targetX: 90, targetY: 60, shape: 'border-radius: 50%;' },
+                { id: 'ch', name: 'เชอร์รี่', req: ['s'], color: C.r, w: 30, h: 30, targetX: 125, targetY: 35, shape: 'border-radius: 50%;' }
+            ]},
+            { name: "ด่าน 6: ดาบ", fakes: [], parts: [
+                { id: 'b', name: 'ใบดาบ', req: [], color: C.m, w: 40, h: 160, targetX: 120, targetY: 40, shape: 'border-radius: 50% 50% 0 0;' },
+                { id: 'g', name: 'กระบัง', req: ['b'], color: C.wl, w: 100, h: 20, targetX: 90, targetY: 200, shape: 'border-radius: 10px;' },
+                { id: 'h', name: 'ด้าม', req: ['g'], color: C.w, w: 30, h: 60, targetX: 125, targetY: 220, shape: 'border-radius: 0 0 10px 10px;' }
+            ]},
+            { name: "ด่าน 7: เห็ดยักษ์", fakes: [], parts: [
+                { id: 's', name: 'ก้าน', req: [], color: C.wl, w: 60, h: 100, targetX: 110, targetY: 150, shape: 'border-radius: 10px;' },
+                { id: 'c', name: 'หมวกเห็ด', req: ['s'], color: C.r, w: 160, h: 90, targetX: 60, targetY: 70, shape: 'border-radius: 100px 100px 10px 10px;' },
+                { id: 'd', name: 'จุดขาว', req: ['c'], color: C.w, w: 30, h: 30, targetX: 125, targetY: 90, shape: 'border-radius: 50%;' }
+            ]},
+            { name: "ด่าน 8: โคมไฟ", fakes: [], parts: [
+                { id: 'b', name: 'ฐาน', req: [], color: C.d, w: 100, h: 20, targetX: 90, targetY: 240, shape: 'border-radius: 10px;' },
+                { id: 's', name: 'เสา', req: ['b'], color: C.d, w: 15, h: 120, targetX: 132, targetY: 120, shape: 'border-radius: 5px;' },
+                { id: 'h', name: 'หมวก', req: ['s'], color: C.wl, w: 120, h: 80, targetX: 80, targetY: 40, shape: 'clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%);' }
+            ]},
+            { name: "ด่าน 9: ดัมเบล", fakes: [], parts: [
+                { id: 'b', name: 'แกนจับ', req: [], color: C.d, w: 160, h: 30, targetX: 60, targetY: 140, shape: 'border-radius: 5px;' },
+                { id: 'l', name: 'เหล็กซ้าย', req: ['b'], color: C.b, w: 40, h: 100, targetX: 30, targetY: 105, shape: 'border-radius: 10px;' },
+                { id: 'r', name: 'เหล็กขวา', req: ['b'], color: C.b, w: 40, h: 100, targetX: 210, targetY: 105, shape: 'border-radius: 10px;' }
+            ]},
+            { name: "ด่าน 10: แก้วน้ำ", fakes: [], parts: [
+                { id: 'c', name: 'ตัวแก้ว', req: [], color: C.b, w: 100, h: 120, targetX: 90, targetY: 100, shape: 'border-radius: 10px 10px 30px 30px;' },
+                { id: 'w', name: 'น้ำ', req: ['c'], color: C.m, w: 90, h: 80, targetX: 95, targetY: 135, shape: 'border-radius: 5px 5px 25px 25px;' },
+                { id: 's', name: 'หลอด', req: ['w'], color: C.r, w: 10, h: 140, targetX: 120, targetY: 20, shape: 'border-radius: 5px; transform: rotate(15deg);' }
+            ]}
+        ],
+        medium: [
+            { name: "ด่าน 1: รถบรรทุก", fakes: [], parts: [
+                { id: 'b', name: 'ฐานล่าง', req: [], color: C.d, w: 180, h: 30, targetX: 50, targetY: 200, shape: 'border-radius: 10px;' },
+                { id: 'c', name: 'หัวรถ', req: ['b'], color: C.w, w: 60, h: 70, targetX: 50, targetY: 130, shape: 'border-radius: 15px 5px 0 0;' },
+                { id: 't', name: 'กระบะ', req: ['b'], color: C.wl, w: 110, h: 50, targetX: 120, targetY: 150, shape: 'border-radius: 5px 15px 0 0;' },
+                { id: 'w1', name: 'ล้อหน้า', req: ['b'], color: C.d, w: 40, h: 40, targetX: 60, targetY: 210, shape: 'border-radius: 50%;' },
+                { id: 'w2', name: 'ล้อหลัง', req: ['b'], color: C.d, w: 40, h: 40, targetX: 160, targetY: 210, shape: 'border-radius: 50%;' }
+            ]},
+            { name: "ด่าน 2: กล่องดนตรี", fakes: [], parts: [
+                { id: 'b', name: 'ฐาน', req: [], color: C.w, w: 140, h: 60, targetX: 70, targetY: 200, shape: 'border-radius: 10px;' },
+                { id: 'g', name: 'เฟือง', req: ['b'], color: C.b, w: 50, h: 50, targetX: 115, targetY: 155, shape: 'border-radius: 50%;' },
+                { id: 'c', name: 'แกนเสียง', req: ['g'], color: C.wl, w: 100, h: 40, targetX: 90, targetY: 115, shape: 'border-radius: 20px;' },
+                { id: 'h', name: 'ที่หมุน', req: ['c'], color: C.d, w: 30, h: 50, targetX: 190, targetY: 105, shape: 'border-radius: 15px;' }
+            ]},
+            { name: "ด่าน 3: กังหันลม", fakes: [], parts: [
+                { id: 'b', name: 'ฐาน', req: [], color: C.wl, w: 140, h: 30, targetX: 70, targetY: 240, shape: 'border-radius: 10px;' },
+                { id: 't', name: 'หอคอย', req: ['b'], color: C.w, w: 80, h: 140, targetX: 100, targetY: 100, shape: 'clip-path: polygon(20% 0, 80% 0, 100% 100%, 0% 100%);' },
+                { id: 'r', name: 'หลังคา', req: ['t'], color: C.r, w: 100, h: 60, targetX: 90, targetY: 40, shape: 'border-radius: 50px 50px 0 0;' },
+                { id: 'w', name: 'ใบพัด', req: ['r'], color: C.b, w: 160, h: 160, targetX: 60, targetY: 30, shape: 'clip-path: polygon(45% 0, 55% 0, 55% 45%, 100% 45%, 100% 55%, 55% 55%, 55% 100%, 45% 100%, 45% 55%, 0 55%, 0 45%, 45% 45%);' }
+            ]},
+            { name: "ด่าน 4: กล้องถ่ายรูป", fakes: [], parts: [
+                { id: 'b', name: 'ตัวกล้อง', req: [], color: C.d, w: 160, h: 100, targetX: 60, targetY: 120, shape: 'border-radius: 15px;' },
+                { id: 'l', name: 'เลนส์', req: ['b'], color: C.b, w: 70, h: 70, targetX: 105, targetY: 135, shape: 'border-radius: 50%;' },
+                { id: 'f', name: 'แฟลช', req: ['b'], color: C.wl, w: 40, h: 30, targetX: 70, targetY: 100, shape: 'border-radius: 5px;' },
+                { id: 'btn', name: 'ปุ่มกด', req: ['b'], color: C.r, w: 25, h: 15, targetX: 160, targetY: 105, shape: 'border-radius: 10px 10px 0 0;' }
+            ]},
+            { name: "ด่าน 5: บ้านหลังเล็ก", fakes: [], parts: [
+                { id: 'b', name: 'ฐาน', req: [], color: C.d, w: 180, h: 20, targetX: 50, targetY: 220, shape: 'border-radius: 5px;' },
+                { id: 'w', name: 'กำแพง', req: ['b'], color: C.w, w: 140, h: 100, targetX: 70, targetY: 120, shape: 'border-radius: 5px;' },
+                { id: 'r', name: 'หลังคา', req: ['w'], color: C.r, w: 160, h: 70, targetX: 60, targetY: 50, shape: 'clip-path: polygon(50% 0%, 0% 100%, 100% 100%);' },
+                { id: 'd', name: 'ประตู', req: ['w'], color: C.wl, w: 40, h: 60, targetX: 120, targetY: 160, shape: 'border-radius: 5px 5px 0 0;' },
+                { id: 'wi', name: 'หน้าต่าง', req: ['w'], color: C.b, w: 35, h: 35, targetX: 80, targetY: 140, shape: 'border-radius: 5px;' }
+            ]},
+            { name: "ด่าน 6: รถไฟ", fakes: [], parts: [
+                { id: 'b', name: 'โครงล่าง', req: [], color: C.d, w: 180, h: 30, targetX: 50, targetY: 220, shape: 'border-radius: 10px;' },
+                { id: 'e', name: 'หม้อไอน้ำ', req: ['b'], color: C.b, w: 100, h: 60, targetX: 50, targetY: 160, shape: 'border-radius: 10px 0 0 10px;' },
+                { id: 'c', name: 'ห้องขับ', req: ['b'], color: C.w, w: 70, h: 90, targetX: 150, targetY: 130, shape: 'border-radius: 10px 10px 0 0;' },
+                { id: 'ch', name: 'ปล่องควัน', req: ['e'], color: C.r, w: 20, h: 40, targetX: 70, targetY: 120, shape: 'border-radius: 5px;' },
+                { id: 'w1', name: 'ล้อ', req: ['b'], color: C.wl, w: 140, h: 40, targetX: 70, targetY: 235, shape: 'border-radius: 20px;' }
+            ]},
+            { name: "ด่าน 7: จรวดอวกาศ", fakes: [], parts: [
+                { id: 'b', name: 'ตัวจรวด', req: [], color: C.w, w: 60, h: 160, targetX: 110, targetY: 60, shape: 'border-radius: 50% 50% 10px 10px;' },
+                { id: 'f1', name: 'ปีกซ้าย', req: ['b'], color: C.r, w: 40, h: 60, targetX: 70, targetY: 160, shape: 'clip-path: polygon(100% 0, 0 100%, 100% 100%);' },
+                { id: 'f2', name: 'ปีกขวา', req: ['b'], color: C.r, w: 40, h: 60, targetX: 170, targetY: 160, shape: 'clip-path: polygon(0 0, 100% 100%, 0 100%);' },
+                { id: 'w', name: 'หน้าต่าง', req: ['b'], color: C.b, w: 40, h: 40, targetX: 120, targetY: 100, shape: 'border-radius: 50%;' },
+                { id: 'e', name: 'ไอพ่น', req: ['f1','f2'], color: C.wl, w: 40, h: 30, targetX: 120, targetY: 220, shape: 'border-radius: 0 0 20px 20px;' }
+            ]},
+            { name: "ด่าน 8: คอมพิวเตอร์", fakes: [], parts: [
+                { id: 's', name: 'ฐานจอ', req: [], color: C.d, w: 60, h: 20, targetX: 110, targetY: 180, shape: 'border-radius: 5px;' },
+                { id: 'n', name: 'ก้านจอ', req: ['s'], color: C.d, w: 20, h: 40, targetX: 130, targetY: 140, shape: 'border-radius: 5px;' },
+                { id: 'm', name: 'หน้าจอ', req: ['n'], color: C.b, w: 140, h: 90, targetX: 70, targetY: 50, shape: 'border-radius: 10px;' },
+                { id: 'k', name: 'คีย์บอร์ด', req: ['s'], color: C.wl, w: 120, h: 25, targetX: 80, targetY: 220, shape: 'border-radius: 5px; transform: perspective(100px) rotateX(20deg);' }
+            ]},
+            { name: "ด่าน 9: กีตาร์", fakes: [], parts: [
+                { id: 'b', name: 'ตัวกีตาร์', req: [], color: C.w, w: 100, h: 140, targetX: 90, targetY: 130, shape: 'border-radius: 40% 40% 50% 50%;' },
+                { id: 'h', name: 'ช่องเสียง', req: ['b'], color: C.d, w: 40, h: 40, targetX: 120, targetY: 170, shape: 'border-radius: 50%;' },
+                { id: 'n', name: 'คอกีตาร์', req: ['b'], color: C.wl, w: 20, h: 120, targetX: 130, targetY: 10, shape: 'border-radius: 5px;' },
+                { id: 's', name: 'สายกีตาร์', req: ['n'], color: C.b, w: 10, h: 160, targetX: 135, targetY: 20, shape: 'border-radius: 2px;' }
+            ]},
+            { name: "ด่าน 10: ตุ๊กตาหมี", fakes: [], parts: [
+                { id: 'b', name: 'ลำตัว', req: [], color: C.w, w: 80, h: 90, targetX: 100, targetY: 120, shape: 'border-radius: 40px;' },
+                { id: 'h', name: 'หัว', req: ['b'], color: C.w, w: 70, h: 70, targetX: 105, targetY: 50, shape: 'border-radius: 50%;' },
+                { id: 'a', name: 'แขนสองข้าง', req: ['b'], color: C.wl, w: 120, h: 30, targetX: 80, targetY: 130, shape: 'border-radius: 15px;' },
+                { id: 'l', name: 'ขาสองข้าง', req: ['b'], color: C.wl, w: 100, h: 40, targetX: 90, targetY: 200, shape: 'border-radius: 20px;' }
+            ]}
+        ],
+        hard: [
+            { name: "ด่าน 1: เรือใบ", fakes: [{ id: 'f1', name: 'ล้อรถ', req: ['never'], color: C.d, w: 50, h: 50, shape: 'border-radius: 50%;' }], parts: [
+                { id: 'h', name: 'ท้องเรือ', req: [], color: C.w, w: 160, h: 50, targetX: 60, targetY: 200, shape: 'border-radius: 0 0 80px 80px;' },
+                { id: 'm', name: 'เสากระโดง', req: ['h'], color: C.d, w: 15, h: 150, targetX: 132, targetY: 50, shape: 'border-radius: 5px;' },
+                { id: 's1', name: 'ใบเรือหลัก', req: ['m'], color: C.m, w: 80, h: 120, targetX: 52, targetY: 60, shape: 'border-radius: 0 0 0 80px;' },
+                { id: 's2', name: 'ใบเรือหน้า', req: ['m'], color: C.b, w: 50, h: 100, targetX: 147, targetY: 80, shape: 'border-radius: 0 0 50px 0;' },
+                { id: 'f', name: 'ธง', req: ['m'], color: C.wl, w: 40, h: 30, targetX: 92, targetY: 50, shape: 'border-radius: 10px 0 0 10px;' }
+            ]},
+            { name: "ด่าน 2: ม้าโยก", fakes: [{ id: 'f1', name: 'ปีกนก', req: ['never'], color: C.b, w: 60, h: 30, shape: 'border-radius: 0 30px 30px 0;' }], parts: [
+                { id: 'r', name: 'ฐานโยก', req: [], color: C.m, w: 200, h: 30, targetX: 40, targetY: 240, shape: 'border-radius: 0 0 100px 100px;' },
+                { id: 'b', name: 'ตัวม้า', req: ['r'], color: C.w, w: 100, h: 60, targetX: 90, targetY: 180, shape: 'border-radius: 30px;' },
+                { id: 'h', name: 'หัวม้า', req: ['b'], color: C.wl, w: 60, h: 80, targetX: 150, targetY: 110, shape: 'border-radius: 30px 30px 10px 10px;' },
+                { id: 's', name: 'อาน', req: ['b'], color: C.b, w: 40, h: 20, targetX: 100, targetY: 160, shape: 'border-radius: 10px;' },
+                { id: 't', name: 'หาง', req: ['b'], color: C.d, w: 30, h: 50, targetX: 70, targetY: 190, shape: 'border-radius: 10px 0 10px 10px;' }
+            ]},
+            { name: "ด่าน 3: หุ่นยนต์จิ๋ว", fakes: [{ id: 'f1', name: 'ใบพัด', req: ['never'], color: C.wl, w: 80, h: 25, shape: 'border-radius: 10px;' }], parts: [
+                { id: 'b', name: 'ลำตัว', req: [], color: C.w, w: 100, h: 120, targetX: 90, targetY: 100, shape: 'border-radius: 20px;' },
+                { id: 'h', name: 'หัว', req: ['b'], color: C.b, w: 80, h: 70, targetX: 100, targetY: 20, shape: 'border-radius: 15px;' },
+                { id: 'al', name: 'แขนซ้าย', req: ['b'], color: C.m, w: 35, h: 90, targetX: 45, targetY: 110, shape: 'border-radius: 10px;' },
+                { id: 'ar', name: 'แขนขวา', req: ['b'], color: C.m, w: 35, h: 90, targetX: 200, targetY: 110, shape: 'border-radius: 10px;' },
+                { id: 'an', name: 'เสาอากาศ', req: ['h'], color: C.d, w: 10, h: 40, targetX: 135, targetY: -20, shape: 'border-radius: 5px;' }
+            ]},
+            { name: "ด่าน 4: ปราสาทไม้", fakes: [{ id: 'f1', name: 'ล้อรถ', req: ['never'], color: C.d, w: 50, h: 50, shape: 'border-radius: 50%;' }, { id: 'f2', name: 'ใบพัด', req: ['never'], color: C.w, w: 70, h: 20, shape: 'border-radius: 10px;' }], parts: [
+                { id: 'b', name: 'ฐาน', req: [], color: C.m, w: 220, h: 40, targetX: 30, targetY: 240, shape: 'border-radius: 10px;' },
+                { id: 'm', name: 'หอคอยกลาง', req: ['b'], color: C.w, w: 80, h: 120, targetX: 100, targetY: 120, shape: 'border-radius: 5px;' },
+                { id: 'tl', name: 'หอคอยซ้าย', req: ['b'], color: C.b, w: 50, h: 100, targetX: 40, targetY: 140, shape: 'border-radius: 5px;' },
+                { id: 'tr', name: 'หอคอยขวา', req: ['b'], color: C.b, w: 50, h: 100, targetX: 190, targetY: 140, shape: 'border-radius: 5px;' },
+                { id: 'g', name: 'ประตู', req: ['m'], color: C.wl, w: 40, h: 50, targetX: 120, targetY: 190, shape: 'border-radius: 20px 20px 0 0;' },
+                { id: 'r', name: 'หลังคากลาง', req: ['m'], color: C.d, w: 100, h: 60, targetX: 90, targetY: 60, shape: 'clip-path: polygon(50% 0%, 0% 100%, 100% 100%);' }
+            ]},
+            { name: "ด่าน 5: เฮลิคอปเตอร์", fakes: [{ id: 'f1', name: 'ใบเรือ', req: ['never'], color: C.b, w: 60, h: 80, shape: 'clip-path: polygon(0 0, 100% 100%, 0 100%);' }], parts: [
+                { id: 'b', name: 'ตัวเครื่อง', req: [], color: C.w, w: 120, h: 80, targetX: 80, targetY: 100, shape: 'border-radius: 50% 20px 40px 50%;' },
+                { id: 't', name: 'หาง', req: ['b'], color: C.wl, w: 80, h: 20, targetX: 180, targetY: 120, shape: 'border-radius: 0 10px 10px 0;' },
+                { id: 'rm', name: 'ใบพัดหลัก', req: ['b'], color: C.d, w: 160, h: 10, targetX: 60, targetY: 80, shape: 'border-radius: 5px;' },
+                { id: 'rt', name: 'ใบพัดหาง', req: ['t'], color: C.d, w: 10, h: 50, targetX: 250, targetY: 105, shape: 'border-radius: 5px;' },
+                { id: 's', name: 'ขาสกี', req: ['b'], color: C.d, w: 100, h: 30, targetX: 90, targetY: 180, shape: 'border-radius: 10px; border: 5px solid #5D6D7E; background: transparent;' }
+            ]},
+            { name: "ด่าน 6: เครื่องบินปีกสองชั้น", fakes: [{ id: 'f1', name: 'สมอเรือ', req: ['never'], color: C.d, w: 50, h: 50, shape: 'clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);' }], parts: [
+                { id: 'b', name: 'ลำตัว', req: [], color: C.r, w: 140, h: 40, targetX: 70, targetY: 140, shape: 'border-radius: 50% 20px 20px 50%;' },
+                { id: 'w1', name: 'ปีกบน', req: ['b'], color: C.wl, w: 120, h: 20, targetX: 80, targetY: 100, shape: 'border-radius: 10px;' },
+                { id: 'w2', name: 'ปีกล่าง', req: ['b'], color: C.wl, w: 120, h: 20, targetX: 80, targetY: 170, shape: 'border-radius: 10px;' },
+                { id: 'p', name: 'ใบพัด', req: ['b'], color: C.d, w: 15, h: 80, targetX: 60, targetY: 120, shape: 'border-radius: 5px;' },
+                { id: 't', name: 'หาง', req: ['b'], color: C.r, w: 30, h: 50, targetX: 190, targetY: 110, shape: 'border-radius: 10px 10px 0 0;' }
+            ]},
+            { name: "ด่าน 7: รถแทรกเตอร์", fakes: [{ id: 'f1', name: 'ปีก', req: ['never'], color: C.wl, w: 80, h: 30, shape: 'border-radius: 50%;' }], parts: [
+                { id: 'b', name: 'ตัวรถ', req: [], color: C.g, w: 140, h: 80, targetX: 70, targetY: 120, shape: 'border-radius: 10px 20px 0 0;' },
+                { id: 'wb', name: 'ล้อใหญ่', req: ['b'], color: C.d, w: 80, h: 80, targetX: 50, targetY: 160, shape: 'border-radius: 50%;' },
+                { id: 'ws', name: 'ล้อเล็ก', req: ['b'], color: C.d, w: 50, h: 50, targetX: 160, targetY: 190, shape: 'border-radius: 50%;' },
+                { id: 'e', name: 'ท่อไอเสีย', req: ['b'], color: C.d, w: 15, h: 60, targetX: 170, targetY: 60, shape: 'border-radius: 5px;' },
+                { id: 'c', name: 'หลังคา', req: ['b'], color: C.wl, w: 80, h: 20, targetX: 60, targetY: 100, shape: 'border-radius: 10px;' }
+            ]},
+            { name: "ด่าน 8: ปั้นจั่น (Crane)", fakes: [{ id: 'f1', name: 'ล้อรถไฟ', req: ['never'], color: C.d, w: 60, h: 60, shape: 'border-radius: 50%;' }, { id: 'f2', name: 'หลังคา', req: ['never'], color: C.r, w: 60, h: 40, shape: 'clip-path: polygon(50% 0%, 0% 100%, 100% 100%);' }], parts: [
+                { id: 'b', name: 'ฐาน', req: [], color: C.w, w: 100, h: 40, targetX: 90, targetY: 240, shape: 'border-radius: 10px;' },
+                { id: 't', name: 'เสา', req: ['b'], color: C.wl, w: 30, h: 160, targetX: 125, targetY: 80, shape: 'border-radius: 5px;' },
+                { id: 'a', name: 'แขนปั้นจั่น', req: ['t'], color: C.m, w: 200, h: 20, targetX: 40, targetY: 80, shape: 'border-radius: 5px;' },
+                { id: 'h', name: 'ตะขอ', req: ['a'], color: C.d, w: 30, h: 60, targetX: 50, targetY: 100, shape: 'border-radius: 10px; border: 5px solid #5D6D7E; border-top: none; background: transparent;' },
+                { id: 'c', name: 'ตุ้มถ่วง', req: ['a'], color: C.d, w: 40, h: 40, targetX: 200, targetY: 100, shape: 'border-radius: 5px;' }
+            ]},
+            { name: "ด่าน 9: ไดโนเสาร์", fakes: [{ id: 'f1', name: 'ล้อ', req: ['never'], color: C.d, w: 40, h: 40, shape: 'border-radius: 50%;' }], parts: [
+                { id: 'b', name: 'ลำตัว', req: [], color: C.g, w: 120, h: 80, targetX: 80, targetY: 120, shape: 'border-radius: 50% 50% 20px 20px;' },
+                { id: 'h', name: 'หัวและคอ', req: ['b'], color: C.g, w: 50, h: 100, targetX: 160, targetY: 50, shape: 'border-radius: 20px 20px 5px 5px; transform: rotate(15deg);' },
+                { id: 't', name: 'หาง', req: ['b'], color: C.g, w: 80, h: 30, targetX: 20, targetY: 140, shape: 'clip-path: polygon(100% 0, 0 50%, 100% 100%);' },
+                { id: 'l1', name: 'ขาหน้า', req: ['b'], color: C.wl, w: 20, h: 60, targetX: 140, targetY: 180, shape: 'border-radius: 10px;' },
+                { id: 'l2', name: 'ขาหลัง', req: ['b'], color: C.wl, w: 30, h: 80, targetX: 90, targetY: 180, shape: 'border-radius: 10px;' }
+            ]},
+            { name: "ด่าน 10: ยูเอฟโอ", fakes: [{ id: 'f1', name: 'ต้นไม้', req: ['never'], color: C.g, w: 40, h: 80, shape: 'border-radius: 20px;' }, { id: 'f2', name: 'ก้อนเมฆ', req: ['never'], color: C.w, w: 80, h: 40, shape: 'border-radius: 20px;' }], parts: [
+                { id: 'b', name: 'จานบิน', req: [], color: C.d, w: 180, h: 40, targetX: 50, targetY: 150, shape: 'border-radius: 50%;' },
+                { id: 'd', name: 'โดมแก้ว', req: ['b'], color: C.b, w: 100, h: 60, targetX: 90, targetY: 110, shape: 'border-radius: 50px 50px 0 0;' },
+                { id: 'a', name: 'มนุษย์ต่างดาว', req: ['d'], color: C.g, w: 40, h: 40, targetX: 120, targetY: 125, shape: 'border-radius: 50% 50% 10px 10px;' },
+                { id: 'l1', name: 'ขาตั้งซ้าย', req: ['b'], color: C.wl, w: 15, h: 50, targetX: 80, targetY: 180, shape: 'border-radius: 5px; transform: rotate(20deg);' },
+                { id: 'l2', name: 'ขาตั้งขวา', req: ['b'], color: C.wl, w: 15, h: 50, targetX: 185, targetY: 180, shape: 'border-radius: 5px; transform: rotate(-20deg);' },
+                { id: 'r', name: 'ลำแสง', req: ['b'], color: C.wl, w: 100, h: 80, targetX: 90, targetY: 190, shape: 'clip-path: polygon(20% 0, 80% 0, 100% 100%, 0% 100%); opacity: 0.5;' }
+            ]}
+        ]
+    };
+
+    let currentDifficulty = '';
+    let currentLevelData = null;
+    let assembledParts = [];
+    let score = 0;
+    let timer = 240; 
+    let timerInterval;
+    let audioCtx = null;
+
+    // --- DOM Elements ---
+    const screens = {
+        menu: document.getElementById('screen-menu'),
+        levelSelect: document.getElementById('screen-level-select'),
+        game: document.getElementById('screen-game'),
+        result: document.getElementById('screen-result')
+    };
+    const scoreDisplay = document.getElementById('score-display');
+    const timeDisplay = document.getElementById('time-display');
+    const targetName = document.getElementById('target-name');
+    const buildZone = document.getElementById('build-zone');
+    const partsDrawer = document.getElementById('parts-drawer');
+    const levelList = document.getElementById('level-list');
+    const diffTitle = document.getElementById('diff-title');
+
+    // --- Audio System ---
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        if (type === 'correct') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now); osc.stop(now + 0.3);
+        } else if (type === 'wrong') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+        }
+    }
+
+    // --- Navigation Controls ---
+    function switchScreen(screenId) {
+        Object.values(screens).forEach(s => {
+            s.style.opacity = '0';
+            setTimeout(() => {
+                s.classList.add('hidden');
+                s.style.pointerEvents = 'none';
+            }, 300);
+        });
+        
+        setTimeout(() => {
+            const active = screens[screenId];
+            active.classList.remove('hidden');
+            void active.offsetWidth; // Force reflow
+            active.style.opacity = '1';
+            active.style.pointerEvents = 'auto';
+        }, 300);
+    }
+
+    function showMenu() {
+        clearInterval(timerInterval);
+        switchScreen('menu');
+    }
+
+    function showLevelSelect(difficulty) {
+        currentDifficulty = difficulty;
+        const diffNames = { easy: "ระดับง่าย", medium: "ระดับปานกลาง", hard: "ระดับยาก" };
+        const diffColors = { easy: "bg-secondary text-dark", medium: "bg-warning text-dark", hard: "bg-primary text-white" };
+        
+        diffTitle.textContent = diffNames[difficulty];
+        levelList.innerHTML = '';
+        
+        levelsDb[difficulty].forEach((lvl, index) => {
+            const btn = document.createElement('button');
+            btn.className = `game-btn ${diffColors[difficulty]} p-4 w-full flex justify-between items-center`;
+            btn.onclick = () => startGame(difficulty, index);
+            btn.innerHTML = `
+                <span class="text-lg font-bold">${lvl.name}</span>
+                <span class="text-sm opacity-80">${lvl.parts.length + (lvl.fakes?lvl.fakes.length:0)} ชิ้น</span>
+            `;
+            levelList.appendChild(btn);
+        });
+        
+        switchScreen('levelSelect');
+    }
+
+    function backToLevelSelect() {
+        clearInterval(timerInterval);
+        showLevelSelect(currentDifficulty);
+    }
+
+    function startGame(difficulty, levelIndex) {
+        initAudio();
+        currentLevelData = levelsDb[difficulty][levelIndex];
+        assembledParts = [];
+        score = 0;
+        timer = 240;
+        updateScore(0);
+        updateTimerDisplay();
+        
+        targetName.textContent = `แบบแปลน: ${currentLevelData.name.split(':')[1].trim()}`;
+        buildZone.innerHTML = ''; 
+        partsDrawer.innerHTML = ''; 
+
+        // Combine parts and fakes
+        let allParts = [...currentLevelData.parts];
+        if(currentLevelData.fakes) {
+            allParts = [...allParts, ...currentLevelData.fakes];
+        }
+        allParts.sort(() => Math.random() - 0.5);
+
+        allParts.forEach((part, index) => {
+            createDraggablePart(part, index, allParts.length);
+        });
+
+        switchScreen('game');
+        
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timer--;
+            updateTimerDisplay();
+            if (timer <= 0) endGame(false);
+        }, 1000);
+    }
+
+    // --- Game Logic & Drag-Drop ---
+    function updateScore(amount) {
+        score += amount;
+        if(score < 0) score = 0;
+        scoreDisplay.textContent = score;
+    }
+
+    function updateTimerDisplay() {
+        const m = Math.floor(timer / 60).toString().padStart(2, '0');
+        const s = (timer % 60).toString().padStart(2, '0');
+        timeDisplay.textContent = `${m}:${s}`;
+    }
+
+    function showPopupScore(amount, x, y) {
+        const popup = document.createElement('div');
+        popup.className = 'score-popup';
+        popup.textContent = amount > 0 ? `+${amount}` : amount;
+        popup.style.color = amount > 0 ? '#27AE60' : '#E74C3C';
+        popup.style.left = `${x}px`;
+        popup.style.top = `${y}px`;
+        document.getElementById('screen-game').appendChild(popup);
+        setTimeout(() => popup.remove(), 1000);
+    }
+
+    function createConfetti(x, y) {
+        const colors = ['#FFB899', '#A3E4D7', '#AED6F1', '#F9E79F'];
+        for (let i = 0; i < 20; i++) {
+            const conf = document.createElement('div');
+            conf.className = 'confetti rounded-full';
+            conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            conf.style.left = `${x}px`;
+            conf.style.top = `${y}px`;
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = 2 + Math.random() * 3;
+            const tx = Math.cos(angle) * velocity * 20;
+            const ty = Math.sin(angle) * velocity * 20 - 50;
+            conf.animate([
+                { transform: `translate(0,0) scale(1) rotate(0deg)`, opacity: 1 },
+                { transform: `translate(${tx}px, ${ty}px) scale(0) rotate(${Math.random()*360}deg)`, opacity: 0 }
+            ], { duration: 600 + Math.random() * 400, easing: 'cubic-bezier(.37,0,.63,1)' });
+            document.getElementById('screen-game').appendChild(conf);
+            setTimeout(() => conf.remove(), 1000);
+        }
+    }
+
+    function endGame(win) {
+        clearInterval(timerInterval);
+        document.getElementById('result-title').textContent = win ? "ประกอบเสร็จแล้ว!" : "หมดเวลา!";
+        document.getElementById('final-score').textContent = score;
+        switchScreen('result');
+    }
+
+    let draggedElement = null;
+    let offsetX = 0, offsetY = 0;
+
+    function createDraggablePart(part, index, total) {
+        const el = document.createElement('div');
+        el.className = 'draggable-part';
+        el.id = `part-${part.id}`;
+        el.dataset.id = part.id;
+        
+        el.style.width = `${part.w}px`;
+        el.style.height = `${part.h}px`;
+        el.style.backgroundColor = part.color;
+        if(part.shape) el.style.cssText += part.shape;
+        el.innerHTML = `<span style="font-size: 11px; pointer-events:none;">${part.name}</span>`;
+
+        partsDrawer.appendChild(el);
+        el.addEventListener('mousedown', handleDragStart);
+        el.addEventListener('touchstart', handleDragStart, {passive: false});
+    }
+
+    function handleDragStart(e) {
+        if(e.target.classList.contains('assembled')) return;
+        if(e.cancelable) e.preventDefault();
+        initAudio();
+        
+        draggedElement = e.target.closest('.draggable-part');
+        draggedElement.classList.add('is-dragging');
+        
+        const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+        const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+        const rect = draggedElement.getBoundingClientRect();
+        const gameRect = document.getElementById('screen-game').getBoundingClientRect();
+        
+        let currentLeft = rect.left - gameRect.left;
+        let currentTop = rect.top - gameRect.top;
+
+        document.getElementById('screen-game').appendChild(draggedElement);
+        draggedElement.style.position = 'absolute';
+        draggedElement.style.margin = '0';
+        draggedElement.style.left = `${currentLeft}px`;
+        draggedElement.style.top = `${currentTop}px`;
+
+        offsetX = clientX - rect.left;
+        offsetY = clientY - rect.top;
+
+        document.addEventListener('mousemove', handleDragMove);
+        document.addEventListener('touchmove', handleDragMove, {passive: false});
+        document.addEventListener('mouseup', handleDragEnd);
+        document.addEventListener('touchend', handleDragEnd);
+    }
+
+    function handleDragMove(e) {
+        if (!draggedElement) return;
+        e.preventDefault();
+        const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+        const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+        const gameRect = document.getElementById('screen-game').getBoundingClientRect();
+        
+        draggedElement.style.left = `${clientX - gameRect.left - offsetX}px`;
+        draggedElement.style.top = `${clientY - gameRect.top - offsetY}px`;
+    }
+
+    function handleDragEnd(e) {
+        if (!draggedElement) return;
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('touchmove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+        document.removeEventListener('touchend', handleDragEnd);
+        
+        draggedElement.classList.remove('is-dragging');
+        checkPlacement(draggedElement);
+        draggedElement = null;
+    }
+
+    function checkPlacement(el) {
+        const elRect = el.getBoundingClientRect();
+        const zoneRect = buildZone.getBoundingClientRect();
+        const isOverlapping = !(elRect.right < zoneRect.left || elRect.left > zoneRect.right || elRect.bottom < zoneRect.top || elRect.top > zoneRect.bottom);
+        const partId = el.dataset.id;
+        
+        let partData = currentLevelData.parts.find(p => p.id === partId);
+        let isFake = false;
+        if(!partData && currentLevelData.fakes) {
+            partData = currentLevelData.fakes.find(p => p.id === partId);
+            isFake = true;
+        }
+
+        if (isOverlapping) {
+            if (isFake) return rejectPart(el, "ชิ้นส่วนนี้ไม่จำเป็น!");
+            const requirementsMet = partData.req.every(reqId => assembledParts.includes(reqId));
+            requirementsMet ? acceptPart(el, partData) : rejectPart(el, "ผิดลำดับ!");
+        } else {
+            returnToDrawer(el);
+        }
+    }
+
+    function acceptPart(el, partData) {
+        playSound('correct');
+        updateScore(15);
+        assembledParts.push(partData.id);
+        el.classList.add('assembled', 'animate-snap');
+        el.innerHTML = ''; 
+        
+        buildZone.appendChild(el);
+        el.style.left = `${partData.targetX}px`;
+        el.style.top = `${partData.targetY}px`;
+        
+        const rect = el.getBoundingClientRect();
+        showPopupScore(15, rect.left + rect.width/2, rect.top);
+        createConfetti(rect.left + rect.width/2, rect.top + rect.height/2);
+
+        if (assembledParts.length === currentLevelData.parts.length) {
+            setTimeout(() => endGame(true), 1000);
+        }
+    }
+
+    function rejectPart(el, msg) {
+        playSound('wrong');
+        updateScore(-2);
+        el.classList.add('animate-wiggle');
+        const rect = el.getBoundingClientRect();
+        showPopupScore(-2, rect.left + rect.width/2, rect.top);
+
+        setTimeout(() => {
+            el.classList.remove('animate-wiggle');
+            returnToDrawer(el);
+        }, 400);
+    }
+
+    function returnToDrawer(el) {
+        el.style.visibility = 'hidden';
+        el.style.position = 'relative';
+        el.style.left = '0px';
+        el.style.top = '0px';
+        partsDrawer.appendChild(el);
+        
+        const targetRect = el.getBoundingClientRect();
+        
+        document.getElementById('screen-game').appendChild(el);
+        el.style.visibility = 'visible';
+        el.style.position = 'absolute';
+        
+        const gameRect = document.getElementById('screen-game').getBoundingClientRect();
+        const targetLeft = targetRect.left - gameRect.left;
+        const targetTop = targetRect.top - gameRect.top;
+        
+        el.style.transition = 'all 0.3s ease-in-out';
+        void el.offsetWidth;
+        el.style.left = `${targetLeft}px`;
+        el.style.top = `${targetTop}px`;
+        
+        setTimeout(() => {
+            el.style.transition = 'transform 0.1s, box-shadow 0.1s';
+            el.style.position = 'relative';
+            el.style.left = '0px';
+            el.style.top = '0px';
+            partsDrawer.appendChild(el);
+        }, 300);
+    }
+
+    // Init Menu
+    showMenu();
+
+</script>
+</body>
+</html>

@@ -162,21 +162,21 @@
                 <span class="text-2xl mr-3">🌱</span>
                 <div class="text-left leading-tight">
                     <div class="text-xl">ระดับง่าย</div>
-                    <div class="text-sm font-normal text-gray-700">ต่อคำตรงตัว (ตัวเลือก 3 คำ)</div>
+                    <div class="text-sm font-normal text-gray-700">คำตรงตัว (พยัญชนะ สระ ตัวสะกดเดียวกัน)</div>
                 </div>
             </button>
             <button onclick="startGame('medium')" class="paper-btn btn-yellow w-full text-left flex-row justify-start px-6">
                 <span class="text-2xl mr-3">🌿</span>
                 <div class="text-left leading-tight">
                     <div class="text-xl">ระดับปานกลาง</div>
-                    <div class="text-sm font-normal text-gray-700">ตัวหลอกเยอะขึ้น (ตัวเลือก 4 คำ)</div>
+                    <div class="text-sm font-normal text-gray-700">คำคล้องจอง (สระและตัวสะกดเดียวกัน)</div>
                 </div>
             </button>
             <button onclick="startGame('hard')" class="paper-btn btn-peach w-full text-left flex-row justify-start px-6">
                 <span class="text-2xl mr-3">🔥</span>
                 <div class="text-left leading-tight">
                     <div class="text-xl">ระดับยาก</div>
-                    <div class="text-sm font-normal text-gray-700">ระวังคำพ้องเสียง! (เขียนต่างกัน)</div>
+                    <div class="text-sm font-normal text-gray-700">คำพ้องเสียง (ออกเสียงเหมือนแต่เขียนต่าง)</div>
                 </div>
             </button>
         </div>
@@ -185,17 +185,21 @@
     <!-- GAME SCREEN -->
     <div id="screen-game" class="absolute inset-0 flex flex-col hidden z-10">
         <!-- Top Bar -->
-        <div class="flex justify-between items-center p-4">
-            <button onclick="showMenu()" class="paper-btn bg-white w-12 h-12 !p-0 flex items-center justify-center !rounded-xl">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        <div class="flex justify-between items-center p-4 gap-2">
+            <button onclick="showMenu()" class="paper-btn bg-white w-10 h-10 !p-0 shrink-0 flex items-center justify-center !rounded-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             </button>
-            <div class="paper-panel !py-2 !px-4 !rounded-xl !shadow-[0_4px_0_var(--color-stroke)] flex items-center gap-2">
-                <span class="text-xl">⭐</span>
-                <span id="score-display" class="text-2xl font-bold">0</span>
+            <div class="paper-panel !py-1 !px-2 !rounded-xl !shadow-[0_4px_0_var(--color-stroke)] flex items-center gap-1 text-sm bg-white">
+                <span class="text-lg">🚩</span>
+                <span id="stage-display" class="font-bold">1/10</span>
             </div>
-            <div class="paper-panel !py-2 !px-4 !rounded-xl !shadow-[0_4px_0_var(--color-stroke)] flex items-center gap-2 bg-white">
-                <span class="text-xl">⏳</span>
-                <span id="time-display" class="text-2xl font-bold">3:00</span>
+            <div class="paper-panel !py-1 !px-2 !rounded-xl !shadow-[0_4px_0_var(--color-stroke)] flex items-center gap-1 text-sm">
+                <span class="text-lg">⭐</span>
+                <span id="score-display" class="font-bold">0</span>
+            </div>
+            <div class="paper-panel !py-1 !px-2 !rounded-xl !shadow-[0_4px_0_var(--color-stroke)] flex items-center gap-1 text-sm bg-white">
+                <span class="text-lg">⏳</span>
+                <span id="time-display" class="font-bold">3:00</span>
             </div>
         </div>
 
@@ -254,8 +258,8 @@
     <!-- GAME OVER SCREEN -->
     <div id="screen-gameover" class="absolute inset-0 flex flex-col items-center justify-center p-6 hidden z-20 bg-black/40 backdrop-blur-sm">
         <div class="paper-panel text-center w-full relative">
-            <h2 class="text-3xl font-bold mb-2 text-[#5A4A42]">หมดเวลา!</h2>
-            <div class="text-6xl my-6">🏆</div>
+            <h2 id="gameover-title" class="text-3xl font-bold mb-2 text-[#5A4A42]">หมดเวลา!</h2>
+            <div id="gameover-icon" class="text-6xl my-6">🏆</div>
             <p class="text-lg text-gray-600 mb-2">คะแนนรวมของคุณ</p>
             <p id="final-score" class="text-5xl font-bold text-[#FFB8A1] mb-8" style="text-shadow: 2px 2px 0px var(--color-stroke);">0</p>
             
@@ -272,40 +276,69 @@
     const wordData = {
         easy: [
             { w: "ชาวนา", ans: "นาฬิกา", dist: ["ชาวบ้าน", "เวลา", "กะลา"] },
-            { w: "นาฬิกา", ans: "กาแฟ", dist: ["นาที", "แก้วน้ำ", "ตุ๊กตา"] },
-            { w: "กาแฟ", ans: "แฟนคลับ", dist: ["ร้านชา", "แฟ้มงาน", "คนรัก"] },
-            { w: "แฟนคลับ", ans: "ลับหลัง", dist: ["คลับบาร์", "นักร้อง", "ความลับ"] },
-            { w: "ทะเล", ans: "เวลา", dist: ["น้ำเค็ม", "เลนส์ตา", "หาดทราย"] },
             { w: "สีฟ้า", ans: "ฟ้าผ่า", dist: ["ก้อนเมฆ", "ทาสี", "สีแดง"] },
+            { w: "กาแฟ", ans: "แฟ้มงาน", dist: ["ร้านชา", "แฟนคลับ", "คนรัก"] },
             { w: "ร้องเพลง", ans: "เพลงฮิต", dist: ["เสียงดัง", "นักร้อง", "บรรเลง"] },
             { w: "ต้นไม้", ans: "ไม้กวาด", dist: ["ใบไม้", "ดอกไม้", "รดน้ำ"] },
             { w: "น้ำใจ", ans: "ใจดี", dist: ["สายน้ำ", "ของขวัญ", "น้ำดื่ม"] },
-            { w: "รอยยิ้ม", ans: "ยิ้มแย้ม", dist: ["หัวเราะ", "ริมฝีปาก", "ความสุข"] }
+            { w: "ของเล่น", ans: "เล่นเกม", dist: ["ของกิน", "เลนส์กล้อง", "วิ่งแข่ง"] },
+            { w: "รอยยิ้ม", ans: "ยิ้มแย้ม", dist: ["หัวเราะ", "ริมฝีปาก", "ความสุข"] },
+            { w: "ความรัก", ans: "รักแท้", dist: ["ความหวัง", "ลักขโมย", "ภักดี"] },
+            { w: "เวลา", ans: "ลาก่อน", dist: ["นาที", "ชั่วโมง", "เดินเรือ"] },
+            { w: "แม่น้ำ", ans: "น้ำตก", dist: ["ทะเล", "น้ำหวาน", "ฝนตก"] },
+            { w: "ไฟฉาย", ans: "ฉายแสง", dist: ["ไฟฟ้า", "แสงแดด", "ส่องสว่าง"] },
+            { w: "ไข่ดาว", ans: "ดาวเทียม", dist: ["ดวงดาว", "ไข่เจียว", "ท้องฟ้า"] },
+            { w: "รองเท้า", ans: "เท้าเปล่า", dist: ["ถุงเท้า", "ส้นสูง", "เดินเล่น"] },
+            { w: "หน้าต่าง", ans: "ต่างประเทศ", dist: ["ประตู", "กระจก", "คนต่างชาติ"] },
+            { w: "ภูเขา", ans: "เขาค้อ", dist: ["ต้นไม้", "ธรรมชาติ", "ยอดดอย"] },
+            { w: "รถไฟ", ans: "ไฟฟ้า", dist: ["สถานี", "รางรถไฟ", "ความเร็ว"] },
+            { w: "ชาวสวน", ans: "สวนสัตว์", dist: ["ปลูกผัก", "ผลไม้", "สวนดอกไม้"] },
+            { w: "นางฟ้า", ans: "ฟ้าใส", dist: ["สวรรค์", "บินได้", "สวยงาม"] },
+            { w: "หมูทอด", ans: "ทอดกรอบ", dist: ["กระทะ", "น้ำมัน", "ข้าวเหนียว"] }
         ],
         medium: [
-            { w: "โรงเรียน", ans: "เรียนรู้", dist: ["นักเรียน", "โรงรถ", "อ่านเขียน"] },
-            { w: "โทรศัพท์", ans: "ศัพท์สแลง", dist: ["โทรทัศน์", "พูดคุย", "มือถือ"] },
-            { w: "แว่นตา", ans: "ตากแดด", dist: ["มองเห็น", "กระจก", "แว่นขยาย"] },
-            { w: "ร่มรื่น", ans: "รื่นเริง", dist: ["ร่มเงา", "ต้นไม้", "ชื่นชม"] },
-            { w: "กางเกง", ans: "เกรงใจ", dist: ["เสื้อผ้า", "กางออก", "สวมใส่"] },
-            { w: "รองเท้า", ans: "เท่ากัน", dist: ["เดินวิ่ง", "รองรับ", "ถุงเท้า"] },
-            { w: "ความรัก", ans: "รักแท้", dist: ["ความหวัง", "ลักขโมย", "ภักดี"] },
-            { w: "ของเล่น", ans: "เล่นเกม", dist: ["ของกิน", "เลนส์กล้อง", "วิ่งแข่ง"] },
-            { w: "กระดาษ", ans: "ดาษดื่น", dist: ["สมุดโน้ต", "ดินสอ", "วาดรูป"] },
-            { w: "รถยนต์", ans: "มนตร์สะกด", dist: ["ถนนหนทาง", "เครื่องยนต์", "ขับรถ"] } // Tricky spelling but sounds ok
+            { w: "ชาวนา", ans: "ปาหิน", dist: ["นาฬิกา", "ดินสอ", "ก้อนหิน"] },
+            { w: "ปาหิน", ans: "ดินดาน", dist: ["หินอ่อน", "ท้องฟ้า", "แม่น้ำ"] },
+            { w: "ความรัก", ans: "ถักทอ", dist: ["รักแท้", "อกหัก", "ของเล่น"] },
+            { w: "ท้องฟ้า", ans: "ท้าทาย", dist: ["ฟ้าผ่า", "สีฟ้า", "สวยงาม"] },
+            { w: "โรงเรียน", ans: "เขียนอ่าน", dist: ["เรียนรู้", "คุณครู", "ท่องจำ"] },
+            { w: "ร้องเพลง", ans: "เก่งกาจ", dist: ["เพลงฮิต", "ดนตรี", "เสียงดัง"] },
+            { w: "น้ำใจ", ans: "ให้ทาน", dist: ["ใจดี", "สายน้ำ", "ของขวัญ"] },
+            { w: "ข้าวผัด", ans: "ตัดผม", dist: ["ผัดไทย", "อาหาร", "กระทะ"] },
+            { w: "สมุด", ans: "จุดไฟ", dist: ["หนังสือ", "ดินสอ", "วาดรูป"] },
+            { w: "ทะเล", ans: "เวลา", dist: ["เลนส์ตา", "น้ำเค็ม", "ชายหาด"] },
+            { w: "สีแดง", ans: "แตงโม", dist: ["สีเขียว", "ผลไม้", "สตรอเบอร์รี่"] },
+            { w: "กางเกง", ans: "เพลงฮิต", dist: ["เสื้อผ้า", "ร้องเพลง", "สวมใส่"] },
+            { w: "วิ่งเล่น", ans: "เต้นรำ", dist: ["สนุกสนาน", "ออกกำลัง", "ของเล่น"] },
+            { w: "น่ารัก", ans: "พักผ่อน", dist: ["สวยงาม", "นอนหลับ", "รอยยิ้ม"] },
+            { w: "หนังสือ", ans: "มือถือ", dist: ["อ่านเขียน", "โทรศัพท์", "กระดาษ"] },
+            { w: "แม่น้ำ", ans: "ทำงาน", dist: ["ทะเล", "อาชีพ", "ไหลเชี่ยว"] },
+            { w: "แมวเหมียว", ans: "เคี้ยวข้าว", dist: ["สุนัข", "อาหาร", "น่ารัก"] },
+            { w: "กล้วยหอม", ans: "จอมซน", dist: ["ผลไม้", "เด็กน้อย", "สีเหลือง"] },
+            { w: "แจกัน", ans: "ฝันดี", dist: ["ดอกไม้", "กลางคืน", "ตกแต่ง"] },
+            { w: "สีส้ม", ans: "กลมกลืน", dist: ["ผลไม้", "เนียนตา", "สีเหลือง"] }
         ],
         hard: [
-            // Homophones / Tricky Sounds
-            { w: "คุณค่า", ans: "ข้าทาส", dist: ["ค้าขาย", "ค่าจ้าง", "คุณธรรม"] },
-            { w: "สุนัข", ans: "นักเรียน", dist: ["นัขทักษ์", "หนักหนา", "สัตว์เลี้ยง"] },
+            { w: "คุณค่า", ans: "ข้าทาส", dist: ["ค่าจ้าง", "ค้าขาย", "คุณธรรม"] },
             { w: "วันพุธ", ans: "พุดตาน", dist: ["พุทธองค์", "พูดคุย", "วันศุกร์"] },
-            { w: "ประมุข", ans: "มุกตลก", dist: ["มุขหน้า", "ความสุข", "ผู้นำ"] },
-            { w: "โอกาส", ans: "สาดน้ำ", dist: ["กาสร", "อากาศ", "เวลา"] },
+            { w: "สุนัข", ans: "นักเรียน", dist: ["นัขทักษ์", "หนักหนา", "สัตว์เลี้ยง"] },
             { w: "ความสุข", ans: "สุกงอม", dist: ["สุขภาพ", "ซุกซน", "รื่นรมย์"] },
-            { w: "กฎหมาย", ans: "หมายเหตุ", dist: ["ทนายความ", "กฎเกณฑ์", "เป้าหมาย"] },
-            { w: "สัญญา", ans: "หญ้าแฝก", dist: ["สาบาน", "ปัญญา", "สนามหญ้า"] },
+            { w: "เหตุผล", ans: "พลทหาร", dist: ["ผลไม้", "ปัญหา", "ต้นไม้"] },
+            { w: "โอกาส", ans: "ก๊าซพิษ", dist: ["กาสร", "อากาศ", "เวลา"] },
             { w: "บรรทัด", ans: "ทัศนคติ", dist: ["ไม้บรรทัด", "บรรเทา", "ขีดเขียน"] },
-            { w: "เหตุผล", ans: "ผลไม้", dist: ["ปัญหา", "เหตุการณ์", "ต้นไม้"] } // ผ -> พ sound trick (ผล / พล)
+            { w: "เวทมนตร์", ans: "มณฑล", dist: ["มนตรา", "คาถา", "มายากล"] },
+            { w: "ภูตผี", ans: "พูดคุย", dist: ["ผีสาง", "วิญญาณ", "น่ากลัว"] },
+            { w: "โจทย์เลข", ans: "โจทก์จำเลย", dist: ["โจทย์ปัญหา", "คณิตศาสตร์", "คำถาม"] },
+            { w: "บาดเจ็บ", ans: "บาตรพระ", dist: ["บาดแผล", "พระสงฆ์", "รักษา"] },
+            { w: "น่ารัก", ans: "ลักขโมย", dist: ["ความรัก", "โจรผู้ร้าย", "สวยงาม"] },
+            { w: "ก้าวหน้า", ans: "เก้าอี้", dist: ["เดินหน้า", "ที่นั่ง", "พัฒนา"] },
+            { w: "รสชาติ", ans: "รถยนต์", dist: ["อร่อย", "ยานพาหนะ", "ขับขี่"] },
+            { w: "ซื่อสัตย์", ans: "สัตว์เลี้ยง", dist: ["ความจริง", "สุนัขแมว", "หลอกลวง"] },
+            { w: "วันศุกร์", ans: "ซุกซน", dist: ["วันเสาร์", "เด็กน้อย", "ความสุข"] },
+            { w: "สาปแช่ง", ans: "ทราบเรื่อง", dist: ["เวทมนตร์", "รับรู้", "อาถรรพ์"] },
+            { w: "เวนคืน", ans: "เวรกรรม", dist: ["คืนให้", "บาปบุญ", "แลกเปลี่ยน"] },
+            { w: "พานพุ่ม", ans: "พาลชน", dist: ["ถวายพระ", "คนพาล", "ดอกไม้"] },
+            { w: "กาลเวลา", ans: "การงาน", dist: ["นาฬิกา", "อาชีพ", "อดีต"] }
         ]
     };
 
@@ -434,6 +467,8 @@
     let timerInterval;
     let currentQuestion;
     let availableWords = [];
+    let currentStage = 1;
+    const totalStages = 10;
 
     const screens = {
         menu: document.getElementById('screen-menu'),
@@ -456,6 +491,7 @@
         currentDifficulty = difficulty;
         score = 0;
         timeLeft = 180;
+        currentStage = 1;
         availableWords = [...wordData[difficulty]];
         
         // Shuffle available words
@@ -463,6 +499,7 @@
 
         updateScoreDisplay();
         updateTimeDisplay();
+        updateStageDisplay();
         showScreen('game');
         
         loadNextWord();
@@ -472,7 +509,7 @@
             timeLeft--;
             updateTimeDisplay();
             if (timeLeft <= 0) {
-                endGame();
+                endGame(false);
             }
         }, 1000);
     }
@@ -485,6 +522,10 @@
         const mins = Math.floor(timeLeft / 60);
         const secs = timeLeft % 60;
         document.getElementById('time-display').innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function updateStageDisplay() {
+        document.getElementById('stage-display').innerText = `${currentStage}/${totalStages}`;
     }
 
     function loadNextWord() {
@@ -554,14 +595,20 @@
             const buttons = document.querySelectorAll('#choices-container button');
             buttons.forEach(b => b.disabled = true);
 
-            // Load next word after animation
+            // Load next word or end game after animation
             setTimeout(() => {
-                loadNextWord();
+                if (currentStage >= totalStages) {
+                    endGame(true);
+                } else {
+                    currentStage++;
+                    updateStageDisplay();
+                    loadNextWord();
+                }
             }, 600);
 
         } else {
             // Incorrect
-            score = Math.max(0, score - 2); // Don't let score go negative visually if desired, but rules say -2. Let's allow negative or clamp to 0. Clamping to 0 is friendlier.
+            score -= 2; // หัก 2 คะแนนตามกติกา
             updateScoreDisplay();
             playSoundWrong();
 
@@ -577,9 +624,23 @@
         }
     }
 
-    function endGame() {
+    function endGame(isWin = false) {
         clearInterval(timerInterval);
         document.getElementById('final-score').innerText = score;
+        
+        const title = document.getElementById('gameover-title');
+        const icon = document.getElementById('gameover-icon');
+        
+        if(isWin) {
+            title.innerText = "ผ่านด่านสำเร็จ!";
+            title.style.color = "#4A914C";
+            icon.innerText = "🎉";
+        } else {
+            title.innerText = "หมดเวลา!";
+            title.style.color = "#5A4A42";
+            icon.innerText = "⏳";
+        }
+        
         showScreen('gameover');
     }
 

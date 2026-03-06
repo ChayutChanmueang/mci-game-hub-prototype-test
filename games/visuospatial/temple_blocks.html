@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Thai Temple Blocks</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Canvas Confetti for Correct Answer Feedback -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Mali (Rounded Sans Serif Thai) -->
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Mali', sans-serif; 
+            background-color: #E0D8C8; 
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+        }
+        
+        /* 9:18 Mobile Aspect Ratio Container */
+        .game-wrapper { 
+            aspect-ratio: 9/18; 
+            max-height: 100vh; 
+            width: 100%; 
+            max-width: 450px; 
+            background-color: #FFFBF0; 
+            position: relative; 
+            overflow: hidden; 
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); 
+        }
+        @media (min-width: 451px) { 
+            .game-wrapper { 
+                border-radius: 2rem; 
+                border: 8px solid #D4C9B4; 
+                height: 900px; 
+            } 
+        }
+
+        /* Paper Cut Button Styles */
+        .btn-paper {
+            background-color: white; 
+            border: 3px solid #D4C9B4; 
+            border-radius: 1.25rem;
+            box-shadow: 0 6px 0 0 #D4C9B4; 
+            transition: all 0.1s; 
+            cursor: pointer;
+            color: #5C4A3D; 
+            font-weight: 700; 
+            text-align: center;
+        }
+        .btn-paper:active, .btn-paper.active-press { 
+            transform: translateY(6px); 
+            box-shadow: 0 0 0 0 #D4C9B4; 
+        }
+        
+        .btn-mint { background-color: #A8E6CF; border-color: #84C5AC; box-shadow: 0 6px 0 0 #84C5AC; }
+        .btn-peach { background-color: #FFD3B6; border-color: #E5A985; box-shadow: 0 6px 0 0 #E5A985; }
+        .btn-sky { background-color: #DCEDC1; border-color: #B5C99A; box-shadow: 0 6px 0 0 #B5C99A; }
+        .btn-yellow { background-color: #FFEA8C; border-color: #E5D075; box-shadow: 0 6px 0 0 #E5D075; }
+        
+        /* Choice Button specifics */
+        .btn-choice {
+            padding: 10px;
+            background-color: white;
+            border: 3px solid #D4C9B4;
+            border-radius: 1rem;
+            box-shadow: 0 4px 0 0 #D4C9B4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.1s;
+        }
+        .btn-choice:active { transform: translateY(4px); box-shadow: 0 0 0 0 #D4C9B4; }
+
+        .paper-panel {
+            background-color: white; 
+            border: 3px solid #D4C9B4; 
+            border-radius: 1.5rem;
+            box-shadow: 0 8px 0 0 #D4C9B4; 
+            padding: 1.5rem;
+        }
+
+        /* Wiggle Animation for Wrong Answer */
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-6deg); }
+            75% { transform: rotate(6deg); }
+        }
+        .wiggle { animation: wiggle 0.4s ease-in-out; }
+    </style>
+</head>
+<body>
+
+<div class="game-wrapper flex flex-col text-[#5C4A3D]" id="app">
+    
+    <!-- === SCREEN: MAIN MENU === -->
+    <div id="screen-menu" class="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 bg-[#FFFBF0]">
+        <div class="paper-panel text-center w-full mb-8">
+            <h1 class="text-4xl font-bold mb-2 text-[#FF9E79]">Thai Temple<br>Blocks</h1>
+            <h2 class="text-lg font-semibold text-[#84C5AC] mb-4">แบบจำลองเจดีย์ 3 มิติ</h2>
+            <p class="text-sm leading-relaxed text-gray-600 font-medium bg-[#F8F4EA] p-3 rounded-xl border border-[#E0D8C8]">
+                หมุนวัตถุ 3 มิติในจินตนาการ<br>เพื่อหาว่าถ้ามองจากมุมที่กำหนด<br>ด้านข้างจะเห็นเป็นรูปอะไร?
+            </p>
+        </div>
+
+        <div class="w-full flex flex-col gap-4">
+            <h3 class="text-center font-bold text-xl mb-2">เลือกระดับความยาก</h3>
+            <button onclick="startGame('easy')" class="btn-paper btn-mint py-4 px-6 flex flex-col items-center text-lg">
+                <span>🟢 ระดับง่าย (Easy)</span>
+                <span class="text-xs font-normal opacity-80">โครงสร้างพื้นฐาน ทายมุมมองง่ายๆ</span>
+            </button>
+            <button onclick="startGame('medium')" class="btn-paper btn-yellow py-4 px-6 flex flex-col items-center text-lg">
+                <span>🟡 ปานกลาง (Medium)</span>
+                <span class="text-xs font-normal opacity-80">ซ้อนกัน 2-3 ชั้น เริ่มมีความลึก</span>
+            </button>
+            <button onclick="startGame('hard')" class="btn-paper btn-peach py-4 px-6 flex flex-col items-center text-lg">
+                <span>🔴 ยาก (Hard)</span>
+                <span class="text-xs font-normal opacity-80">โครงสร้างซับซ้อน ทายจากมุมบน/หลัง</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- === SCREEN: GAMEPLAY === -->
+    <div id="screen-game" class="absolute inset-0 z-20 flex flex-col bg-[#FFFBF0] hidden">
+        <!-- Top Bar -->
+        <div class="flex justify-between items-center p-4 pb-2">
+            <button onclick="backToMenu()" class="btn-paper px-4 py-2 text-sm rounded-xl">◀ ออก</button>
+            <div class="flex gap-4 font-bold text-lg">
+                <div class="bg-white px-3 py-1 rounded-xl border-2 border-[#D4C9B4] text-[#FF9E79]" id="ui-score">คะแนน: 0</div>
+                <div class="bg-white px-3 py-1 rounded-xl border-2 border-[#D4C9B4] text-[#84C5AC]" id="ui-time">3:00</div>
+            </div>
+        </div>
+
+        <!-- 3D View Container -->
+        <div class="relative flex-grow mt-2 mx-4 bg-[#F8F4EA] rounded-2xl border-2 border-[#D4C9B4] overflow-hidden" style="min-height: 40%;">
+            <div id="canvas-container" class="absolute inset-0 w-full h-full"></div>
+            <!-- Question Badge -->
+            <div class="absolute bottom-3 left-0 w-full flex justify-center pointer-events-none">
+                <div id="ui-question" class="bg-white px-4 py-2 rounded-2xl border-2 border-[#D4C9B4] shadow-md font-bold text-center text-[15px]">
+                    มองจากด้านข้าง จะเห็นเป็นรูปอะไร?
+                </div>
+            </div>
+        </div>
+
+        <!-- Choices Area -->
+        <div class="h-[30%] min-h-[220px] p-4 flex flex-col justify-center">
+            <p class="text-center font-bold text-lg mb-3">เลือกรูป 2D ที่ถูกต้อง</p>
+            <div id="choices-container" class="grid grid-cols-3 gap-3 h-[120px]">
+                <!-- Buttons injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- === SCREEN: GAME OVER === -->
+    <div id="screen-gameover" class="absolute inset-0 z-30 flex flex-col items-center justify-center p-6 bg-[#FFFBF0] hidden">
+        <div class="paper-panel text-center w-full mb-8">
+            <h1 class="text-4xl font-bold mb-4 text-[#FF9E79]">หมดเวลา!</h1>
+            <p class="text-lg font-medium text-gray-600 mb-2">คะแนนรวมของคุณคือ</p>
+            <div class="text-6xl font-bold text-[#84C5AC] mb-6" id="ui-final-score">120</div>
+            <button onclick="backToMenu()" class="btn-paper btn-sky w-full py-4 text-xl">เล่นอีกครั้ง</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- 1. GAME DATA (LEVELS & VOXELS) ---
+    // Voxels format: [x, y, z] (centered automatically later)
+    const GameData = {
+        easy: [
+            {
+                name: "บันไดจิ๋ว",
+                voxels: [[0,0,0], [1,0,0], [1,1,0]],
+                view: 'front', question: "มองจาก ด้านหน้า (ลูกศรแดง) จะเห็นเป็นรูปใด?",
+                choices: [ [[0,1], [1,1]], [[1,0], [1,1]], [[1,1], [1,1]] ], correct: 0
+            },
+            {
+                name: "ฐานตัวที",
+                voxels: [[-1,1,0], [0,1,0], [1,1,0], [0,0,0], [0,-1,0]],
+                view: 'top', question: "มองจาก ด้านบน (ลูกศรแดง) จะเห็นเป็นรูปใด?",
+                choices: [ [[1], [1], [1]], [[1,1,1]], [[0,1,0], [1,1,1]] ], correct: 1
+            },
+            {
+                name: "แท่นบูชา",
+                voxels: [[-1,0,0], [0,0,0], [1,0,0], [0,0,-1], [0,0,1], [0,1,0]],
+                view: 'right', question: "มองจาก ด้านขวา (ลูกศรแดง) จะเห็นเป็นรูปใด?",
+                choices: [ [[0,1,0], [1,1,1]], [[1,0,1], [1,1,1]], [[0,1,0], [0,1,0], [1,1,1]] ], correct: 0
+            }
+        ],
+        medium: [
+            {
+                name: "กำแพงแอล",
+                voxels: [[0,0,0], [1,0,0], [2,0,0], [0,1,0], [0,2,0], [0,0,-1], [0,0,-2]],
+                view: 'right', question: "มองจาก ด้านขวา (ลูกศรแดง) จะเห็นเป็นรูปใด?",
+                choices: [ [[1,0,0], [1,0,0], [1,1,1]], [[0,0,1], [0,0,1], [1,1,1]], [[1,1,0], [1,0,0], [1,0,0]] ], correct: 0
+            },
+            {
+                name: "ซุ้มประตู",
+                voxels: [[-1,0,0], [-1,1,0], [-1,2,0], [0,2,0], [1,2,0], [1,1,0], [1,0,0]],
+                view: 'top', question: "มองจาก ด้านบน (ลูกศรแดง) จะเห็นเป็นรูปใด?",
+                choices: [ [[1,0,1], [1,1,1]], [[1,1,1]], [[1,0,1], [1,0,1], [1,1,1]] ], correct: 1
+            },
+            {
+                name: "บันไดวนมุม",
+                voxels: [[0,0,0], [1,0,0], [1,0,-1], [1,1,-1]],
+                view: 'front', question: "มองจาก ด้านหน้า (ลูกศรแดง) จะเห็นเป็นรูปใด?",
+                choices: [ [[1,1], [1,1]], [[0,1], [1,1]], [[1,0], [1,1]] ], correct: 1
+            }
+        ],
+        hard: [
+            {
+                name: "เจดีย์ลอยฟ้า",
+                voxels: [[0,0,0], [2,0,0], [1,1,-1]],
+                view: 'front', question: "มองจาก ด้านหน้า (ลูกศรแดง) จะเห็นเป็นรูปใด?",
+                choices: [ [[0,1,0], [1,0,1]], [[1,1,1], [1,0,1]], [[1,0,1], [0,1,0]] ], correct: 0
+            },
+            {
+                name: "เจดีย์ซ้อน",
+                voxels: [[-1,0,1], [0,0,1], [1,0,1], [-1,0,0], [0,0,0], [1,0,0], [-1,0,-1], [0,0,-1], [1,0,-1], [0,1,0], [1,1,0], [0,1,-1], [0,2,0]],
+                view: 'right', question: "มองจาก ด้านขวา (ลูกศรแดง) จะเห็นเป็นรูปใด?",
+                choices: [ [[0,1,0], [0,1,1], [1,1,1]], [[0,1,0], [1,1,0], [1,1,1]], [[1,1,1], [0,1,1], [1,1,1]] ], correct: 0
+            },
+            {
+                name: "ด้านหลังสถูป",
+                voxels: [[0,0,0], [1,0,0], [2,0,0], [1,1,0], [1,2,0], [1,1,-1]],
+                view: 'back', question: "มองจาก ด้านหลัง (ลูกศรแดง) จะเห็นเป็นรูปใด?",
+                choices: [ [[0,1,0], [0,1,0], [1,1,1]], [[0,1,1], [0,1,0], [1,1,1]], [[1,0,0], [1,0,0], [1,1,1]] ], correct: 0
+            }
+        ]
+    };
+
+    // View configurations to place Arrow and animate Camera perspective
+    const ViewConfig = {
+        'front': { dir: [0,0,-1], origin: [0,0,2.8], rotX: 0, rotY: 0 },
+        'back':  { dir: [0,0,1], origin: [0,0,-2.8], rotX: 0, rotY: Math.PI },
+        'right': { dir: [-1,0,0], origin: [2.8,0,0], rotX: 0, rotY: -Math.PI/2 },
+        'left':  { dir: [1,0,0], origin: [-2.8,0,0], rotX: 0, rotY: Math.PI/2 },
+        'top':   { dir: [0,-1,0], origin: [0,2.8,0], rotX: Math.PI/2, rotY: 0 }
+    };
+
+    // --- 2. GAME STATE ---
+    let currentScore = 0;
+    let timeLeft = 180; // 3 minutes
+    let timerInterval = null;
+    let activeLevels = [];
+    let currentLevelData = null;
+    let correctChoiceIndex = 0;
+    let isProcessingAnswer = false;
+
+    // --- 3. THREE.JS SETUP ---
+    const canvasContainer = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    
+    // Isometric-ish camera
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    camera.position.set(6, 5, 8);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    canvasContainer.appendChild(renderer.domElement);
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+    
+    const dirLight = new THREE.DirectionalLight(0xffeedd, 0.8);
+    dirLight.position.set(5, 10, 7);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    dirLight.shadow.camera.near = 0.5;
+    dirLight.shadow.camera.far = 25;
+    dirLight.shadow.camera.left = -5;
+    dirLight.shadow.camera.right = 5;
+    dirLight.shadow.camera.top = 5;
+    dirLight.shadow.camera.bottom = -5;
+    scene.add(dirLight);
+
+    // Soft Shadow Plane (Paper Cut Base)
+    const planeGeo = new THREE.PlaneGeometry(30, 30);
+    const planeMat = new THREE.ShadowMaterial({ opacity: 0.12 });
+    const plane = new THREE.Mesh(planeGeo, planeMat);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.y = -1.5;
+    plane.receiveShadow = true;
+    scene.add(plane);
+
+    let blockGroup = new THREE.Group();
+    scene.add(blockGroup);
+    let arrowHelperGroup = new THREE.Group();
+    scene.add(arrowHelperGroup);
+
+    // Handle Resize
+    function resizeCanvas() {
+        if(canvasContainer.clientWidth === 0) return;
+        camera.aspect = canvasContainer.clientWidth / canvasContainer.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // Animation Loop
+    function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // --- 4. AUDIO SYSTEM (Web Audio API) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playTone(freq, type, duration, vol=0.5) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playCorrect() {
+        playTone(523.25, 'sine', 0.1, 0.3); // C5
+        setTimeout(() => playTone(659.25, 'sine', 0.2, 0.3), 100); // E5
+        setTimeout(() => playTone(783.99, 'sine', 0.4, 0.3), 200); // G5
+    }
+
+    function playWrong() {
+        playTone(200, 'triangle', 0.3, 0.5);
+        setTimeout(() => playTone(150, 'triangle', 0.4, 0.5), 150);
+    }
+
+    // --- 5. GAME LOGIC & RENDERING ---
+
+    function createStylizedArrow(viewConf) {
+        const group = new THREE.Group();
+        const dir = new THREE.Vector3(...viewConf.dir).normalize();
+        const origin = new THREE.Vector3(...viewConf.origin);
+        
+        const color = 0xFF6B6B; // Soft Red/Coral
+        
+        // Shaft
+        const shaftGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.8, 16);
+        const shaftMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.6 });
+        const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+        shaft.position.y = 0.4;
+        shaft.castShadow = true;
+        
+        // Head
+        const headGeo = new THREE.ConeGeometry(0.3, 0.6, 16);
+        const headMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.6 });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.y = 0.8 + 0.3;
+        head.castShadow = true;
+        
+        const arrowMesh = new THREE.Group();
+        arrowMesh.add(shaft);
+        arrowMesh.add(head);
+        
+        group.position.copy(origin);
+        
+        // Orient arrow to point to center
+        const up = new THREE.Vector3(0, 1, 0);
+        const dirToCenter = new THREE.Vector3().subVectors(new THREE.Vector3(0,0,0), origin).normalize();
+        const quaternion = new THREE.Quaternion();
+        quaternion.setFromUnitVectors(up, dirToCenter);
+        arrowMesh.quaternion.copy(quaternion);
+        
+        // Pull back slightly so tip doesn't intersect blocks
+        arrowMesh.position.copy(dirToCenter.multiplyScalar(-0.3)); 
+        
+        group.add(arrowMesh);
+        return group;
+    }
+
+    function buildLevel3D(levelData) {
+        // Clear previous
+        while(blockGroup.children.length > 0){ 
+            blockGroup.remove(blockGroup.children[0]); 
+        }
+        while(arrowHelperGroup.children.length > 0){ 
+            arrowHelperGroup.remove(arrowHelperGroup.children[0]); 
+        }
+        
+        // Reset rotation
+        blockGroup.rotation.set(0,0,0);
+
+        // Calculate bounding box to center the model
+        let minX=100, maxX=-100, minY=100, maxY=-100, minZ=100, maxZ=-100;
+        levelData.voxels.forEach(v => {
+            if(v[0]<minX) minX=v[0]; if(v[0]>maxX) maxX=v[0];
+            if(v[1]<minY) minY=v[1]; if(v[1]>maxY) maxY=v[1];
+            if(v[2]<minZ) minZ=v[2]; if(v[2]>maxZ) maxZ=v[2];
+        });
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
+        const cz = (minZ + maxZ) / 2;
+
+        // Pastel Colors for blocks (Warm Peach tone as base)
+        const blockColor = 0xFFD3B6; 
+        const edgeColor = 0xD08C70;
+
+        const geo = new THREE.BoxGeometry(1, 1, 1);
+        const mat = new THREE.MeshStandardMaterial({ color: blockColor, roughness: 0.8 });
+        
+        levelData.voxels.forEach(v => {
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(v[0] - cx, v[1] - cy, v[2] - cz);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            
+            // Add Vector Outline
+            const edges = new THREE.EdgesGeometry(geo);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: edgeColor, linewidth: 2 }));
+            mesh.add(line);
+            
+            blockGroup.add(mesh);
+        });
+
+        // Add Arrow indicating the view
+        const viewConf = ViewConfig[levelData.view];
+        const arrow = createStylizedArrow(viewConf);
+        arrowHelperGroup.add(arrow);
+    }
+
+    function render2DGridHTML(matrix) {
+        const rows = matrix.length;
+        const cols = matrix[0].length;
+        
+        let html = `<div class="grid gap-[2px] w-full h-full place-content-center" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr));">`;
+        for(let r=0; r<rows; r++) {
+            for(let c=0; c<cols; c++) {
+                if(matrix[r][c] === 1) {
+                    html += `<div class="bg-[#FFB396] border-[1.5px] border-[#E59A7A] rounded-[3px] shadow-sm aspect-square w-full max-w-[30px]"></div>`;
+                } else {
+                    html += `<div class="aspect-square w-full max-w-[30px]"></div>`;
+                }
+            }
+        }
+        html += `</div>`;
+        return html;
+    }
+
+    function loadNextLevel() {
+        isProcessingAnswer = false;
+        
+        // Pick random level
+        currentLevelData = activeLevels[Math.floor(Math.random() * activeLevels.length)];
+        
+        // Build 3D
+        buildLevel3D(currentLevelData);
+        
+        // Update UI Text
+        document.getElementById('ui-question').innerText = currentLevelData.question;
+        
+        // Prepare and shuffle choices
+        let choicesMap = currentLevelData.choices.map((c, i) => ({ grid: c, isCorrect: i === currentLevelData.correct }));
+        choicesMap.sort(() => Math.random() - 0.5); // shuffle
+        
+        const container = document.getElementById('choices-container');
+        container.innerHTML = '';
+        
+        choicesMap.forEach((choice, index) => {
+            if(choice.isCorrect) correctChoiceIndex = index;
+            
+            const btn = document.createElement('button');
+            btn.id = `btn-choice-${index}`;
+            btn.className = 'btn-choice';
+            btn.onclick = () => selectChoice(index);
+            
+            // Wrap grid in a nice paper container
+            const gridHTML = render2DGridHTML(choice.grid);
+            btn.innerHTML = `<div class="w-full h-full bg-[#F8F4EA] rounded-lg shadow-inner p-1 flex items-center justify-center">${gridHTML}</div>`;
+            
+            container.appendChild(btn);
+        });
+    }
+
+    function selectChoice(index) {
+        if(isProcessingAnswer) return;
+        isProcessingAnswer = true;
+        
+        if(index === correctChoiceIndex) {
+            // Correct
+            currentScore += 15;
+            playCorrect();
+            confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 }, colors: ['#A8E6CF', '#FFD3B6', '#FFEA8C', '#DCEDC1'] });
+            updateTopBar();
+            
+            setTimeout(() => {
+                loadNextLevel();
+            }, 1000);
+            
+        } else {
+            // Wrong
+            currentScore = Math.max(0, currentScore - 5);
+            playWrong();
+            
+            const btn = document.getElementById(`btn-choice-${index}`);
+            btn.classList.add('wiggle');
+            setTimeout(() => btn.classList.remove('wiggle'), 400);
+            updateTopBar();
+            
+            // Animate 3D view to show correct perspective
+            const targetView = ViewConfig[currentLevelData.view];
+            animateWrongAnswerRotation(targetView.rotX, targetView.rotY, () => {
+                loadNextLevel();
+            });
+        }
+    }
+
+    function animateWrongAnswerRotation(targetRotX, targetRotY, callback) {
+        const startX = blockGroup.rotation.x;
+        const startY = blockGroup.rotation.y;
+        const duration = 1000;
+        const startTime = performance.now();
+
+        // Ensure we rotate shortest path for Y
+        let dy = targetRotY - startY;
+        while(dy > Math.PI) dy -= Math.PI*2;
+        while(dy < -Math.PI) dy += Math.PI*2;
+        const finalTargetY = startY + dy;
+
+        function update(time) {
+            const elapsed = time - startTime;
+            const t = Math.min(elapsed / duration, 1);
+            // Ease in out Quad
+            const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+            blockGroup.rotation.x = startX + (targetRotX - startX) * ease;
+            blockGroup.rotation.y = startY + (finalTargetY - startY) * ease;
+
+            if (t < 1) {
+                requestAnimationFrame(update);
+            } else {
+                setTimeout(callback, 1500); // Wait a bit so player can see the answer
+            }
+        }
+        requestAnimationFrame(update);
+    }
+
+    // --- 6. GAME FLOW CONTROL ---
+
+    function startGame(difficulty) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        
+        activeLevels = GameData[difficulty];
+        currentScore = 0;
+        timeLeft = 180;
+        
+        document.getElementById('screen-menu').classList.add('hidden');
+        document.getElementById('screen-gameover').classList.add('hidden');
+        document.getElementById('screen-game').classList.remove('hidden');
+        
+        updateTopBar();
+        
+        // Slight delay to ensure DOM is ready for ThreeJS resize
+        setTimeout(() => {
+            resizeCanvas();
+            loadNextLevel();
+        }, 50);
+
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTopBar();
+            if(timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        document.getElementById('screen-game').classList.add('hidden');
+        document.getElementById('screen-gameover').classList.remove('hidden');
+        document.getElementById('ui-final-score').innerText = currentScore;
+    }
+
+    function backToMenu() {
+        clearInterval(timerInterval);
+        document.getElementById('screen-game').classList.add('hidden');
+        document.getElementById('screen-gameover').classList.add('hidden');
+        document.getElementById('screen-menu').classList.remove('hidden');
+    }
+
+    function updateTopBar() {
+        document.getElementById('ui-score').innerText = `คะแนน: ${currentScore}`;
+        const m = Math.floor(timeLeft / 60);
+        const s = timeLeft % 60;
+        document.getElementById('ui-time').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+</script>
+</body>
+</html>

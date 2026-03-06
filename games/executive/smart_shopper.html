@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Shopper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #FFF9F0;
+            --peach: #FFB5A7;
+            --mint: #A3E4D7;
+            --sky: #AED6F1;
+            --yellow: #F9E79F;
+            --text-dark: #5D4037;
+            --stroke: #D7CCC8;
+            --shadow: rgba(93, 64, 55, 0.15);
+        }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #EFEBE9;
+            color: var(--text-dark);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 9:18 Aspect Ratio Container */
+        #app-container {
+            width: 100%;
+            height: 100%;
+            max-width: 450px;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        @media (min-aspect-ratio: 9/18) {
+            #app-container {
+                height: 90vh;
+                aspect-ratio: 9 / 18;
+                border-radius: 24px;
+                border: 4px solid var(--stroke);
+            }
+        }
+
+        /* Paper Cut Style Utilities */
+        .paper-panel {
+            background: white;
+            border-radius: 20px;
+            border: 3px solid var(--stroke);
+            box-shadow: 0 6px 0 var(--stroke), 0 10px 15px var(--shadow);
+            padding: 20px;
+        }
+
+        .paper-btn {
+            background: white;
+            border-radius: 16px;
+            border: 3px solid var(--stroke);
+            box-shadow: 0 4px 0 var(--stroke);
+            transition: all 0.1s ease;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .paper-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 var(--stroke);
+        }
+
+        .bg-peach { background: var(--peach); border-color: #E89E90; box-shadow: 0 4px 0 #E89E90; color: #5D4037;}
+        .bg-mint { background: var(--mint); border-color: #8CCBBE; box-shadow: 0 4px 0 #8CCBBE; color: #5D4037;}
+        .bg-sky { background: var(--sky); border-color: #98BDD6; box-shadow: 0 4px 0 #98BDD6; color: #5D4037;}
+        .bg-yellow { background: var(--yellow); border-color: #DBC87D; box-shadow: 0 4px 0 #DBC87D; color: #5D4037;}
+
+        /* Typography */
+        h1 { font-size: 2rem; font-weight: 700; text-align: center; color: var(--peach); text-shadow: 2px 2px 0 var(--stroke); line-height: 1.2;}
+        h2 { font-size: 1.5rem; font-weight: 600; }
+        .text-big { font-size: 1.25rem; }
+
+        /* Game Elements */
+        .item-card {
+            background: white;
+            border-radius: 16px;
+            border: 2px solid var(--stroke);
+            box-shadow: 0 3px 0 var(--stroke);
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+            position: relative;
+        }
+        .item-card:active { transform: scale(0.95); }
+        .item-icon { font-size: 2.5rem; line-height: 1; margin-bottom: 5px; }
+        
+        /* Animations */
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            50% { transform: rotate(10deg); }
+            75% { transform: rotate(-5deg); }
+        }
+        .wiggle { animation: wiggle 0.4s ease-in-out; }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* Screen Management */
+        .screen { display: none; height: 100%; flex-direction: column; padding: 20px; }
+        .screen.active { display: flex; }
+
+        .shelf-container {
+            flex-grow: 1;
+            background: rgba(255,255,255,0.5);
+            border-radius: 20px;
+            border: 2px dashed var(--stroke);
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .cart-container {
+            height: 180px;
+            background: var(--mint);
+            border-radius: 20px 20px 0 0;
+            border-top: 4px solid #8CCBBE;
+            padding: 15px;
+            margin: 0 -20px -20px -20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 10px;
+            overflow-y: auto;
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.05);
+        }
+
+        .cart-item {
+            font-size: 1.5rem;
+            background: white;
+            border-radius: 50%;
+            width: 45px; height: 45px;
+            display: flex; justify-content: center; align-items: center;
+            border: 2px solid var(--stroke);
+            box-shadow: 0 2px 0 var(--stroke);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- MAIN MENU SCREEN -->
+    <div id="menu-screen" class="screen active justify-center items-center">
+        <div class="paper-panel w-full mb-6">
+            <h1 class="mb-2">Smart<br>Shopper</h1>
+            <p class="text-center text-big text-gray-600 leading-snug">
+                จ่ายตลาดจำกัดงบ!<br>
+                <span class="text-sm">บริหารเงินให้คุ้มค่า เก็บดาวให้เยอะที่สุด</span>
+            </p>
+        </div>
+
+        <div class="w-full space-y-4">
+            <!-- Theme selection (Visual mockup) -->
+            <div class="paper-panel p-3 mb-4 flex justify-between items-center bg-gray-50">
+                <span class="font-semibold">ธีมสี:</span>
+                <div class="flex gap-2">
+                    <button class="w-8 h-8 rounded-full bg-peach border-2 border-white shadow"></button>
+                    <button class="w-8 h-8 rounded-full bg-mint border-2 border-white shadow"></button>
+                </div>
+            </div>
+
+            <h2 class="text-center text-lg mb-2">เลือกระดับความยาก</h2>
+            
+            <button class="paper-btn bg-sky w-full flex-col items-start" onclick="startGame('easy')">
+                <div class="flex justify-between w-full">
+                    <span>Easy (ง่าย)</span>
+                    <span>🌟 6</span>
+                </div>
+                <span class="text-sm font-normal text-left">งบ 30฿ | สินค้า 4 ชิ้น | คิดเลขสบายๆ</span>
+            </button>
+            
+            <button class="paper-btn bg-yellow w-full flex-col items-start" onclick="startGame('medium')">
+                <div class="flex justify-between w-full">
+                    <span>Medium (ปานกลาง)</span>
+                    <span>🌟 10</span>
+                </div>
+                <span class="text-sm font-normal text-left">งบ 50฿ | สินค้า 6 ชิ้น | ต้องชั่งใจราคา/ดาว</span>
+            </button>
+            
+            <button class="paper-btn bg-peach w-full flex-col items-start" onclick="startGame('hard')">
+                <div class="flex justify-between w-full">
+                    <span>Hard (ยาก)</span>
+                    <span>🌟 18</span>
+                </div>
+                <span class="text-sm font-normal text-left">งบ 80฿ | มีโปรโมชั่นหลอก ซับซ้อนขึ้น</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="screen">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-4">
+            <button class="paper-btn p-2 text-sm" onclick="showMenu()">
+                ◀ กลับ
+            </button>
+            <div class="paper-panel py-1 px-4 text-center rounded-full">
+                <span class="font-bold text-lg text-sky-600">⏱ <span id="ui-time">04:00</span></span>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="paper-panel mb-4 flex justify-between items-center bg-yellow-50">
+            <div class="text-center">
+                <div class="text-sm text-gray-500">เงินที่ใช้ได้</div>
+                <div class="text-2xl font-bold" style="color: #D35400;"><span id="ui-budget">0</span>฿</div>
+            </div>
+            <div class="h-10 w-1 bg-stroke rounded"></div>
+            <div class="text-center">
+                <div class="text-sm text-gray-500">ดาวเป้าหมาย</div>
+                <div class="text-2xl font-bold text-yellow-500">🌟 <span id="ui-stars">0</span>/<span id="ui-target">0</span></div>
+            </div>
+        </div>
+
+        <!-- Shelf -->
+        <div class="shelf-container mb-4">
+            <div class="text-sm text-center mb-2 text-gray-500 font-semibold">แตะสินค้าเพื่อหยิบใส่ตะกร้า</div>
+            <div id="shelf-grid" class="grid grid-cols-2 gap-3">
+                <!-- Items injected here via JS -->
+            </div>
+        </div>
+
+        <!-- Cart -->
+        <div class="cart-container" id="cart-area">
+            <div class="w-full flex justify-between items-center mb-2">
+                <span class="font-bold text-white text-lg">🛒 ตะกร้าของฉัน</span>
+                <span class="bg-white px-2 py-1 rounded-lg text-sm font-bold text-mint-700 shadow">ใช้ไป <span id="ui-spent">0</span>฿</span>
+            </div>
+            <!-- Cart items injected here -->
+        </div>
+    </div>
+
+    <!-- RESULT OVERLAY -->
+    <div id="result-overlay" class="absolute inset-0 bg-black/50 z-40 hidden flex-col justify-center items-center p-6 backdrop-blur-sm">
+        <div class="paper-panel w-full text-center pop-in">
+            <h1 class="text-3xl mb-2" id="result-title">สำเร็จ! 🎉</h1>
+            <p class="text-xl mb-4" id="result-desc">คุณบริหารงบได้ยอดเยี่ยม</p>
+            <div class="bg-yellow-100 rounded-xl p-3 mb-6 border-2 border-yellow-300">
+                <div class="font-bold text-lg text-yellow-600">+20 คะแนนพิเศษ!</div>
+                <div>เหลือเวลา: <span id="result-time">00:00</span></div>
+            </div>
+            <button class="paper-btn bg-mint w-full text-xl" onclick="showMenu()">กลับหน้าหลัก</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Audio System (Web Audio API) ---
+    // สร้างเสียงแบบ Procedural เพื่อไม่ต้องใช้ไฟล์ภายนอกและโหลดเร็ว
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playTone(freq, type, duration, vol=0.1) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    const sfx = {
+        click: () => playTone(600, 'sine', 0.1, 0.1),
+        pick: () => playTone(800, 'triangle', 0.15, 0.1),
+        drop: () => playTone(400, 'triangle', 0.15, 0.1),
+        error: () => {
+            playTone(200, 'sawtooth', 0.2, 0.1);
+            setTimeout(() => playTone(150, 'sawtooth', 0.3, 0.1), 100);
+        },
+        win: () => {
+            [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                setTimeout(() => playTone(freq, 'sine', 0.3, 0.15), i * 150);
+            });
+        }
+    };
+
+    // --- Game Data ---
+    const GAME_TIME = 240; // 4 minutes in seconds
+    const itemDatabase = [
+        { id: 1, name: 'ลูกอม', price: 5, stars: 1, icon: '🍬' },
+        { id: 2, name: 'ขนมปัง', price: 10, stars: 2, icon: '🍞' },
+        { id: 3, name: 'แอปเปิ้ล', price: 15, stars: 3, icon: '🍎' },
+        { id: 4, name: 'นมสด', price: 20, stars: 4, icon: '🥛' },
+        { id: 5, name: 'น้ำผลไม้', price: 25, stars: 5, icon: '🧃' },
+        { id: 6, name: 'เค้ก', price: 30, stars: 6, icon: '🍰' },
+        { id: 7, name: 'พิซซ่า', price: 40, stars: 7, icon: '🍕' },
+        { id: 8, name: 'โปร! นมแพ็คคู่', price: 35, stars: 8, icon: '🥛🥛' }, // Promotion item (Hard)
+        { id: 9, name: 'ชุดปาร์ตี้', price: 60, stars: 12, icon: '🍔🍟' }
+    ];
+
+    const levelConfigs = {
+        easy: { budget: 30, targetStars: 6, items: [1, 2, 3, 4] },
+        medium: { budget: 50, targetStars: 10, items: [2, 3, 4, 5, 6, 7] },
+        hard: { budget: 80, targetStars: 18, items: [3, 4, 5, 6, 7, 8, 9] }
+    };
+
+    // --- State ---
+    let state = {
+        cart: [],
+        budget: 0,
+        targetStars: 0,
+        timeLeft: GAME_TIME,
+        timerId: null,
+        isPlaying: false
+    };
+
+    // --- DOM Elements ---
+    const screens = {
+        menu: document.getElementById('menu-screen'),
+        game: document.getElementById('game-screen')
+    };
+    const ui = {
+        time: document.getElementById('ui-time'),
+        budget: document.getElementById('ui-budget'),
+        stars: document.getElementById('ui-stars'),
+        target: document.getElementById('ui-target'),
+        spent: document.getElementById('ui-spent'),
+        shelfGrid: document.getElementById('shelf-grid'),
+        cartArea: document.getElementById('cart-area')
+    };
+
+    // --- Functions ---
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function switchScreen(screenName) {
+        Object.values(screens).forEach(s => s.classList.remove('active'));
+        screens[screenName].classList.add('active');
+        sfx.click();
+    }
+
+    function showMenu() {
+        clearInterval(state.timerId);
+        document.getElementById('result-overlay').classList.add('hidden');
+        switchScreen('menu');
+    }
+
+    function startGame(difficulty) {
+        const config = levelConfigs[difficulty];
+        state = {
+            cart: [],
+            budget: config.budget,
+            targetStars: config.targetStars,
+            timeLeft: GAME_TIME,
+            timerId: null,
+            isPlaying: true,
+            availableItems: config.items.map(id => ({...itemDatabase.find(i => i.id === id), uid: Math.random().toString(36).substr(2, 9)}))
+        };
+
+        ui.budget.innerText = state.budget;
+        ui.target.innerText = state.targetStars;
+        updateStats();
+        renderShelf();
+        renderCart();
+        
+        switchScreen('game');
+        
+        // Start Timer
+        clearInterval(state.timerId);
+        ui.time.innerText = formatTime(state.timeLeft);
+        state.timerId = setInterval(() => {
+            state.timeLeft--;
+            ui.time.innerText = formatTime(state.timeLeft);
+            if(state.timeLeft <= 0) {
+                gameOver(false);
+            }
+        }, 1000);
+    }
+
+    function getCartTotal() {
+        return state.cart.reduce((sum, item) => sum + item.price, 0);
+    }
+
+    function getCartStars() {
+        return state.cart.reduce((sum, item) => sum + item.stars, 0);
+    }
+
+    function updateStats() {
+        const spent = getCartTotal();
+        const stars = getCartStars();
+        
+        ui.spent.innerText = spent;
+        ui.stars.innerText = stars;
+
+        // Visual feedback if close to budget
+        if(spent > state.budget * 0.8) {
+            ui.spent.classList.add('text-red-500');
+        } else {
+            ui.spent.classList.remove('text-red-500');
+        }
+
+        // Check Win
+        if(stars >= state.targetStars && state.isPlaying) {
+            gameOver(true);
+        }
+    }
+
+    function addToCart(uid) {
+        if(!state.isPlaying) return;
+        
+        const itemIndex = state.availableItems.findIndex(i => i.uid === uid);
+        const item = state.availableItems[itemIndex];
+        const currentSpent = getCartTotal();
+
+        if (currentSpent + item.price > state.budget) {
+            // Over budget!
+            sfx.error();
+            const card = document.getElementById(`shelf-item-${uid}`);
+            card.classList.remove('wiggle');
+            void card.offsetWidth; // trigger reflow
+            card.classList.add('wiggle');
+            
+            ui.cartArea.classList.remove('wiggle');
+            void ui.cartArea.offsetWidth;
+            ui.cartArea.classList.add('wiggle');
+            return;
+        }
+
+        // Success add
+        sfx.pick();
+        state.cart.push(item);
+        state.availableItems.splice(itemIndex, 1);
+        
+        renderShelf();
+        renderCart();
+        updateStats();
+    }
+
+    function removeFromCart(uid) {
+        if(!state.isPlaying) return;
+        
+        const itemIndex = state.cart.findIndex(i => i.uid === uid);
+        const item = state.cart[itemIndex];
+        
+        sfx.drop();
+        state.availableItems.push(item);
+        state.cart.splice(itemIndex, 1);
+        
+        renderShelf();
+        renderCart();
+        updateStats();
+    }
+
+    function renderShelf() {
+        ui.shelfGrid.innerHTML = '';
+        state.availableItems.forEach(item => {
+            const el = document.createElement('div');
+            el.id = `shelf-item-${item.uid}`;
+            el.className = 'item-card pop-in';
+            el.onclick = () => addToCart(item.uid);
+            el.innerHTML = `
+                <div class="item-icon">${item.icon}</div>
+                <div class="font-bold text-sm leading-tight">${item.name}</div>
+                <div class="flex justify-between items-center mt-2 text-xs">
+                    <span class="bg-yellow-100 text-yellow-700 px-1 rounded">🌟${item.stars}</span>
+                    <span class="bg-peach text-white px-1 rounded font-bold">${item.price}฿</span>
+                </div>
+            `;
+            ui.shelfGrid.appendChild(el);
+        });
+    }
+
+    function renderCart() {
+        // Keep header, clear items
+        const header = ui.cartArea.firstElementChild;
+        ui.cartArea.innerHTML = '';
+        ui.cartArea.appendChild(header);
+
+        state.cart.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'cart-item pop-in';
+            el.onclick = () => removeFromCart(item.uid);
+            el.innerHTML = item.icon;
+            ui.cartArea.appendChild(el);
+        });
+    }
+
+    function gameOver(isWin) {
+        state.isPlaying = false;
+        clearInterval(state.timerId);
+        
+        const overlay = document.getElementById('result-overlay');
+        const title = document.getElementById('result-title');
+        const desc = document.getElementById('result-desc');
+        const timeStr = document.getElementById('result-time');
+
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        
+        timeStr.innerText = formatTime(state.timeLeft);
+
+        if(isWin) {
+            sfx.win();
+            title.innerText = 'สำเร็จ! 🎉';
+            desc.innerText = 'คุณจัดของได้คุ้มค่าสุดๆ!';
+            fireConfetti();
+        } else {
+            sfx.error();
+            title.innerText = 'หมดเวลา! ⏰';
+            desc.innerText = 'พยายามใหม่อีกครั้งนะ';
+        }
+    }
+
+    // --- Simple Confetti System ---
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function fireConfetti() {
+        particles = [];
+        const colors = ['#FFB5A7', '#A3E4D7', '#AED6F1', '#F9E79F'];
+        for(let i=0; i<100; i++) {
+            particles.push({
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                r: Math.random() * 6 + 4,
+                dx: Math.random() * 10 - 5,
+                dy: Math.random() * -10 - 5,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                tilt: Math.random() * 10
+            });
+        }
+        animateConfetti();
+    }
+
+    function animateConfetti() {
+        requestAnimationFrame(animateConfetti);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particles.forEach((p, index) => {
+            p.dy += 0.3; // gravity
+            p.x += p.dx;
+            p.y += p.dy;
+            p.tilt += 0.1;
+
+            ctx.beginPath();
+            ctx.lineWidth = p.r;
+            ctx.strokeStyle = p.color;
+            ctx.moveTo(p.x + p.tilt + p.r, p.y);
+            ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+            ctx.stroke();
+
+            if(p.y > canvas.height) particles.splice(index, 1);
+        });
+    }
+
+</script>
+</body>
+</html>

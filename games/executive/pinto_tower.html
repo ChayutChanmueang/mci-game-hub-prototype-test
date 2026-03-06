@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pinto Tower</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #FDFBF7;
+            --pastel-peach: #FFD1BA;
+            --pastel-mint: #C1F0D5;
+            --pastel-blue: #BDE0FE;
+            --pastel-yellow: #FFF1A8;
+            --pastel-pink: #FFC4D9;
+            --text-dark: #4A4A4A;
+            --stroke-color: #4A4A4A; /* Darker stroke for Paper Cut style */
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100vh;
+            max-width: 450px;
+            max-height: 900px;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-aspect-ratio: 9/18) {
+            #game-container {
+                height: 100vh;
+                aspect-ratio: 9/18;
+            }
+        }
+
+        /* UI Styles */
+        .panel {
+            background-color: white;
+            border-radius: 24px;
+            border: 3px solid var(--stroke-color);
+            box-shadow: 0 8px 0 var(--stroke-color), inset 0 2px 4px rgba(255,255,255,0.8);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border-radius: 20px;
+            border: 3px solid var(--stroke-color);
+            font-size: 24px;
+            font-weight: 800;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 0 6px 0 var(--stroke-color);
+            margin-bottom: 16px;
+            color: var(--text-dark);
+        }
+
+        .btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 var(--stroke-color);
+        }
+
+        .btn-peach { background-color: var(--pastel-peach); }
+        .btn-mint { background-color: var(--pastel-mint); }
+        .btn-blue { background-color: var(--pastel-blue); }
+        .btn-yellow { background-color: var(--pastel-yellow); }
+
+        .title {
+            font-size: 36px;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+            text-shadow: 2px 2px 0px white, 4px 4px 0px rgba(0,0,0,0.1);
+        }
+
+        /* Screens */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: var(--bg-cream);
+        }
+        .screen.active {
+            display: flex;
+        }
+
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            z-index: 20;
+            gap: 10px;
+        }
+
+        .status-box {
+            font-size: 18px;
+            font-weight: 800;
+            background-color: white;
+            px-3 py-2 rounded-xl border-2 border-[var(--stroke-color)];
+            box-shadow: 0 4px 0 var(--stroke-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 3px solid var(--stroke-color);
+        }
+
+        /* Game Area */
+        #play-area {
+            flex-grow: 1;
+            position: relative;
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 80px; /* Space for the base */
+        }
+
+        .base-platform {
+            position: absolute;
+            bottom: 60px;
+            left: 5%;
+            width: 90%;
+            height: 20px;
+            background-color: #DEB887;
+            border: 3px solid var(--stroke-color);
+            border-radius: 10px;
+            box-shadow: 0 6px 0 var(--stroke-color);
+            z-index: 1;
+        }
+
+        .pegs-container {
+            position: absolute;
+            bottom: 80px;
+            left: 5%;
+            width: 90%;
+            height: 250px;
+            display: flex;
+            justify-content: space-around;
+            z-index: 2;
+        }
+
+        .peg-hitbox {
+            position: relative;
+            width: 30%;
+            height: 100%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+        }
+
+        .peg-pole {
+            position: absolute;
+            bottom: 0;
+            width: 14px;
+            height: 220px;
+            background-color: #D2B48C;
+            border: 3px solid var(--stroke-color);
+            border-radius: 10px 10px 0 0;
+            transition: background-color 0.2s;
+        }
+
+        .peg-hitbox.active .peg-pole {
+            background-color: var(--pastel-yellow);
+            box-shadow: 0 0 15px var(--pastel-yellow);
+        }
+
+        /* Pinto Disks */
+        .disk {
+            position: absolute;
+            height: 40px;
+            border: 3px solid var(--stroke-color);
+            border-radius: 16px;
+            box-shadow: 0 4px 0 var(--stroke-color), inset 0 2px 5px rgba(255,255,255,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 800;
+            font-size: 20px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 10;
+            pointer-events: none; /* Let clicks pass through to peg-hitbox */
+        }
+
+        .disk-handle {
+            position: absolute;
+            top: -12px;
+            width: 30px;
+            height: 12px;
+            border: 3px solid var(--stroke-color);
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            background-color: transparent;
+            z-index: -1;
+        }
+
+        /* Animations */
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px) rotate(-5deg); }
+            50% { transform: translateX(10px) rotate(5deg); }
+            75% { transform: translateX(-10px) rotate(-5deg); }
+        }
+        .wiggle {
+            animation: wiggle 0.4s ease-in-out;
+        }
+
+        /* Confetti */
+        .confetti {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <!-- Main Menu Screen -->
+    <div id="menu-screen" class="screen active justify-center">
+        <div class="panel">
+            <h1 class="title text-orange-500">Pinto Tower</h1>
+            <p class="text-center text-lg mb-4 font-bold">ย้ายเถาปิ่นโต</p>
+            <div class="bg-orange-50 rounded-xl p-3 mb-6 border-2 border-orange-200 text-sm font-semibold text-center leading-relaxed">
+                ย้ายชั้นปิ่นโตทั้งหมดไป <span class="text-orange-600">"เสาขวาสุด"</span><br>
+                📌 ย้ายได้ทีละชั้น<br>
+                ⚠️ ห้ามชั้นใหญ่ทับชั้นเล็กเด็ดขาด!
+            </div>
+            
+            <button class="btn btn-mint" onclick="startGame('easy')">
+                Easy
+                <span class="block text-sm font-normal mt-1">ปิ่นโต 3 ชั้น (เหมาะสำหรับผู้เริ่มต้น)</span>
+            </button>
+            <button class="btn btn-blue" onclick="startGame('medium')">
+                Medium
+                <span class="block text-sm font-normal mt-1">ปิ่นโต 4 ชั้น (ต้องเริ่มวางแผน)</span>
+            </button>
+            <button class="btn btn-peach" onclick="startGame('hard')">
+                Hard
+                <span class="block text-sm font-normal mt-1">ปิ่นโต 5 ชั้น (คิดหนักสุดๆ)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+        <div id="top-bar">
+            <button onclick="returnToMenu()" class="status-box active:translate-y-1 transition-all bg-gray-100">
+                ◀ ออก
+            </button>
+            <div class="status-box">
+                ⏱ <span id="time-display" class="ml-1">05:00</span>
+            </div>
+            <div class="status-box">
+                🔄 <span id="moves-display" class="ml-1">0</span>
+            </div>
+            <div class="status-box text-orange-600">
+                ⭐ <span id="score-display" class="ml-1">0</span>
+            </div>
+        </div>
+
+        <div id="instruction-text" class="text-center font-bold text-lg text-gray-500 mb-2">
+            แตะที่เสาเพื่อยกชั้นปิ่นโต -> แตะเสาเป้าหมายเพื่อวาง
+        </div>
+
+        <div id="play-area">
+            <div class="base-platform"></div>
+            <div class="pegs-container" id="pegs-container">
+                <!-- Hitboxes -->
+                <div class="peg-hitbox" onclick="handlePegClick(0)" id="peg-0">
+                    <div class="peg-pole"></div>
+                </div>
+                <div class="peg-hitbox" onclick="handlePegClick(1)" id="peg-1">
+                    <div class="peg-pole"></div>
+                </div>
+                <div class="peg-hitbox" onclick="handlePegClick(2)" id="peg-2">
+                    <div class="peg-pole"></div>
+                </div>
+            </div>
+            <!-- Disks will be generated here -->
+            <div id="disks-container"></div>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="screen justify-center items-center bg-black bg-opacity-60 backdrop-blur-sm z-50">
+        <div class="panel w-full max-w-sm text-center">
+            <h1 class="title text-green-500" id="end-title">สำเร็จ!</h1>
+            <p class="text-lg font-bold mb-4" id="end-subtitle">คุณจัดปิ่นโตเรียบร้อยแล้ว</p>
+            
+            <div class="bg-gray-50 rounded-xl p-4 mb-6 border-2 border-gray-200 text-left">
+                <div class="flex justify-between mb-2">
+                    <span class="font-bold">จำนวนการย้าย:</span>
+                    <span id="final-moves" class="font-bold text-blue-500">0</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                    <span class="font-bold">คะแนนพื้นฐาน:</span>
+                    <span class="font-bold text-green-500">+30</span>
+                </div>
+                <div class="flex justify-between mb-2 border-b-2 border-gray-200 pb-2">
+                    <span class="font-bold">โบนัส (ย้ายน้อยครั้ง):</span>
+                    <span id="final-bonus" class="font-bold text-orange-500">+0</span>
+                </div>
+                <div class="flex justify-between mt-2 text-2xl font-extrabold">
+                    <span>รวม:</span>
+                    <span id="final-score" class="text-orange-600">0</span>
+                </div>
+            </div>
+
+            <button class="btn btn-yellow" onclick="returnToMenu()">เล่นอีกครั้ง</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Audio System ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        if (type === 'select') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'drop') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        } else if (type === 'wrong') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        } else if (type === 'win') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.5);
+        }
+    }
+
+    // --- Game State ---
+    let pegs = [[], [], []];
+    let diskCount = 3;
+    let selectedPeg = null;
+    let moves = 0;
+    let score = 0;
+    let timeLeft = 300; // 5 minutes
+    let gameInterval;
+    let isAnimating = false;
+    let optimalMoves = 0;
+
+    // --- Constants ---
+    const colors = ['#FFC4D9', '#BDE0FE', '#C1F0D5', '#FFF1A8', '#FFD1BA'];
+    const diskWidths = [50, 70, 90, 110, 130]; // % relative to peg zone
+    const diskHeight = 40;
+
+    // --- DOM Elements ---
+    const disksContainer = document.getElementById('disks-container');
+    const scoreDisplay = document.getElementById('score-display');
+    const movesDisplay = document.getElementById('moves-display');
+    const timeDisplay = document.getElementById('time-display');
+
+    function startGame(difficulty) {
+        initAudio();
+        
+        if (difficulty === 'easy') diskCount = 3;
+        else if (difficulty === 'medium') diskCount = 4;
+        else if (difficulty === 'hard') diskCount = 5;
+
+        optimalMoves = Math.pow(2, diskCount) - 1;
+
+        pegs = [[], [], []];
+        for (let i = diskCount; i >= 1; i--) {
+            pegs[0].push(i);
+        }
+
+        selectedPeg = null;
+        moves = 0;
+        score = 0;
+        timeLeft = 300;
+        isAnimating = false;
+
+        updateUI();
+        createDisksDOM();
+        positionAllDisks();
+
+        document.getElementById('menu-screen').classList.remove('active');
+        document.getElementById('gameover-screen').classList.remove('active');
+        document.getElementById('game-screen').classList.add('active');
+
+        clearInterval(gameInterval);
+        gameInterval = setInterval(() => {
+            timeLeft--;
+            updateTime();
+            if (timeLeft <= 0) showGameOver(false);
+        }, 1000);
+        updateTime();
+    }
+
+    function createDisksDOM() {
+        disksContainer.innerHTML = '';
+        for (let i = 1; i <= diskCount; i++) {
+            const disk = document.createElement('div');
+            disk.className = 'disk';
+            disk.id = `disk-${i}`;
+            disk.style.width = `${diskWidths[i-1]}px`;
+            disk.style.backgroundColor = colors[i-1];
+            
+            // Add Pinto handle for the top aesthetic
+            if (i === 1) {
+                const handle = document.createElement('div');
+                handle.className = 'disk-handle';
+                disk.appendChild(handle);
+            }
+            
+            disksContainer.appendChild(disk);
+        }
+    }
+
+    function getPegCenter(pegIndex) {
+        // Based on flex space-around of 3 elements in 90% width
+        // Peg 0: 16.66%, Peg 1: 50%, Peg 2: 83.33% roughly inside container
+        const containerWidth = document.getElementById('pegs-container').offsetWidth;
+        const offsetLeft = document.getElementById('pegs-container').offsetLeft;
+        const sectionWidth = containerWidth / 3;
+        return offsetLeft + (sectionWidth * pegIndex) + (sectionWidth / 2);
+    }
+
+    function positionAllDisks() {
+        for (let pegIndex = 0; pegIndex < 3; pegIndex++) {
+            const pegArr = pegs[pegIndex];
+            for (let diskPos = 0; diskPos < pegArr.length; diskPos++) {
+                const diskId = pegArr[diskPos];
+                const diskEl = document.getElementById(`disk-${diskId}`);
+                
+                const centerX = getPegCenter(pegIndex);
+                const bottomY = 80 + (diskPos * diskHeight); // 80 is container bottom
+
+                diskEl.style.left = `${centerX - (diskWidths[diskId-1]/2)}px`;
+                
+                // If this is the top disk of the selected peg, lift it up visually
+                if (selectedPeg === pegIndex && diskPos === pegArr.length - 1) {
+                    diskEl.style.bottom = `${bottomY + 30}px`;
+                    diskEl.style.boxShadow = `0 15px 20px rgba(0,0,0,0.2), 0 4px 0 var(--stroke-color), inset 0 2px 5px rgba(255,255,255,0.6)`;
+                } else {
+                    diskEl.style.bottom = `${bottomY}px`;
+                    diskEl.style.boxShadow = `0 4px 0 var(--stroke-color), inset 0 2px 5px rgba(255,255,255,0.6)`;
+                }
+            }
+        }
+    }
+
+    function handlePegClick(targetPeg) {
+        if (isAnimating || timeLeft <= 0) return;
+
+        // Visual feedback for peg selection
+        document.querySelectorAll('.peg-hitbox').forEach(el => el.classList.remove('active'));
+
+        if (selectedPeg === null) {
+            // Trying to select a disk
+            if (pegs[targetPeg].length > 0) {
+                selectedPeg = targetPeg;
+                document.getElementById(`peg-${targetPeg}`).classList.add('active');
+                playSound('select');
+                positionAllDisks(); // Update visual to lift the disk
+            }
+        } else {
+            // Trying to place a disk
+            if (selectedPeg === targetPeg) {
+                // Deselect
+                selectedPeg = null;
+                playSound('drop');
+                positionAllDisks();
+            } else {
+                // Move logic
+                const sourceTop = pegs[selectedPeg][pegs[selectedPeg].length - 1];
+                const targetTop = pegs[targetPeg].length > 0 ? pegs[targetPeg][pegs[targetPeg].length - 1] : Infinity;
+
+                if (sourceTop < targetTop) {
+                    // Valid Move
+                    pegs[selectedPeg].pop();
+                    pegs[targetPeg].push(sourceTop);
+                    moves++;
+                    selectedPeg = null;
+                    playSound('drop');
+                    positionAllDisks();
+                    updateUI();
+                    checkWin();
+                } else {
+                    // Invalid Move (Larger on Smaller)
+                    playSound('wrong');
+                    score -= 2;
+                    if(score < 0) score = 0; // Prevent negative display score during game
+                    updateUI();
+                    
+                    // Wiggle Animation on the selected disk
+                    const diskEl = document.getElementById(`disk-${sourceTop}`);
+                    diskEl.classList.add('wiggle');
+                    setTimeout(() => diskEl.classList.remove('wiggle'), 400);
+                    
+                    // Keep selected so player can try another peg
+                }
+            }
+        }
+    }
+
+    function checkWin() {
+        if (pegs[2].length === diskCount) {
+            isAnimating = true;
+            clearInterval(gameInterval);
+            playSound('win');
+            
+            // Add Confetti
+            const pegRect = document.getElementById('peg-2').getBoundingClientRect();
+            createConfetti(pegRect.left + pegRect.width/2, pegRect.top + pegRect.height/2);
+
+            setTimeout(() => {
+                showGameOver(true);
+            }, 1500);
+        }
+    }
+
+    function updateUI() {
+        movesDisplay.textContent = moves;
+        scoreDisplay.textContent = score;
+    }
+
+    function updateTime() {
+        const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+        const s = (timeLeft % 60).toString().padStart(2, '0');
+        timeDisplay.textContent = `${m}:${s}`;
+        if (timeLeft <= 30) timeDisplay.style.color = 'red';
+        else timeDisplay.style.color = 'inherit';
+    }
+
+    function showGameOver(isWin) {
+        clearInterval(gameInterval);
+        const screen = document.getElementById('gameover-screen');
+        const title = document.getElementById('end-title');
+        const subtitle = document.getElementById('end-subtitle');
+        
+        if (isWin) {
+            title.textContent = "สำเร็จ!";
+            title.className = "title text-green-500";
+            subtitle.textContent = "คุณจัดปิ่นโตเรียบร้อยแล้ว";
+            
+            let bonus = Math.max(0, 50 - ((moves - optimalMoves) * 5));
+            let total = 30 + bonus + score; // score has penalties
+
+            document.getElementById('final-moves').textContent = `${moves} (ดีที่สุด: ${optimalMoves})`;
+            document.getElementById('final-bonus').textContent = `+${bonus}`;
+            document.getElementById('final-score').textContent = total;
+        } else {
+            title.textContent = "หมดเวลา!";
+            title.className = "title text-red-500";
+            subtitle.textContent = "พยายามใหม่อีกครั้งนะ";
+            document.getElementById('final-moves').textContent = moves;
+            document.getElementById('final-bonus').textContent = "0";
+            document.getElementById('final-score').textContent = score;
+        }
+        
+        screen.classList.add('active');
+    }
+
+    function returnToMenu() {
+        clearInterval(gameInterval);
+        document.getElementById('game-screen').classList.remove('active');
+        document.getElementById('gameover-screen').classList.remove('active');
+        document.getElementById('menu-screen').classList.add('active');
+    }
+
+    function createConfetti(x, y) {
+        for (let i = 0; i < 30; i++) {
+            const conf = document.createElement('div');
+            conf.classList.add('confetti');
+            conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            conf.style.left = x + 'px';
+            conf.style.top = y + 'px';
+            
+            document.body.appendChild(conf);
+
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = 50 + Math.random() * 100;
+            const tx = Math.cos(angle) * velocity;
+            const ty = Math.sin(angle) * velocity - 100;
+
+            conf.animate([
+                { transform: 'translate(0,0) scale(1) rotate(0deg)', opacity: 1 },
+                { transform: `translate(${tx}px, ${ty}px) scale(0) rotate(${Math.random()*360}deg)`, opacity: 0 }
+            ], {
+                duration: 1000 + Math.random() * 500,
+                easing: 'cubic-bezier(.37,0,.63,1)'
+            }).onfinish = () => conf.remove();
+        }
+    }
+
+    // Handle window resize to keep disks positioned correctly
+    window.addEventListener('resize', () => {
+        if(document.getElementById('game-screen').classList.contains('active')) {
+            positionAllDisks();
+        }
+    });
+
+</script>
+</body>
+</html>

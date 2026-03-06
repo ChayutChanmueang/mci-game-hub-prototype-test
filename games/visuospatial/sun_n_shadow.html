@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sun & Shadow (เงาตามแดด)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom Styles for Paper Cut & Animations */
+        body {
+            font-family: 'Mali', cursive;
+            background-color: #F0F4F8;
+            touch-action: none; /* Prevent scrolling while dragging */
+            overflow: hidden;
+        }
+
+        .paper-panel {
+            background-color: #FDFBF7;
+            border: 3px solid #5A4D41;
+            border-radius: 24px;
+            box-shadow: 4px 6px 0px rgba(90, 77, 65, 0.15);
+        }
+
+        .paper-btn {
+            border: 3px solid #5A4D41;
+            border-radius: 20px;
+            box-shadow: 3px 5px 0px rgba(90, 77, 65, 0.2);
+            transition: transform 0.1s, box-shadow 0.1s;
+            cursor: pointer;
+        }
+
+        .paper-btn:active {
+            transform: translate(3px, 5px);
+            box-shadow: 0px 0px 0px rgba(90, 77, 65, 0.2);
+        }
+
+        .wiggle {
+            animation: wiggle 0.4s ease-in-out;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px) rotate(-2deg); }
+            40% { transform: translateX(8px) rotate(2deg); }
+            60% { transform: translateX(-4px) rotate(-1deg); }
+            80% { transform: translateX(4px) rotate(1deg); }
+        }
+
+        /* Elements */
+        .sun {
+            border: 3px solid #5A4D41;
+            border-radius: 50%;
+            background: radial-gradient(circle, #FFFACD 40%, #FFE4B5 100%);
+            box-shadow: 2px 4px 0px rgba(90, 77, 65, 0.1);
+        }
+
+        .lamp {
+            border: 3px solid #5A4D41;
+            border-radius: 50%;
+            background: radial-gradient(circle, #E0FFFF 40%, #AFEEEE 100%);
+            box-shadow: 2px 4px 0px rgba(90, 77, 65, 0.1);
+        }
+
+        .pole {
+            background: linear-gradient(to right, #D2B48C, #DEB887);
+            border: 3px solid #5A4D41;
+            border-radius: 8px;
+            box-shadow: inset -2px -2px 4px rgba(0,0,0,0.1);
+        }
+
+        .shadow-line {
+            stroke: rgba(90, 77, 65, 0.6);
+            stroke-width: 14;
+            stroke-linecap: round;
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.1));
+            transition: all 0.1s;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #f00;
+            opacity: 0.8;
+            border: 2px solid rgba(0,0,0,0.1);
+            border-radius: 3px;
+            pointer-events: none;
+        }
+
+        /* Themes */
+        .theme-day .sky { background: linear-gradient(180deg, #AEE2FF 0%, #E6F4F1 100%); }
+        .theme-day .ground { background-color: #C1E1C1; }
+        
+        .theme-sunset .sky { background: linear-gradient(180deg, #FFB7B2 0%, #FFDAC1 100%); }
+        .theme-sunset .ground { background-color: #E2C2A4; }
+
+    </style>
+</head>
+<body class="flex justify-center items-center h-screen w-screen m-0">
+
+    <!-- Game Container (9:18 Aspect Ratio) -->
+    <div id="app" class="relative w-full max-w-[400px] h-full max-h-[800px] sm:aspect-[9/18] bg-white sm:rounded-[36px] sm:border-8 border-gray-800 overflow-hidden shadow-2xl flex flex-col select-none theme-day">
+        
+        <!-- Screen: Main Menu -->
+        <div id="screen-menu" class="absolute inset-0 z-50 flex flex-col p-6 bg-[#FDFBF7] items-center justify-center">
+            
+            <div class="paper-panel w-full p-6 text-center mb-6 relative">
+                <div class="absolute -top-6 -left-4 w-12 h-12 sun"></div>
+                <h1 class="text-3xl font-bold text-[#5A4D41] mb-2 leading-relaxed">Sun & Shadow<br><span class="text-xl text-[#D08C60]">(เงาตามแดด)</span></h1>
+                <p class="text-[#7A6A58] text-lg leading-relaxed">ลากเงาของเสาธงให้ตรงข้ามกับแสงอาทิตย์ ยิ่งดวงอาทิตย์อยู่ต่ำ เงายิ่งยาวขึ้น!</p>
+            </div>
+
+            <div class="w-full mb-4 flex justify-between items-center px-2">
+                <span class="text-[#5A4D41] font-semibold text-lg">เลือกบรรยากาศ:</span>
+                <button id="btn-theme" class="paper-btn bg-[#FFFACD] px-4 py-2 text-[#5A4D41] font-bold" onclick="toggleTheme()">☀️ กลางวัน</button>
+            </div>
+
+            <div class="w-full flex flex-col gap-4">
+                <h2 class="text-xl font-bold text-[#5A4D41] px-2">เลือกระดับความยาก:</h2>
+                
+                <button class="paper-btn bg-[#A2E4B8] p-4 text-left flex flex-col" onclick="startGame('easy')">
+                    <span class="text-xl font-bold text-[#2D5A3F]">🌱 Easy (ง่าย)</span>
+                    <span class="text-[#3E7A55] mt-1 text-base leading-snug">แค่หันทิศทางเงาให้ถูกต้อง (ซ้าย/ขวา)</span>
+                </button>
+                
+                <button class="paper-btn bg-[#FFDAC1] p-4 text-left flex flex-col" onclick="startGame('medium')">
+                    <span class="text-xl font-bold text-[#A85A32]">☀️ Medium (ปานกลาง)</span>
+                    <span class="text-[#C47346] mt-1 text-base leading-snug">มีแสง 2 ดวง! ต้องสร้างเงาให้ครบ 2 เส้น</span>
+                </button>
+                
+                <button class="paper-btn bg-[#FFB7B2] p-4 text-left flex flex-col" onclick="startGame('hard')">
+                    <span class="text-xl font-bold text-[#A63A3A]">🔥 Hard (ยาก)</span>
+                    <span class="text-[#C24B4B] mt-1 text-base leading-snug">ต้องกะทั้งทิศทาง และความยาวเงาให้เป๊ะ!</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Screen: Game -->
+        <div id="screen-game" class="hidden absolute inset-0 z-10 flex flex-col">
+            
+            <!-- Top UI -->
+            <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-20 pointer-events-none">
+                <button class="paper-btn bg-white px-4 py-2 text-[#5A4D41] font-bold text-lg pointer-events-auto" onclick="returnToMenu()">← ออก</button>
+                <div class="paper-panel px-4 py-2 bg-white flex gap-4 text-[#5A4D41] font-bold text-lg">
+                    <span id="ui-score">คะแนน: 0</span>
+                    <span id="ui-time" class="text-[#D08C60]">03:00</span>
+                </div>
+            </div>
+
+            <!-- Environment -->
+            <div id="sky-area" class="sky h-[60%] w-full relative">
+                <!-- Lights injected here -->
+            </div>
+            
+            <div id="ground-area" class="ground h-[40%] w-full relative border-t-4 border-[#5A4D41]">
+                <!-- Pole -->
+                <div class="pole absolute bottom-[100%] left-1/2 -ml-[8px] w-[16px] h-[120px] z-10 origin-bottom"></div>
+                
+                <!-- Shadows -->
+                <svg id="shadow-svg" class="absolute top-0 left-0 w-full h-full overflow-visible z-0 pointer-events-none">
+                    <!-- Lines injected here -->
+                </svg>
+
+                <div id="feedback-msg" class="absolute top-4 w-full text-center font-bold text-2xl z-20 transition-opacity duration-300 opacity-0 pointer-events-none text-[#5A4D41]">
+                    ยอดเยี่ยม! +10
+                </div>
+
+                <!-- Touch Interaction Overlay -->
+                <div id="touch-overlay" class="absolute inset-0 z-30 touch-none"></div>
+
+                <!-- Bottom Controls -->
+                <div class="absolute bottom-6 w-full flex justify-center gap-4 z-40 px-6">
+                    <button class="paper-btn bg-white px-6 py-3 text-[#5A4D41] font-bold text-xl flex-1" onclick="clearShadows()">ลบเงา</button>
+                    <button id="btn-submit" class="paper-btn bg-[#A2E4B8] px-6 py-3 text-[#2D5A3F] font-bold text-xl flex-1" onclick="checkAnswer()">ส่งคำตอบ</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Screen: End Game -->
+        <div id="screen-end" class="hidden absolute inset-0 z-50 flex flex-col p-6 bg-[#FDFBF7] items-center justify-center">
+            <div class="paper-panel w-full p-8 text-center mb-8">
+                <h1 class="text-4xl font-bold text-[#5A4D41] mb-4">หมดเวลา!</h1>
+                <p class="text-[#7A6A58] text-xl mb-2">คะแนนที่คุณทำได้</p>
+                <p id="end-score" class="text-6xl font-bold text-[#D08C60] mb-6">120</p>
+                <button class="paper-btn bg-[#FFFACD] px-8 py-4 text-[#5A4D41] font-bold text-2xl w-full" onclick="returnToMenu()">เล่นอีกครั้ง</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- System & State ---
+        let currentTheme = 'day';
+        let difficulty = 'easy'; // easy, medium, hard
+        let score = 0;
+        let timeLeft = 180; // 3 minutes
+        let timerInterval;
+        
+        let lights = [];
+        let userShadows = []; // [{x, y}]
+        let isDragging = false;
+        let activeShadowIndex = -1;
+
+        // Constants based on UI
+        let poleBaseX, poleBaseY;
+
+        // Elements
+        const screenMenu = document.getElementById('screen-menu');
+        const screenGame = document.getElementById('screen-game');
+        const screenEnd = document.getElementById('screen-end');
+        const btnTheme = document.getElementById('btn-theme');
+        const skyArea = document.getElementById('sky-area');
+        const shadowSvg = document.getElementById('shadow-svg');
+        const touchOverlay = document.getElementById('touch-overlay');
+        const uiScore = document.getElementById('ui-score');
+        const uiTime = document.getElementById('ui-time');
+        const feedbackMsg = document.getElementById('feedback-msg');
+        const gameContainer = document.getElementById('app');
+
+        // --- Audio System (Web Audio API) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(freq, type, duration, vol=0.1) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playSuccessSound() {
+            playTone(523.25, 'sine', 0.1, 0.1); // C5
+            setTimeout(() => playTone(659.25, 'sine', 0.1, 0.1), 100); // E5
+            setTimeout(() => playTone(783.99, 'sine', 0.3, 0.1), 200); // G5
+        }
+
+        function playFailSound() {
+            playTone(220, 'triangle', 0.3, 0.15); // A3
+            setTimeout(() => playTone(200, 'triangle', 0.4, 0.15), 150);
+        }
+
+        function playPopSound() {
+            playTone(800, 'sine', 0.1, 0.05);
+        }
+
+        // --- Core Logic ---
+
+        function toggleTheme() {
+            if (currentTheme === 'day') {
+                currentTheme = 'sunset';
+                gameContainer.classList.remove('theme-day');
+                gameContainer.classList.add('theme-sunset');
+                btnTheme.innerHTML = "🌅 พระอาทิตย์ตก";
+                btnTheme.classList.replace('bg-[#FFFACD]', 'bg-[#FFDAC1]');
+            } else {
+                currentTheme = 'day';
+                gameContainer.classList.remove('theme-sunset');
+                gameContainer.classList.add('theme-day');
+                btnTheme.innerHTML = "☀️ กลางวัน";
+                btnTheme.classList.replace('bg-[#FFDAC1]', 'bg-[#FFFACD]');
+            }
+            playPopSound();
+        }
+
+        function startGame(diff) {
+            difficulty = diff;
+            score = 0;
+            timeLeft = 180;
+            updateHUD();
+            
+            screenMenu.classList.add('hidden');
+            screenEnd.classList.add('hidden');
+            screenGame.classList.remove('hidden');
+            
+            // Calculate Pole Base position
+            const rect = touchOverlay.getBoundingClientRect();
+            poleBaseX = rect.width / 2;
+            poleBaseY = 0; // Relative to ground area (top edge)
+
+            playPopSound();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateHUD();
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+
+            nextRound();
+        }
+
+        function returnToMenu() {
+            clearInterval(timerInterval);
+            screenMenu.classList.remove('hidden');
+            screenGame.classList.add('hidden');
+            screenEnd.classList.add('hidden');
+            playPopSound();
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            document.getElementById('end-score').innerText = score;
+            screenGame.classList.add('hidden');
+            screenEnd.classList.remove('hidden');
+            playFailSound(); // Just a sound to signify end
+        }
+
+        function updateHUD() {
+            uiScore.innerText = `คะแนน: ${score}`;
+            let m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            let s = (timeLeft % 60).toString().padStart(2, '0');
+            uiTime.innerText = `${m}:${s}`;
+        }
+
+        function nextRound() {
+            clearShadows();
+            skyArea.innerHTML = '';
+            lights = [];
+
+            let numLights = (difficulty === 'medium') ? 2 : 1;
+            
+            for (let i = 0; i < numLights; i++) {
+                // Random position in sky
+                // Sky is 0 to 100% height. We keep suns between 10% and 80% of sky to be visible.
+                let xPercent = 10 + Math.random() * 80;
+                let yPercent = 10 + Math.random() * 70;
+                
+                // If two lights, keep them apart horizontally
+                if (numLights === 2) {
+                    xPercent = i === 0 ? (10 + Math.random() * 30) : (60 + Math.random() * 30);
+                    // One high, one low to make it interesting
+                    yPercent = i === 0 ? (10 + Math.random() * 30) : (50 + Math.random() * 30);
+                }
+
+                let lightEl = document.createElement('div');
+                let isLamp = (numLights === 2 && i === 1);
+                lightEl.className = `absolute w-12 h-12 -ml-6 -mt-6 z-10 ${isLamp ? 'lamp' : 'sun'}`;
+                lightEl.style.left = `${xPercent}%`;
+                lightEl.style.top = `${yPercent}%`;
+                skyArea.appendChild(lightEl);
+
+                // Store light position relative to game container for math
+                lights.push({
+                    xPercent: xPercent / 100,
+                    yPercent: yPercent / 100 // Of the sky height
+                });
+            }
+        }
+
+        // --- Interaction ---
+
+        touchOverlay.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0 && e.type.includes('mouse')) return; // Left click only
+            isDragging = true;
+            
+            const rect = touchOverlay.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Determine if editing existing or adding new
+            let numLights = (difficulty === 'medium') ? 2 : 1;
+            
+            if (userShadows.length < numLights) {
+                userShadows.push({x, y});
+                activeShadowIndex = userShadows.length - 1;
+            } else {
+                // Find closest to edit
+                let minDist = Infinity;
+                let closestIdx = 0;
+                userShadows.forEach((sh, idx) => {
+                    let d = Math.hypot(sh.x - x, sh.y - y);
+                    if (d < minDist) {
+                        minDist = d;
+                        closestIdx = idx;
+                    }
+                });
+                activeShadowIndex = closestIdx;
+                userShadows[activeShadowIndex] = {x, y};
+            }
+            drawShadows();
+            playPopSound();
+        });
+
+        touchOverlay.addEventListener('pointermove', (e) => {
+            if (!isDragging || activeShadowIndex === -1) return;
+            const rect = touchOverlay.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+            
+            // Constrain to ground
+            if (y < 0) y = 0;
+
+            userShadows[activeShadowIndex] = {x, y};
+            drawShadows();
+        });
+
+        const stopDrag = () => {
+            isDragging = false;
+            activeShadowIndex = -1;
+        };
+        
+        touchOverlay.addEventListener('pointerup', stopDrag);
+        touchOverlay.addEventListener('pointercancel', stopDrag);
+        touchOverlay.addEventListener('pointerleave', stopDrag);
+
+        function clearShadows() {
+            userShadows = [];
+            drawShadows();
+        }
+
+        function drawShadows() {
+            shadowSvg.innerHTML = '';
+            userShadows.forEach(sh => {
+                let line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', poleBaseX);
+                line.setAttribute('y1', poleBaseY);
+                line.setAttribute('x2', sh.x);
+                line.setAttribute('y2', sh.y);
+                line.setAttribute('class', 'shadow-line');
+                shadowSvg.appendChild(line);
+            });
+        }
+
+        // --- Math & Checking ---
+
+        function checkAnswer() {
+            let numLights = (difficulty === 'medium') ? 2 : 1;
+            if (userShadows.length < numLights) {
+                showFeedback("ลากเงาให้ครบก่อนนะ!", false, true);
+                return;
+            }
+
+            const skyRect = skyArea.getBoundingClientRect();
+            const groundRect = touchOverlay.getBoundingClientRect();
+            
+            // Pole position in absolute px from top of game container
+            const absPoleX = groundRect.left + poleBaseX;
+            const absPoleY = groundRect.top + poleBaseY;
+
+            let correctCount = 0;
+
+            // Generate expected targets
+            let targets = lights.map(light => {
+                let absSunX = skyRect.left + (skyRect.width * light.xPercent);
+                let absSunY = skyRect.top + (skyRect.height * light.yPercent);
+                
+                // Vector from Pole to Sun
+                let dx = absPoleX - absSunX;
+                let dy = absPoleY - absSunY;
+                
+                let expectedAngle = Math.atan2(dy, dx);
+                
+                // Expected Length (Lower sun = longer shadow)
+                // Sun height from ground = absPoleY - absSunY
+                let sunHeight = absPoleY - absSunY; 
+                let maxSunHeight = skyRect.height;
+                // Length multiplier: 0.5 (high sun) to 2.5 (low sun)
+                let lengthMultiplier = 0.5 + (2.0 * (1 - (sunHeight / maxSunHeight)));
+                let expectedLength = 80 * lengthMultiplier; // Base length 80px
+
+                return { angle: expectedAngle, length: expectedLength };
+            });
+
+            // Evaluate user shadows
+            // Simple mapping: assign user shadow to closest expected angle
+            let usedShadows = new Set();
+            
+            targets.forEach(target => {
+                let bestMatchIdx = -1;
+                let smallestAngleDiff = Infinity;
+
+                userShadows.forEach((sh, idx) => {
+                    if (usedShadows.has(idx)) return;
+                    
+                    let userDx = sh.x - poleBaseX;
+                    let userDy = sh.y - poleBaseY;
+                    let userAngle = Math.atan2(userDy, userDx);
+                    
+                    // Normalize angle difference to -PI to PI
+                    let diff = Math.abs(userAngle - target.angle);
+                    while (diff > Math.PI) diff -= 2 * Math.PI;
+                    diff = Math.abs(diff);
+
+                    if (diff < smallestAngleDiff) {
+                        smallestAngleDiff = diff;
+                        bestMatchIdx = idx;
+                    }
+                });
+
+                if (bestMatchIdx !== -1) {
+                    usedShadows.add(bestMatchIdx);
+                    let sh = userShadows[bestMatchIdx];
+                    let userDx = sh.x - poleBaseX;
+                    let userDy = sh.y - poleBaseY;
+                    let userLength = Math.hypot(userDx, userDy);
+
+                    // Tolerances
+                    let isAngleCorrect = smallestAngleDiff < 0.45; // ~25 degrees
+                    
+                    // 35% margin for length
+                    let lengthError = Math.abs(userLength - target.length) / target.length;
+                    let isLengthCorrect = lengthError < 0.35;
+
+                    if (difficulty === 'hard') {
+                        if (isAngleCorrect && isLengthCorrect) correctCount++;
+                    } else {
+                        if (isAngleCorrect) correctCount++;
+                    }
+                }
+            });
+
+            if (correctCount === numLights) {
+                // Success
+                score += 10;
+                updateHUD();
+                playSuccessSound();
+                createConfetti();
+                showFeedback("เยี่ยมมาก! +10", true);
+                setTimeout(nextRound, 1500);
+            } else {
+                // Fail
+                score = Math.max(0, score - 5);
+                updateHUD();
+                playFailSound();
+                gameContainer.classList.add('wiggle');
+                setTimeout(() => gameContainer.classList.remove('wiggle'), 400);
+                
+                if (difficulty === 'hard') {
+                     showFeedback("เกือบแล้ว! ลองเช็คความยาวและทิศทาง", false);
+                } else if (difficulty === 'medium') {
+                     showFeedback("ทิศทางของเงาทั้งสองยังไม่เป๊ะ!", false);
+                } else {
+                     showFeedback("ทิศทางยังไม่ถูกนะ!", false);
+                }
+            }
+        }
+
+        function showFeedback(text, isSuccess, isWarning = false) {
+            feedbackMsg.innerText = text;
+            feedbackMsg.classList.remove('text-[#2D5A3F]', 'text-[#A63A3A]', 'text-[#A85A32]');
+            
+            if (isSuccess) feedbackMsg.classList.add('text-[#2D5A3F]');
+            else if (isWarning) feedbackMsg.classList.add('text-[#A85A32]');
+            else feedbackMsg.classList.add('text-[#A63A3A]');
+
+            feedbackMsg.classList.remove('opacity-0');
+            setTimeout(() => {
+                feedbackMsg.classList.add('opacity-0');
+            }, 1500);
+        }
+
+        // --- Visual Effects ---
+
+        function createConfetti() {
+            const colors = ['#AEE2FF', '#FFDAC1', '#A2E4B8', '#FFFACD', '#FFB7B2'];
+            const container = document.getElementById('ground-area');
+            const rect = container.getBoundingClientRect();
+            
+            for (let i = 0; i < 30; i++) {
+                let conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                conf.style.left = `${poleBaseX}px`;
+                conf.style.top = `0px`; // Base of pole
+                container.appendChild(conf);
+
+                // Animate
+                let angle = Math.random() * Math.PI * 2;
+                let velocity = 50 + Math.random() * 100;
+                let tx = Math.cos(angle) * velocity;
+                let ty = Math.sin(angle) * velocity - 100; // throw upwards
+
+                conf.animate([
+                    { transform: `translate(0, 0) rotate(0deg)`, opacity: 1 },
+                    { transform: `translate(${tx}px, ${ty}px) rotate(${Math.random()*360}deg)`, opacity: 0.8, offset: 0.4 },
+                    { transform: `translate(${tx * 1.5}px, ${ty + 150}px) rotate(${Math.random()*720}deg)`, opacity: 0 }
+                ], {
+                    duration: 1000 + Math.random() * 500,
+                    easing: 'cubic-bezier(.37,0,.63,1)'
+                }).onfinish = () => conf.remove();
+            }
+        }
+
+    </script>
+</body>
+</html>

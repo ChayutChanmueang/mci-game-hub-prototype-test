@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shadow Puppeteer (เชิดหนังตะลุง)</title>
+    
+    <!-- ฟอนต์ Mali สำหรับสไตล์ Warm & Rounded -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config สำหรับ Color Palette (Pastel) และสไตล์ Paper Cut -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Mali', 'sans-serif'],
+                    },
+                    colors: {
+                        paper: '#FDFBF7',
+                        textDark: '#5D4037',
+                        peach: '#FFD1BA',
+                        mint: '#B5EAD7',
+                        sky: '#C7CEEA',
+                        lemon: '#FFFFB5',
+                        pink: '#FF9CEE',
+                        green: '#E2F0CB',
+                        uiBorder: '#E0D4C8',
+                        uiShadow: '#D2C4B4',
+                        correct: '#A8E6CF',
+                        close: '#FFE0B2',
+                        wrong: '#FF8B94',
+                        shadowTarget: '#D2C4B4'
+                    },
+                    boxShadow: {
+                        'paper': '4px 4px 0px 0px rgba(210, 196, 180, 0.5)',
+                        'btn': '0px 6px 0px 0px rgba(210, 196, 180, 0.8)',
+                        'btn-active': '0px 0px 0px 0px rgba(210, 196, 180, 0.8)',
+                        'inner-paper': 'inset 2px 2px 4px rgba(255, 255, 255, 0.8), inset -2px -2px 4px rgba(0, 0, 0, 0.05)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #EFEBE9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            max-height: 800px;
+            aspect-ratio: 9 / 18;
+            background-color: theme('colors.paper');
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        @media (min-width: 401px) {
+            #app-container {
+                height: 90vh;
+                border-radius: 32px;
+                border: 8px solid white;
+            }
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px) rotate(-2deg); }
+            75% { transform: translateX(8px) rotate(2deg); }
+        }
+        .animate-wiggle { animation: wiggle 0.4s ease-in-out; }
+
+        @keyframes pop {
+            0% { transform: scale(0.9); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .paper-panel {
+            background-color: white;
+            border: 3px solid theme('colors.uiBorder');
+            border-radius: 24px;
+            box-shadow: theme('boxShadow.paper');
+        }
+
+        .paper-btn {
+            transition: all 0.1s;
+            border: 3px solid theme('colors.uiBorder');
+            box-shadow: theme('boxShadow.btn');
+        }
+        .paper-btn:active:not(:disabled) {
+            transform: translateY(6px);
+            box-shadow: theme('boxShadow.btn-active');
+        }
+
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: radial-gradient(circle, #FFF 0%, #FDFBF7 70%, #E0D4C8 100%);
+        }
+    </style>
+</head>
+<body class="text-textDark selection:bg-peach">
+
+    <div id="app-container">
+        
+        <!-- Screen 1: Main Menu -->
+        <div id="menu-screen" class="absolute inset-0 flex flex-col items-center p-6 z-10 bg-paper overflow-y-auto">
+            
+            <!-- Title -->
+            <div class="mt-8 mb-6 text-center animate-pop">
+                <h1 class="text-4xl font-bold leading-tight mb-2">
+                    <span class="block text-peach drop-shadow-sm">Shadow</span>
+                    <span class="block text-sky drop-shadow-sm">Puppeteer</span>
+                </h1>
+                <p class="text-lg font-semibold bg-white px-4 py-1 rounded-full border-2 border-uiBorder inline-block shadow-sm">
+                    เชิดหนังตะลุง 🎭
+                </p>
+            </div>
+
+            <!-- Description Panel -->
+            <div class="paper-panel p-5 mb-6 w-full text-center">
+                <h2 class="font-bold text-xl mb-2">วิธีเล่น</h2>
+                <p class="text-sm leading-relaxed text-gray-600">
+                    ดู <span class="text-textDark font-bold">"การ์ดเงาเป้าหมาย"</span> มุมซ้ายบน<br>
+                    แล้วลากข้อต่อ <span class="text-peach font-bold">จุดสีสัน</span> เพื่อเลียนแบบท่าทางให้ตรงกัน <br>
+                    <span class="text-xs text-gray-400">(จุดสีน้ำตาลจะถูกล็อคไว้ไม่ให้ขยับ)</span>
+                </p>
+                <div class="flex flex-col gap-1 mt-3 text-sm font-bold bg-gray-50 rounded-xl py-2">
+                    <span class="text-green-600">เป๊ะมาก (>90%) : +20</span>
+                    <span class="text-yellow-500">ใกล้เคียง (>70%) : +10</span>
+                    <span class="text-red-500">พลาด : -5</span>
+                </div>
+            </div>
+
+            <!-- Difficulty Selector -->
+            <div class="w-full flex flex-col gap-3 flex-1 pb-4">
+                <h3 class="font-bold text-center mb-1 text-sm">เลือกระดับความยาก</h3>
+                
+                <button onclick="startGame('easy')" class="paper-btn bg-white rounded-2xl p-3 flex flex-col items-center justify-center w-full relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-peach opacity-10 group-active:opacity-20 transition-opacity"></div>
+                    <span class="text-lg font-bold text-peach mb-1">Easy (ง่าย)</span>
+                    <span class="text-xs text-gray-500 text-center">ขยับแค่ 1 ข้อต่อ ท่าทางง่ายๆ</span>
+                </button>
+                
+                <button onclick="startGame('medium')" class="paper-btn bg-white rounded-2xl p-3 flex flex-col items-center justify-center w-full relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-sky opacity-10 group-active:opacity-20 transition-opacity"></div>
+                    <span class="text-lg font-bold text-sky mb-1">Medium (ปานกลาง)</span>
+                    <span class="text-xs text-gray-500 text-center">ต้องขยับทั้งแขนและขา (2-3 จุด)</span>
+                </button>
+                
+                <button onclick="startGame('hard')" class="paper-btn bg-white rounded-2xl p-3 flex flex-col items-center justify-center w-full relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-pink opacity-10 group-active:opacity-20 transition-opacity"></div>
+                    <span class="text-lg font-bold text-pink mb-1">Hard (ยาก)</span>
+                    <span class="text-xs text-gray-500 text-center">รำไทย, โยคะ, กังฟู (ขยับ 4-5 จุด)</span>
+                </button>
+            </div>
+            
+        </div>
+
+        <!-- Screen 2: Game Screen -->
+        <div id="game-screen" class="absolute inset-0 flex flex-col hidden z-20 bg-paper">
+            
+            <!-- Header -->
+            <div class="flex justify-between items-center p-4 pb-2 z-10">
+                <button onclick="showMenu()" class="paper-btn bg-white w-10 h-10 rounded-full flex justify-center items-center">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                
+                <div class="paper-panel bg-white px-4 py-1 flex items-center gap-3">
+                    <span class="font-bold text-lg">⏳ <span id="timer-display">03:00</span></span>
+                </div>
+
+                <div class="paper-panel bg-lemon px-4 py-1 flex items-center gap-2">
+                    <span class="font-bold text-lg text-textDark">⭐ <span id="score-display">0</span></span>
+                </div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="flex-1 relative mt-2 mx-4 mb-4 rounded-3xl border-4 border-uiBorder overflow-hidden shadow-inner-paper">
+                <canvas id="game-canvas" width="400" height="500"></canvas>
+                
+                <!-- Match Feedback Overlay -->
+                <div id="match-feedback" class="absolute top-4 right-4 bg-white px-4 py-2 rounded-full font-bold shadow-sm opacity-0 transition-opacity duration-300">
+                    ความแม่นยำ: <span id="match-percent">0</span>%
+                </div>
+            </div>
+
+            <!-- Submit Button Area -->
+            <div class="p-4 pt-0">
+                <button id="submit-btn" onclick="checkPose()" class="paper-btn bg-mint w-full py-4 rounded-2xl font-bold text-xl text-textDark flex justify-center items-center gap-2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    ส่งท่าทาง
+                </button>
+            </div>
+            
+        </div>
+
+        <!-- Screen 3: Result Screen -->
+        <div id="result-screen" class="absolute inset-0 flex flex-col items-center justify-center p-6 hidden z-30 bg-paper">
+            <div class="paper-panel p-8 flex flex-col items-center w-full animate-pop">
+                <h2 class="text-4xl font-bold text-peach mb-2">หมดเวลา!</h2>
+                <p class="text-gray-500 mb-6 font-semibold">คะแนนนักเชิดหุ่นของคุณ</p>
+                <div class="text-6xl font-bold text-textDark mb-8 drop-shadow-md" id="final-score">0</div>
+                
+                <button onclick="showMenu()" class="paper-btn bg-mint text-textDark text-xl font-bold py-4 px-8 rounded-2xl w-full">
+                    เล่นอีกครั้ง 🔄
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Audio Context ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            if (type === 'perfect') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
+                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); 
+                osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.3); 
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.6);
+            } else if (type === 'good') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.15);
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.4);
+            } else if (type === 'wrong') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        function createConfetti(x, y) {
+            const colors = ['#FFD1BA', '#B5EAD7', '#C7CEEA', '#FFFFB5', '#FF9CEE'];
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                document.body.appendChild(particle);
+
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = 3 + Math.random() * 5;
+                const dx = Math.cos(angle) * velocity;
+                const dy = Math.sin(angle) * velocity - 3;
+
+                let posX = x;
+                let posY = y;
+                let opacity = 1;
+
+                function animateConfetti() {
+                    posX += dx;
+                    posY += dy + 1.5; 
+                    opacity -= 0.02;
+                    
+                    particle.style.left = posX + 'px';
+                    particle.style.top = posY + 'px';
+                    particle.style.opacity = opacity;
+                    particle.style.transform = `rotate(${posX * 3}deg) scale(${opacity})`;
+
+                    if (opacity > 0) {
+                        requestAnimationFrame(animateConfetti);
+                    } else {
+                        particle.remove();
+                    }
+                }
+                requestAnimationFrame(animateConfetti);
+            }
+        }
+
+        // --- Game State & Canvas ---
+        let currentDifficulty = 'easy';
+        let score = 0;
+        let timeLeft = 180;
+        let timerInterval = null;
+        let isAnswering = false;
+        let currentActiveNodes = [];
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const GAME_WIDTH = 400;
+        const GAME_HEIGHT = 500;
+        let animationFrame;
+
+        // --- Inverse Kinematics (IK) Solver ---
+        function solveIK(p0, target, l1, l2, flip) {
+            let dx = target.x - p0.x;
+            let dy = target.y - p0.y;
+            let d = Math.sqrt(dx*dx + dy*dy);
+            
+            if (d > l1 + l2) {
+                target.x = p0.x + (dx/d) * (l1 + l2);
+                target.y = p0.y + (dy/d) * (l1 + l2);
+                d = l1 + l2;
+            } else if (d < Math.abs(l1 - l2)) {
+                d = Math.abs(l1 - l2) + 0.1;
+            }
+
+            let alpha = Math.atan2(dy, dx);
+            let cosA = (l1*l1 + d*d - l2*l2) / (2 * l1 * d);
+            cosA = Math.max(-1, Math.min(1, cosA));
+            let A = Math.acos(cosA);
+
+            let elbowAngle = flip ? alpha - A : alpha + A;
+            let p1 = {
+                x: p0.x + l1 * Math.cos(elbowAngle),
+                y: p0.y + l1 * Math.sin(elbowAngle)
+            };
+            return { elbow: p1, end: target };
+        }
+
+        // --- Puppet Data Structure ---
+        class Puppet {
+            constructor(isTarget = false) {
+                this.isTarget = isTarget;
+                this.lenSpine = 105;
+                this.lenHead = 60;
+                this.lenArm1 = 68;
+                this.lenArm2 = 68;
+                this.lenLeg1 = 83;
+                this.lenLeg2 = 83;
+
+                this.root = { x: 200, y: 320 };
+                this.neck = { x: 200, y: this.root.y - this.lenSpine };
+                this.l_shoulder = { x: this.neck.x - 30, y: this.neck.y };
+                this.r_shoulder = { x: this.neck.x + 30, y: this.neck.y };
+                this.l_hip = { x: this.root.x - 22, y: this.root.y };
+                this.r_hip = { x: this.root.x + 22, y: this.root.y };
+
+                this.nodes = {
+                    head: { x: this.neck.x, y: this.neck.y - this.lenHead },
+                    l_hand: { x: this.l_shoulder.x - 10, y: this.l_shoulder.y + this.lenArm1 + this.lenArm2 },
+                    r_hand: { x: this.r_shoulder.x + 10, y: this.r_shoulder.y + this.lenArm1 + this.lenArm2 },
+                    l_foot: { x: this.l_hip.x, y: this.l_hip.y + this.lenLeg1 + this.lenLeg2 },
+                    r_foot: { x: this.r_hip.x, y: this.r_hip.y + this.lenLeg1 + this.lenLeg2 }
+                };
+
+                this.joints = {
+                    l_elbow: { x: 0, y: 0 },
+                    r_elbow: { x: 0, y: 0 },
+                    l_knee: { x: 0, y: 0 },
+                    r_knee: { x: 0, y: 0 }
+                };
+
+                this.updateIK();
+            }
+
+            updateIK() {
+                // Head
+                let dx = this.nodes.head.x - this.neck.x;
+                let dy = this.nodes.head.y - this.neck.y;
+                let d = Math.sqrt(dx*dx + dy*dy);
+                if (d !== this.lenHead && d > 0) {
+                    this.nodes.head.x = this.neck.x + (dx/d) * this.lenHead;
+                    this.nodes.head.y = this.neck.y + (dy/d) * this.lenHead;
+                }
+
+                // Limbs
+                let lArm = solveIK(this.l_shoulder, this.nodes.l_hand, this.lenArm1, this.lenArm2, false);
+                this.joints.l_elbow = lArm.elbow;
+                this.nodes.l_hand = lArm.end;
+
+                let rArm = solveIK(this.r_shoulder, this.nodes.r_hand, this.lenArm1, this.lenArm2, true);
+                this.joints.r_elbow = rArm.elbow;
+                this.nodes.r_hand = rArm.end;
+
+                let lLeg = solveIK(this.l_hip, this.nodes.l_foot, this.lenLeg1, this.lenLeg2, false);
+                this.joints.l_knee = lLeg.elbow;
+                this.nodes.l_foot = lLeg.end;
+
+                let rLeg = solveIK(this.r_hip, this.nodes.r_foot, this.lenLeg1, this.lenLeg2, true);
+                this.joints.r_knee = rLeg.elbow;
+                this.nodes.r_foot = rLeg.end;
+            }
+
+            draw(ctx) {
+                // ให้เงาเป้าหมายมีสีเข้มขึ้น เพื่อให้มองเห็นชัดเจนใน Blueprint Card
+                const colorLine = this.isTarget ? '#9A8C78' : '#5D4037';
+                // เพิ่มความหนาของเส้นให้เงาเป้าหมาย เพื่อชดเชยเวลาถูกย่อสเกล
+                const lineWidth = this.isTarget ? 35 : 15;
+
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.lineWidth = lineWidth;
+                ctx.strokeStyle = colorLine;
+
+                const line = (p1, p2) => {
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                };
+
+                // Bones
+                line(this.root, this.neck);
+                line(this.neck, this.nodes.head);
+                line(this.l_shoulder, this.r_shoulder);
+                line(this.l_hip, this.r_hip);
+                line(this.l_shoulder, this.joints.l_elbow);
+                line(this.joints.l_elbow, this.nodes.l_hand);
+                line(this.r_shoulder, this.joints.r_elbow);
+                line(this.joints.r_elbow, this.nodes.r_hand);
+                line(this.l_hip, this.joints.l_knee);
+                line(this.joints.l_knee, this.nodes.l_foot);
+                line(this.r_hip, this.joints.r_knee);
+                line(this.joints.r_knee, this.nodes.r_foot);
+
+                // Draw Base Head (Always drawn for target, or for player if locked)
+                if (this.isTarget || !currentActiveNodes.includes('head')) {
+                    ctx.fillStyle = colorLine;
+                    ctx.beginPath();
+                    ctx.arc(this.nodes.head.x, this.nodes.head.y, this.isTarget ? 35 : 22, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Draw Nodes for Player
+                if (!this.isTarget) {
+                    const nodeColors = {
+                        head: '#FFD1BA', l_hand: '#B5EAD7', r_hand: '#C7CEEA', 
+                        l_foot: '#FFFFB5', r_foot: '#FF9CEE'
+                    };
+
+                    for (let key in this.nodes) {
+                        const pt = this.nodes[key];
+                        
+                        // ถ้าชิ้นส่วนถูกล็อค ให้วาดแค่จุดสีน้ำตาลเล็กๆ เหมือนข้อต่อปกติ
+                        if (!currentActiveNodes.includes(key)) {
+                            if (key !== 'head') {
+                                ctx.beginPath();
+                                ctx.arc(pt.x, pt.y, 12, 0, Math.PI * 2);
+                                ctx.fillStyle = colorLine;
+                                ctx.fill();
+                            }
+                            continue;
+                        }
+
+                        // ถ้าชิ้นส่วนเป็นชิ้นที่ต้องขยับ ให้วาดจุดเรืองแสง
+                        let isClose = false;
+                        if (targetPuppet) {
+                            let tx = targetPuppet.nodes[key].x;
+                            let ty = targetPuppet.nodes[key].y;
+                            let dist = Math.sqrt((pt.x-tx)**2 + (pt.y-ty)**2);
+                            if (dist < 30) isClose = true;
+                        }
+
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, 20, 0, Math.PI * 2);
+                        ctx.fillStyle = isClose ? '#A8E6CF' : nodeColors[key];
+                        ctx.fill();
+                        
+                        ctx.lineWidth = 3;
+                        ctx.strokeStyle = isClose ? '#5D4037' : '#FFFFFF';
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+                        ctx.fillStyle = '#5D4037';
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        let playerPuppet = new Puppet(false);
+        let targetPuppet = new Puppet(true);
+        let draggedNode = null;
+
+        // --- Level Generation Library ---
+        function generatePose(difficulty) {
+            let p = new Puppet(true);
+            let active = [];
+
+            const setNode = (nodeName, dx, dy) => {
+                if (!active.includes(nodeName)) active.push(nodeName);
+                p.nodes[nodeName].x += dx;
+                p.nodes[nodeName].y += dy;
+            };
+            const setAbs = (nodeName, x, y) => {
+                if (!active.includes(nodeName)) active.push(nodeName);
+                p.nodes[nodeName].x = x;
+                p.nodes[nodeName].y = y;
+            };
+
+            const poses = {
+                easy: [
+                    () => setNode('r_hand', 75, -150), // โบกมือขวา
+                    () => setNode('l_hand', -75, -165), // โบกมือซ้าย
+                    () => setAbs('r_hand', p.nodes.head.x + 30, p.nodes.head.y - 15), // จับหัวขวา
+                    () => setAbs('l_hand', p.nodes.head.x - 30, p.nodes.head.y - 15), // จับหัวซ้าย
+                    () => setNode('l_foot', -60, -75), // ยกเท้าซ้าย
+                    () => setNode('r_foot', 60, -75),  // ยกเท้าขวา
+                    () => setNode('head', -45, 30),    // เอียงคอซ้าย
+                    () => setNode('head', 45, 30)      // เอียงคอขวา
+                ],
+                medium: [
+                    () => { setNode('l_hand', -45, -195); setNode('r_hand', 45, -195); }, // ชูสองมือ
+                    () => { setNode('l_hand', -75, -150); setNode('r_foot', 90, -60); }, // ทรงตัว 1
+                    () => { setNode('r_hand', 75, -150); setNode('l_foot', -90, -60); }, // ทรงตัว 2
+                    () => { setAbs('l_hand', p.l_hip.x - 15, p.l_hip.y); setAbs('r_hand', p.r_hip.x + 15, p.r_hip.y); }, // เท้าเอว
+                    () => { setAbs('r_hand', p.nodes.l_foot.x, p.nodes.l_foot.y); setNode('l_foot', -30, -30); }, // ก้มแตะสลับ
+                    () => { setNode('l_hand', 135, -30); setNode('r_hand', 135, -30); }, // ชี้ไปขวา
+                    () => { setNode('l_hand', -135, -30); setNode('r_hand', -135, -30); }, // ชี้ไปซ้าย
+                    () => { setNode('head', 0, -30); setNode('l_hand', -45, -210); setNode('r_hand', 45, -210); } // มองฟ้า+ชูมือ
+                ],
+                hard: [
+                    // ท่ารำไทย
+                    () => { setAbs('l_hand', p.neck.x - 90, p.neck.y - 30); setAbs('r_hand', p.neck.x + 30, p.neck.y - 90); setNode('l_foot', -60, -90); setNode('head', -30, 15); },
+                    // ท่าเตะกังฟู
+                    () => { setNode('l_hand', -90, -120); setNode('r_hand', 90, -120); setNode('r_foot', 90, -120); setNode('head', 0, -15); },
+                    // ท่าต้นไม้ (โยคะ)
+                    () => { setAbs('l_hand', p.neck.x, p.neck.y - 120); setAbs('r_hand', p.neck.x, p.neck.y - 120); p.updateIK(); setAbs('l_foot', p.joints.r_knee.x - 15, p.joints.r_knee.y); },
+                    // ท่าวิ่งสุดแรง
+                    () => { setNode('l_hand', 90, -60); setNode('r_hand', -90, 60); setNode('l_foot', -60, -60); setNode('r_foot', 60, -30); setNode('head', 30, 15); },
+                    // ท่านินจาซุ่ม
+                    () => { setAbs('l_hand', p.r_shoulder.x + 30, p.neck.y + 15); setAbs('r_hand', p.l_shoulder.x - 30, p.neck.y + 45); setNode('l_foot', -90, -30); setNode('r_foot', 90, -30); },
+                    // ท่าเต้นดิสโก้
+                    () => { setAbs('l_hand', p.neck.x - 105, p.neck.y - 120); setAbs('r_hand', p.l_hip.x + 30, p.l_hip.y + 30); setNode('l_foot', -45, -45); setNode('head', -15, -15); },
+                    // ท่านั่งสมาธิกลางอากาศ
+                    () => { let lx = p.nodes.l_foot.x, ly = p.nodes.l_foot.y, rx = p.nodes.r_foot.x, ry = p.nodes.r_foot.y; setAbs('l_hand', p.r_hip.x, p.neck.y + 60); setAbs('r_hand', p.l_hip.x, p.neck.y + 60); setAbs('r_foot', lx - 30, ly); setAbs('l_foot', rx + 30, ry); }
+                ]
+            };
+
+            let poseList = poses[difficulty];
+            let randPose = poseList[Math.floor(Math.random() * poseList.length)];
+            randPose();
+            
+            p.updateIK();
+            currentActiveNodes = active; 
+            return p;
+        }
+
+        function loadLevel() {
+            targetPuppet = generatePose(currentDifficulty);
+            playerPuppet = new Puppet(false); 
+            isAnswering = false;
+            document.getElementById('match-feedback').style.opacity = '0';
+        }
+
+        // --- Interaction Logic ---
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let clientX = evt.clientX;
+            let clientY = evt.clientY;
+            
+            if (evt.touches && evt.touches.length > 0) {
+                clientX = evt.touches[0].clientX;
+                clientY = evt.touches[0].clientY;
+            }
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function handleDown(e) {
+            if (isAnswering) return;
+            const pos = getMousePos(e);
+            
+            let closest = null;
+            let minDist = 45;
+
+            for (let key in playerPuppet.nodes) {
+                if (!currentActiveNodes.includes(key)) continue;
+
+                let pt = playerPuppet.nodes[key];
+                let dist = Math.sqrt((pt.x - pos.x)**2 + (pt.y - pos.y)**2);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = key;
+                }
+            }
+
+            if (closest) draggedNode = closest;
+        }
+
+        function handleMove(e) {
+            if (draggedNode && !isAnswering) {
+                const pos = getMousePos(e);
+                playerPuppet.nodes[draggedNode].x = pos.x;
+                playerPuppet.nodes[draggedNode].y = pos.y;
+                playerPuppet.updateIK();
+            }
+        }
+
+        function handleUp() {
+            draggedNode = null;
+        }
+
+        canvas.addEventListener('mousedown', handleDown);
+        canvas.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleUp);
+
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleDown(e); }, {passive: false});
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); }, {passive: false});
+        window.addEventListener('touchend', handleUp);
+
+        // --- Rendering Loop ---
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 1. วาด Blueprint Card (เงาเป้าหมาย) มุมซ้ายบน
+            if (targetPuppet) {
+                ctx.save();
+                
+                // กล่องการ์ด
+                ctx.shadowColor = 'rgba(0,0,0,0.1)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetY = 4;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.beginPath();
+                // วาดกรอบโค้งมน (Fallback สำหรับเบราว์เซอร์เก่าบางตัว)
+                if (ctx.roundRect) {
+                    ctx.roundRect(15, 15, 130, 175, 16);
+                } else {
+                    ctx.rect(15, 15, 130, 175);
+                }
+                ctx.fill();
+                
+                ctx.shadowColor = 'transparent';
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#E0D4C8';
+                ctx.stroke();
+
+                // ข้อความบนการ์ด
+                ctx.fillStyle = '#5D4037';
+                ctx.font = 'bold 16px Mali';
+                ctx.textAlign = 'center';
+                ctx.fillText('เงาเป้าหมาย', 80, 42);
+
+                // ย่อสเกลและเลื่อนตำแหน่งการวาดเงาเข้าไปอยู่ในการ์ด
+                // Root ปกติอยู่ที่ (200, 320) เลื่อนและย่อมาที่ตำแหน่งประมาณ (80, 160)
+                ctx.translate(10, 50);
+                ctx.scale(0.35, 0.35);
+                targetPuppet.draw(ctx);
+                
+                ctx.restore();
+            }
+
+            // 2. วาดหุ่นเชิดของผู้เล่น (วาดทับเพื่อให้เห็นชัดเจนที่สุด)
+            playerPuppet.draw(ctx);
+
+            animationFrame = requestAnimationFrame(render);
+        }
+
+        // --- Game Logic ---
+        function startGame(diff) {
+            currentDifficulty = diff;
+            score = 0;
+            timeLeft = 180;
+            isAnswering = false;
+            
+            updateScoreDisplay();
+            updateTimerDisplay();
+            
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+
+            loadLevel();
+            cancelAnimationFrame(animationFrame);
+            render();
+        }
+
+        function showMenu() {
+            clearInterval(timerInterval);
+            cancelAnimationFrame(animationFrame);
+            document.getElementById('menu-screen').classList.remove('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            cancelAnimationFrame(animationFrame);
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('score-display').innerText = score;
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const s = (timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('timer-display').innerText = `${m}:${s}`;
+            
+            if (timeLeft <= 10) {
+                document.getElementById('timer-display').classList.add('text-red-500', 'animate-pulse');
+            } else {
+                document.getElementById('timer-display').classList.remove('text-red-500', 'animate-pulse');
+            }
+        }
+
+        function checkPose() {
+            if (isAnswering) return;
+            isAnswering = true;
+
+            let totalError = 0;
+            for (let key of currentActiveNodes) {
+                let p1 = playerPuppet.nodes[key];
+                let p2 = targetPuppet.nodes[key];
+                totalError += Math.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2);
+            }
+
+            const MAX_ERROR = currentActiveNodes.length * 90;
+            let matchPercent = Math.max(0, 100 - (totalError / MAX_ERROR) * 100);
+            matchPercent = Math.round(matchPercent);
+
+            const btn = document.getElementById('submit-btn');
+            const feedback = document.getElementById('match-feedback');
+            document.getElementById('match-percent').innerText = matchPercent;
+            
+            feedback.style.opacity = '1';
+            
+            if (matchPercent > 90) {
+                playSound('perfect');
+                score += 20;
+                feedback.classList.remove('text-red-500', 'text-yellow-500');
+                feedback.classList.add('text-green-600');
+                btn.classList.replace('bg-mint', 'bg-correct');
+                
+                const rect = btn.getBoundingClientRect();
+                createConfetti(rect.left + rect.width / 2, rect.top - 20);
+                
+                setTimeout(() => {
+                    btn.classList.replace('bg-correct', 'bg-mint');
+                    loadLevel();
+                }, 1500);
+
+            } else if (matchPercent > 70) {
+                playSound('good');
+                score += 10;
+                feedback.classList.remove('text-red-500', 'text-green-600');
+                feedback.classList.add('text-yellow-500');
+                
+                setTimeout(() => {
+                    loadLevel();
+                }, 1500);
+
+            } else {
+                playSound('wrong');
+                score = Math.max(0, score - 5);
+                feedback.classList.remove('text-green-600', 'text-yellow-500');
+                feedback.classList.add('text-red-500');
+                
+                btn.classList.add('animate-wiggle');
+                btn.classList.replace('bg-mint', 'bg-wrong');
+                
+                setTimeout(() => {
+                    btn.classList.remove('animate-wiggle');
+                    btn.classList.replace('bg-wrong', 'bg-mint');
+                    isAnswering = false;
+                    feedback.style.opacity = '0';
+                }, 1000);
+            }
+            
+            updateScoreDisplay();
+        }
+
+    </script>
+</body>
+</html>

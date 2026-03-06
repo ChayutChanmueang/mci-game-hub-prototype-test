@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Phone Call (โทรหาเพื่อนรัก) - เสียงสั่งการ</title>
+    <!-- โหลดฟอนต์หัวมน Mali จาก Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- โหลด Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cream: '#FDFBF7',
+                        peach: '#FFB89E',
+                        mint: '#B5EAD7',
+                        sky: '#C7CEEA',
+                        yellow: '#FFF5BA',
+                        textBrown: '#5D4037',
+                        borderBrown: '#4A3525',
+                        paperShadow: 'rgba(74, 53, 37, 0.15)'
+                    },
+                    fontFamily: {
+                        sans: ['Mali', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'paper': '4px 6px 0px 0px #4A3525',
+                        'paper-sm': '2px 4px 0px 0px #4A3525',
+                        'paper-inset': 'inset 2px 2px 0px 0px rgba(255, 255, 255, 0.6)',
+                        'paper-active': '0px 0px 0px 0px #4A3525',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #E2E8F0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Mali', sans-serif;
+            touch-action: manipulation;
+        }
+
+        #mobile-container {
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 9 / 18;
+            background-color: #FDFBF7;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border-radius: 40px;
+            border: 8px solid #4A3525;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-3deg); }
+            75% { transform: translateX(5px) rotate(3deg); }
+        }
+        .animate-wiggle {
+            animation: wiggle 0.3s ease-in-out;
+        }
+
+        .btn-paper {
+            border: 3px solid #4A3525;
+            box-shadow: 2px 4px 0px 0px #4A3525, inset 2px 2px 0px 0px rgba(255, 255, 255, 0.4);
+            transition: all 0.1s;
+        }
+        .btn-paper:active:not(:disabled) {
+            transform: translate(2px, 4px);
+            box-shadow: 0px 0px 0px 0px #4A3525, inset 2px 2px 0px 0px rgba(255, 255, 255, 0.4);
+        }
+        .btn-paper:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: translate(2px, 4px);
+            box-shadow: 0px 0px 0px 0px #4A3525;
+        }
+
+        .keypad-btn {
+            background-color: #FDFBF7;
+            border: 3px solid #4A3525;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 32px;
+            line-height: 1;
+            color: #5D4037;
+            box-shadow: 2px 4px 0px 0px #4A3525, inset -2px -2px 0px 0px rgba(0, 0, 0, 0.05);
+            transition: all 0.1s;
+            cursor: pointer;
+            user-select: none;
+            aspect-ratio: 1/1;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+        }
+        .keypad-btn:active, .keypad-btn.active-simulate {
+            transform: translate(2px, 4px);
+            box-shadow: 0px 0px 0px 0px #4A3525, inset 2px 2px 0px 0px rgba(0, 0, 0, 0.1);
+            background-color: #FFF5BA;
+        }
+
+        ::-webkit-scrollbar { display: none; }
+
+        canvas#confetti-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* อนิเมชั่นลำโพงสั่น */
+        @keyframes pulse-speaker {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .speaking-icon {
+            animation: pulse-speaker 0.5s infinite;
+            color: #ef4444; /* สีแดงเมื่อกำลังพูด */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="mobile-container">
+        <canvas id="confetti-canvas"></canvas>
+
+        <!-- ==================== หน้าจอหลัก (Menu) ==================== -->
+        <div id="screen-menu" class="absolute inset-0 flex flex-col items-center p-6 bg-cream z-20">
+            <div class="w-full bg-peach rounded-3xl p-6 text-center border-4 border-borderBrown shadow-paper mt-8 relative">
+                <div class="absolute -top-6 -left-4 text-5xl">🎧</div>
+                <h1 class="text-3xl font-bold text-textBrown leading-tight mb-2">Phone Call</h1>
+                <h2 class="text-xl font-semibold text-textBrown mb-2">หูไว ใจเร็ว</h2>
+                <p class="text-base text-textBrown/80 leading-relaxed font-medium">
+                    "ฟัง" เบอร์โทรศัพท์จากระบบ แล้วกดแป้นพิมพ์ให้ถูกต้อง ทบทวนเบอร์ได้รอบละ 1 ครั้ง!
+                </p>
+            </div>
+
+            <div class="w-full flex-1 flex flex-col justify-center gap-4 mt-6">
+                <h3 class="text-xl font-bold text-textBrown text-center">เลือกระดับความยาก</h3>
+                
+                <button onclick="selectDifficulty('easy')" id="btn-easy" class="btn-paper bg-mint rounded-2xl p-4 text-left relative overflow-hidden">
+                    <div class="font-bold text-2xl text-textBrown">ง่าย (Easy)</div>
+                    <div class="text-sm text-textBrown/80 font-medium">เบอร์ 4 หลัก</div>
+                </button>
+
+                <button onclick="selectDifficulty('medium')" id="btn-medium" class="btn-paper bg-sky rounded-2xl p-4 text-left relative overflow-hidden opacity-70">
+                    <div class="font-bold text-2xl text-textBrown">ปานกลาง (Medium)</div>
+                    <div class="text-sm text-textBrown/80 font-medium">เบอร์ 6 หลัก</div>
+                </button>
+
+                <button onclick="selectDifficulty('hard')" id="btn-hard" class="btn-paper bg-yellow rounded-2xl p-4 text-left relative overflow-hidden opacity-70">
+                    <div class="font-bold text-2xl text-textBrown">ยาก (Hard)</div>
+                    <div class="text-sm text-textBrown/80 font-medium">เบอร์มือถือ 10 หลัก</div>
+                </button>
+            </div>
+
+            <button onclick="startGame()" class="btn-paper bg-peach text-textBrown text-2xl font-bold py-4 px-10 rounded-full mt-4 mb-8 w-full">
+                เริ่มเกม
+            </button>
+        </div>
+
+        <!-- ==================== หน้าจอเล่นเกม (Game) ==================== -->
+        <div id="screen-game" class="absolute inset-0 flex flex-col bg-cream z-10 hidden">
+            <!-- Top Bar -->
+            <div class="flex justify-between items-center p-4">
+                <button onclick="returnToMenu()" class="btn-paper bg-cream rounded-full w-12 h-12 flex items-center justify-center text-xl pb-1">
+                    ⬅️
+                </button>
+                <div class="flex flex-col items-center">
+                    <span class="text-sm font-bold text-textBrown/70">คะแนน</span>
+                    <span id="score-display" class="text-2xl font-bold text-textBrown bg-yellow px-4 py-1 rounded-full border-2 border-borderBrown shadow-paper-sm">0</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-sm font-bold text-textBrown/70">เวลา</span>
+                    <span id="time-display" class="text-2xl font-bold text-textBrown">3:00</span>
+                </div>
+            </div>
+
+            <!-- Game Area -->
+            <div class="flex-1 relative flex flex-col">
+                
+                <!-- แป้นโทรศัพท์ (Dial Phase) -->
+                <div id="dial-panel" class="flex-1 flex flex-col p-4">
+                    
+                    <!-- ส่วนควบคุมเสียงฟังซ้ำ -->
+                    <div class="w-full flex justify-center mb-4">
+                        <button id="btn-repeat" onclick="repeatNumber()" class="btn-paper bg-mint text-textBrown font-bold py-2 px-6 rounded-full flex items-center gap-2">
+                            <span id="speaker-icon" class="text-xl">🔊</span> 
+                            <span id="repeat-text">ฟังอีกครั้ง (เหลือ <span id="repeat-quota">1</span>)</span>
+                        </button>
+                    </div>
+
+                    <!-- หน้าจอแสดงเบอร์ที่กด -->
+                    <div class="w-full h-24 bg-sky rounded-3xl border-4 border-borderBrown shadow-paper-sm flex flex-col items-center justify-center mb-6 relative">
+                        <div class="text-sm font-bold text-textBrown/70 absolute top-2">กำลังโทรหา <span id="dial-name" class="text-peach drop-shadow-md">ป้าแมว</span></div>
+                        <div id="dial-display" class="text-4xl font-bold text-textBrown tracking-widest mt-4">
+                            _ _ _ _
+                        </div>
+                        <div id="score-popup" class="absolute -right-2 -top-4 text-xl font-bold text-red-500 opacity-0 transition-opacity pointer-events-none drop-shadow-md">
+                            -5
+                        </div>
+                    </div>
+
+                    <!-- Keypad -->
+                    <div class="grid grid-cols-3 gap-y-4 gap-x-2 w-full max-w-[300px] mx-auto mt-auto mb-8">
+                        <button class="keypad-btn" onclick="pressKey('1', this)">1</button>
+                        <button class="keypad-btn" onclick="pressKey('2', this)">2<span class="text-[10px] mt-1 font-normal">ABC</span></button>
+                        <button class="keypad-btn" onclick="pressKey('3', this)">3<span class="text-[10px] mt-1 font-normal">DEF</span></button>
+                        <button class="keypad-btn" onclick="pressKey('4', this)">4<span class="text-[10px] mt-1 font-normal">GHI</span></button>
+                        <button class="keypad-btn" onclick="pressKey('5', this)">5<span class="text-[10px] mt-1 font-normal">JKL</span></button>
+                        <button class="keypad-btn" onclick="pressKey('6', this)">6<span class="text-[10px] mt-1 font-normal">MNO</span></button>
+                        <button class="keypad-btn" onclick="pressKey('7', this)">7<span class="text-[10px] mt-1 font-normal">PQRS</span></button>
+                        <button class="keypad-btn" onclick="pressKey('8', this)">8<span class="text-[10px] mt-1 font-normal">TUV</span></button>
+                        <button class="keypad-btn" onclick="pressKey('9', this)">9<span class="text-[10px] mt-1 font-normal">WXYZ</span></button>
+                        <button class="keypad-btn !bg-peach text-white" onclick="pressKey('*', this)">*</button>
+                        <button class="keypad-btn" onclick="pressKey('0', this)">0</button>
+                        <button class="keypad-btn !bg-peach text-white" onclick="pressKey('#', this)">#</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ==================== หน้าจอจบเกม (End) ==================== -->
+        <div id="screen-end" class="absolute inset-0 flex flex-col items-center justify-center p-6 bg-cream z-30 hidden">
+            <div class="w-full bg-yellow rounded-3xl border-4 border-borderBrown shadow-paper p-8 text-center">
+                <h2 class="text-4xl font-bold text-textBrown mb-2">หมดเวลา!</h2>
+                <p class="text-xl font-semibold text-textBrown/80 mb-6">คุณทำคะแนนไปได้</p>
+                <div class="text-7xl font-bold text-peach mb-8 drop-shadow-md" id="final-score">120</div>
+                
+                <button onclick="returnToMenu()" class="btn-paper bg-mint text-textBrown text-2xl font-bold py-4 px-10 rounded-full w-full">
+                    เล่นอีกครั้ง
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Script ควบคุมเกม -->
+    <script>
+        // --- ข้อมูลจำลอง ---
+        const friendNames = [
+            "ป้าแมว", "ลุงสมหมาย", "พี่สมชาย", "น้องส้ม", "ตาชู", 
+            "ยายมล", "ครูสมศรี", "หมอเจี๊ยบ", "ช่างแอร์", "ร้านแก๊ส",
+            "เฮียหมู", "เจ๊น้ำ", "ลุงพล", "พี่เบิร์ด", "น้องมายด์"
+        ];
+
+        // --- สถานะเกม (State) ---
+        const gameState = {
+            difficulty: 'easy',
+            score: 0,
+            timeLeft: 180, // 3 นาที
+            timerId: null,
+            currentContact: { name: "", number: "", formatted: "", targetDigits: "" },
+            enteredDigits: "",
+            isPlaying: false,
+            repeatQuota: 1 // โควต้าฟังซ้ำต่อรอบ
+        };
+
+        // --- ตั้งค่าระบบ Speech (TTS) ---
+        const speechSynth = window.speechSynthesis;
+        let isSpeakingState = false;
+
+        function speakNumber(numberString) {
+            // หยุดเสียงเก่าหากมี
+            if (speechSynth.speaking) {
+                speechSynth.cancel();
+            }
+
+            // เว้นวรรคและใส่ลูกน้ำเพื่อให้ระบบอ่านทีละตัวช้าลงและมีจังหวะหยุด (เช่น 0 , 8 , 1 ...)
+            const spacedNumber = numberString.split('').join(' , ');
+            
+            const utterance = new SpeechSynthesisUtterance(spacedNumber);
+            utterance.lang = 'th-TH'; // ภาษาไทย
+            utterance.rate = 0.6; // ปรับให้พูดช้าลงกว่าเดิม (เดิม 0.8)
+            
+            // UI Update ตอนเริ่มและจบพูด
+            utterance.onstart = () => {
+                isSpeakingState = true;
+                document.getElementById('speaker-icon').classList.add('speaking-icon');
+            };
+            utterance.onend = () => {
+                isSpeakingState = false;
+                document.getElementById('speaker-icon').classList.remove('speaking-icon');
+            };
+
+            speechSynth.speak(utterance);
+        }
+
+        // --- ตั้งค่าระบบเสียง (Web Audio API สำหรับปุ่มกด) ---
+        let audioCtx;
+        let isAudioInitialized = false;
+
+        function initAudio() {
+            if (!isAudioInitialized) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                isAudioInitialized = true;
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            // เพื่อกระตุ้น TTS บนบาง Browser
+            if (!speechSynth.speaking) {
+                let dummy = new SpeechSynthesisUtterance("");
+                dummy.volume = 0;
+                speechSynth.speak(dummy);
+            }
+        }
+
+        function playTone(freq, type, duration, vol=0.1) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playKeySound() { playTone(600, 'sine', 0.1, 0.1); }
+        function playErrorSound() {
+            playTone(150, 'triangle', 0.3, 0.2);
+            setTimeout(() => playTone(100, 'triangle', 0.3, 0.2), 100);
+        }
+        function playSuccessSound() {
+            const now = audioCtx.currentTime;
+            [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0, now + i*0.1);
+                gain.gain.linearRampToValueAtTime(0.1, now + i*0.1 + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + i*0.1 + 0.4);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + i*0.1);
+                osc.stop(now + i*0.1 + 0.5);
+            });
+        }
+
+        // --- ระบบ UI และ DOM ---
+        function showScreen(id) {
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-end').classList.add('hidden');
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function selectDifficulty(level) {
+            initAudio();
+            gameState.difficulty = level;
+            
+            const btns = ['btn-easy', 'btn-medium', 'btn-hard'];
+            btns.forEach(id => {
+                const el = document.getElementById(id);
+                if (id === `btn-${level}`) {
+                    el.classList.remove('opacity-70');
+                    el.classList.add('scale-[1.02]');
+                } else {
+                    el.classList.add('opacity-70');
+                    el.classList.remove('scale-[1.02]');
+                }
+            });
+        }
+
+        // --- ระบบ Game Logic ---
+        function startGame() {
+            initAudio();
+            gameState.score = 0;
+            gameState.timeLeft = 180;
+            gameState.isPlaying = true;
+            updateHUD();
+            showScreen('screen-game');
+            startGlobalTimer();
+            nextRound();
+        }
+
+        function returnToMenu() {
+            gameState.isPlaying = false;
+            clearInterval(gameState.timerId);
+            if(speechSynth.speaking) speechSynth.cancel();
+            showScreen('screen-menu');
+        }
+
+        function startGlobalTimer() {
+            clearInterval(gameState.timerId);
+            gameState.timerId = setInterval(() => {
+                gameState.timeLeft--;
+                updateHUD();
+                if (gameState.timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function updateHUD() {
+            document.getElementById('score-display').innerText = gameState.score;
+            const m = Math.floor(gameState.timeLeft / 60);
+            const s = gameState.timeLeft % 60;
+            document.getElementById('time-display').innerText = `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function generateNumber() {
+            let num = "";
+            let format = "";
+            if (gameState.difficulty === 'easy') {
+                for(let i=0; i<4; i++) num += Math.floor(Math.random() * 10);
+                format = num;
+            } else if (gameState.difficulty === 'medium') {
+                for(let i=0; i<6; i++) num += Math.floor(Math.random() * 10);
+                format = `${num.substring(0,3)}-${num.substring(3,6)}`;
+            } else {
+                num += "08";
+                num += Math.floor(Math.random() * 10);
+                for(let i=0; i<7; i++) num += Math.floor(Math.random() * 10);
+                format = `${num.substring(0,3)}-${num.substring(3,6)}-${num.substring(6,10)}`;
+            }
+            return { raw: num, format: format };
+        }
+
+        function nextRound() {
+            if (!gameState.isPlaying) return;
+            
+            gameState.enteredDigits = "";
+            gameState.repeatQuota = 1; // รีเซ็ตโควต้าทบทวน
+            
+            const name = friendNames[Math.floor(Math.random() * friendNames.length)];
+            const numData = generateNumber();
+            
+            gameState.currentContact = {
+                name: name,
+                number: numData.format,
+                targetDigits: numData.raw
+            };
+
+            // อัพเดท UI
+            document.getElementById('dial-name').innerText = name;
+            updateDialDisplay();
+            updateRepeatButton();
+
+            // ดีเลย์เล็กน้อยก่อนพูด เพื่อให้ผู้เล่นตั้งตัว
+            setTimeout(() => {
+                if(gameState.isPlaying) {
+                    speakNumber(gameState.currentContact.targetDigits);
+                }
+            }, 500);
+        }
+
+        function repeatNumber() {
+            if (!gameState.isPlaying || gameState.repeatQuota <= 0) return;
+            
+            // ใช้โควต้า
+            gameState.repeatQuota--;
+            updateRepeatButton();
+            
+            // อ่านซ้ำ
+            speakNumber(gameState.currentContact.targetDigits);
+        }
+
+        function updateRepeatButton() {
+            const btn = document.getElementById('btn-repeat');
+            document.getElementById('repeat-quota').innerText = gameState.repeatQuota;
+            
+            if (gameState.repeatQuota > 0) {
+                btn.disabled = false;
+                btn.classList.remove('bg-gray-300', 'text-gray-500');
+                btn.classList.add('bg-mint', 'text-textBrown');
+            } else {
+                btn.disabled = true;
+                btn.classList.remove('bg-mint', 'text-textBrown');
+                btn.classList.add('bg-gray-300', 'text-gray-500');
+            }
+        }
+
+        function updateDialDisplay() {
+            const target = gameState.currentContact.number;
+            let displayStr = "";
+            let digitIndex = 0;
+            
+            for(let i=0; i<target.length; i++) {
+                if(target[i] === '-') {
+                    displayStr += "<span class='text-textBrown/40'>-</span> ";
+                } else {
+                    if (digitIndex < gameState.enteredDigits.length) {
+                        displayStr += `<span class='text-textBrown'>${gameState.enteredDigits[digitIndex]}</span> `;
+                    } else {
+                        displayStr += "<span class='text-textBrown/30'>_</span> ";
+                    }
+                    digitIndex++;
+                }
+            }
+            document.getElementById('dial-display').innerHTML = displayStr;
+        }
+
+        function pressKey(digit, btnElement) {
+            if(!gameState.isPlaying) return;
+            if(digit === '*' || digit === '#') return;
+
+            const currentIndex = gameState.enteredDigits.length;
+            const targetDigit = gameState.currentContact.targetDigits[currentIndex];
+
+            if (digit === targetDigit) {
+                playKeySound();
+                gameState.enteredDigits += digit;
+                updateDialDisplay();
+
+                if (gameState.enteredDigits.length === gameState.currentContact.targetDigits.length) {
+                    roundWon();
+                }
+            } else {
+                playErrorSound();
+                btnElement.classList.add('animate-wiggle', 'border-red-400', 'bg-red-100');
+                setTimeout(() => btnElement.classList.remove('animate-wiggle', 'border-red-400', 'bg-red-100'), 300);
+
+                gameState.score = Math.max(0, gameState.score - 5);
+                updateHUD();
+                showScorePopup("-5");
+            }
+        }
+
+        function showScorePopup(text) {
+            const popup = document.getElementById('score-popup');
+            popup.innerText = text;
+            popup.classList.remove('opacity-0');
+            popup.style.transform = 'translateY(-10px)';
+            
+            setTimeout(() => {
+                popup.classList.add('opacity-0');
+                popup.style.transform = 'translateY(0)';
+            }, 800);
+        }
+
+        function roundWon() {
+            playSuccessSound();
+            fireConfetti();
+            if(speechSynth.speaking) speechSynth.cancel(); // ตัดเสียงพูดถ้ากำลังพูดอยู่แล้วทายถูก
+            
+            gameState.score += 20;
+            updateHUD();
+            showScorePopup("+20!");
+            document.getElementById('score-popup').classList.replace('text-red-500', 'text-green-500');
+            
+            setTimeout(() => {
+                document.getElementById('score-popup').classList.replace('text-green-500', 'text-red-500');
+                nextRound();
+            }, 1200);
+        }
+
+        function endGame() {
+            gameState.isPlaying = false;
+            clearInterval(gameState.timerId);
+            if(speechSynth.speaking) speechSynth.cancel();
+            document.getElementById('final-score').innerText = gameState.score;
+            showScreen('screen-end');
+        }
+
+        // --- ระบบพลุ Confetti (Canvas) ---
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function fireConfetti() {
+            const colors = ['#FFB89E', '#B5EAD7', '#C7CEEA', '#FFF5BA'];
+            for(let i=0; i<50; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2 + 50,
+                    vx: (Math.random() - 0.5) * 15,
+                    vy: (Math.random() - 1) * 15 - 5,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: 1,
+                    decay: Math.random() * 0.02 + 0.02
+                });
+            }
+        }
+
+        function animateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for(let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.5;
+                p.life -= p.decay;
+                
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                if(p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+            ctx.globalAlpha = 1;
+            requestAnimationFrame(animateConfetti);
+        }
+        animateConfetti();
+
+        selectDifficulty('easy');
+
+    </script>
+</body>
+</html>
