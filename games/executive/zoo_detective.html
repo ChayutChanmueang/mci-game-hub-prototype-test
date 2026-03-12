@@ -5,90 +5,182 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Zoo Detective - Senior Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* ใช้ dynamic viewport height เพื่อแก้ปัญหา toolbar ในมือถือบัง */
             --app-height: 100dvh;
+            
+            /* Color Palette */
+            --bg-cream: #FFFbf0;
+            --stroke-dark: #334155;
+            --pastel-peach: #FDBA74;
+            --pastel-mint: #A7F3D0;
+            --pastel-blue: #7DD3FC;
+            --pastel-yellow: #FDE047;
+            --white: #FFFFFF;
+            
+            /* Paper Cut Specs */
+            --border-thick: 3px solid var(--stroke-dark);
+            --shadow-solid: 4px 4px 0px var(--stroke-dark);
+            --shadow-solid-sm: 2px 2px 0px var(--stroke-dark);
+            --shadow-solid-hover: 2px 2px 0px var(--stroke-dark);
         }
 
         body {
-            font-family: 'Sarabun', sans-serif;
-            background-color: #0f172a;
+            font-family: 'Mali', cursive;
+            background-color: #E2E8F0;
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh; /* fallback */
+            height: 100vh;
             height: var(--app-height);
             overflow: hidden;
-            color: #1e293b;
+            color: var(--stroke-dark);
+            font-size: 18px; 
         }
 
         .app-container {
-            /* Mobile Default: เต็มจอ ไม่ฟิกสัดส่วน */
             width: 100%;
             height: 100%;
-            background: #f0fdf4;
+            max-height: 100%;
+            background: var(--bg-cream);
             display: flex;
             flex-direction: column;
             position: relative;
             overflow: hidden;
         }
 
-        /* Desktop/Tablet: จำลองหน้าจอมือถือ */
         @media (min-width: 500px) {
             .app-container {
-                max-width: 480px;
-                height: 95vh;
-                max-height: 1000px;
+                max-width: 50vh; /* รักษาอัตราส่วน 9:18 บนจอใหญ่ */
+                aspect-ratio: 9/18;
                 border-radius: 2.5rem;
-                border: 8px solid #334155;
+                height: 96%;
+                border: 8px solid var(--stroke-dark);
                 box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             }
         }
 
-        /* --- UI COMPONENTS --- */
+        /* --- PAPER CUT UI COMPONENTS --- */
+        .paper-panel {
+            background: var(--white);
+            border: var(--border-thick);
+            border-radius: 1.5rem;
+            box-shadow: var(--shadow-solid);
+            padding: 1.5rem;
+        }
+
+        .paper-btn {
+            background: var(--white);
+            border: var(--border-thick);
+            border-radius: 1rem;
+            box-shadow: var(--shadow-solid);
+            padding: 1rem;
+            font-family: inherit;
+            font-weight: 700;
+            color: var(--stroke-dark);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+            font-size: 1.25rem;
+        }
+
+        .paper-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: var(--shadow-solid-hover);
+        }
+
+        /* --- MENU INTERFACE --- */
+        #menu-interface {
+            padding: 1.5rem;
+            padding-top: max(1.5rem, env(safe-area-inset-top));
+            padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .diff-option {
+            display: flex;
+            align-items: center;
+            background: var(--white);
+            border: var(--border-thick);
+            border-radius: 1.25rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            box-shadow: var(--shadow-solid);
+            transition: all 0.15s ease;
+        }
+
+        .diff-option:active {
+            transform: translate(2px, 2px);
+            box-shadow: var(--shadow-solid-hover);
+        }
         
-        /* 1. Header (HUD) */
+        .diff-option.active {
+            background: var(--pastel-yellow);
+            transform: translate(2px, 2px);
+            box-shadow: var(--shadow-solid-hover);
+        }
+
+        .diff-icon {
+            font-size: 2.5rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--white);
+            border: 2px solid var(--stroke-dark);
+            border-radius: 1rem;
+            margin-right: 1rem;
+            box-shadow: var(--shadow-solid-sm);
+        }
+
+        /* --- GAME INTERFACE --- */
+        #game-interface {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
+
         .hud-bar {
-            flex: 0 0 auto;
-            background: white;
-            padding: 0.75rem 1.25rem;
-            /* Safe area padding สำหรับมือถือมีรอยบาก */
+            flex: 0 0 auto; /* ความสูงตายตัว ไม่โดนเบียด */
+            background: var(--pastel-blue);
+            padding: 0.75rem 1rem;
             padding-top: max(0.75rem, env(safe-area-inset-top));
-            border-bottom: 2px solid #10b981;
-            z-index: 30;
+            border-bottom: var(--border-thick);
+            z-index: 20;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
-        /* 2. Main Content Area */
         .game-content {
-            flex: 1; /* ยืดเต็มพื้นที่ที่เหลือ */
+            flex: 1; /* ใช้พื้นที่ที่เหลือทั้งหมด */
             display: flex;
             flex-direction: column;
-            padding: 1rem;
-            gap: 1rem;
-            overflow: hidden;
+            padding: 0.75rem;
+            gap: 0.75rem;
+            overflow: hidden; /* ป้องกันไม่ให้ทะลุออกไปบัง Footer */
             position: relative;
-            background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
         }
 
-        /* Clues Card */
+        /* --- LAYOUT ที่รับประกันการไม่ทับซ้อน --- */
         .clues-card {
-            flex: 0 0 auto; /* ไม่ยืด */
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 1.25rem;
-            padding: 1rem;
-            border: 2px solid #86efac;
-            /* จำกัดความสูงไม่ให้กินที่เกินไป (สูงสุด 30% ของจอ) */
-            max-height: 30vh;
+            flex: 1 1 0%; /* ยืดหยุ่นได้ แบ่งพื้นที่กับตารางเกม */
+            min-height: 0; /* จำเป็นมาก ป้องกันไม่ให้ flex ขยายทะลุจอเมื่อข้อมูลเยอะ */
             display: flex;
             flex-direction: column;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            background: var(--white);
+            border: var(--border-thick);
+            border-radius: 1.5rem;
+            padding: 1rem;
+            box-shadow: var(--shadow-solid);
         }
         
         .clues-header {
@@ -98,142 +190,123 @@
             gap: 0.5rem;
             margin-bottom: 0.5rem;
             padding-bottom: 0.5rem;
-            border-bottom: 1px dashed #cbd5e1;
+            border-bottom: 2px dashed var(--stroke-dark);
+            font-size: 1.25rem;
         }
 
         .clues-list-wrapper {
-            flex: 1;
-            overflow-y: auto;
+            flex: 1 1 0%;
+            overflow-y: auto; /* เลื่อนอ่านได้ถ้ายาวเกิน */
             padding-right: 0.5rem;
-            /* Smooth scroll */
             -webkit-overflow-scrolling: touch;
         }
 
-        /* Grid Wrapper (พื้นที่วางตาราง) */
+        /* คลาสตกแต่ง Scrollbar สำหรับกล่องคำใบ้ */
+        .clues-list-wrapper::-webkit-scrollbar { width: 6px; }
+        .clues-list-wrapper::-webkit-scrollbar-track { background: transparent; }
+        .clues-list-wrapper::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
         .grid-wrapper {
-            flex: 1; /* ยืดรับพื้นที่ที่เหลือทั้งหมด */
+            flex: 1.2 1 0%; /* ให้พื้นที่กับตารางเกมมากกว่าคำใบ้เล็กน้อย */
+            min-height: 0; /* ป้องกันการทะลุ flex */
             display: flex;
             align-items: center;
             justify-content: center;
             width: 100%;
-            overflow: hidden;
             padding: 0.5rem;
-            min-height: 0;
         }
 
         .grid-layout { 
             display: grid; 
-            /* ขนาดจะถูกควบคุมโดย JS เพื่อรักษาสัดส่วน */
+            /* กำหนดขนาดผ่าน JS */
         }
 
         .slot {
             width: 100%;
             height: 100%;
-            background: white;
-            border: 3px solid #bbf7d0;
-            border-radius: 1rem;
+            background: #F1F5F9;
+            border: var(--border-thick);
+            border-radius: 1.25rem;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 4px 0 #bbf7d0;
-            transition: transform 0.1s, border-color 0.2s;
+            box-shadow: inset 4px 4px 0px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
             position: relative;
         }
         
         .slot:active { transform: scale(0.95); }
         .slot.active {
-            border-color: #10b981;
-            background-color: #fff;
-            box-shadow: 0 6px 15px rgba(16, 185, 129, 0.25);
-            transform: scale(1.02);
+            background-color: var(--white);
+            box-shadow: var(--shadow-solid-sm);
+            transform: scale(1.05);
             z-index: 10;
         }
 
-        /* 3. Footer (Controls) */
+        /* --- Footer / Controls --- */
         .controls {
-            flex: 0 0 auto; /* ไม่ยืด */
-            background: white;
+            flex: 0 0 auto; /* ความสูงคงที่ ไม่โดนเบียด */
+            background: var(--white);
             padding: 1rem;
-            /* Safe area padding ด้านล่าง */
             padding-bottom: max(1rem, env(safe-area-inset-bottom));
-            border-top: 2px solid #bbf7d0;
-            border-radius: 1.5rem 1.5rem 0 0;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
-            z-index: 30;
+            border-top: var(--border-thick);
+            border-radius: 2rem 2rem 0 0;
+            z-index: 20;
         }
 
         .animal-bank {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 0.5rem;
+            display: flex;
+            flex-wrap: wrap; /* ให้ปุ่มจัดเรียงปัดบรรทัดอัตโนมัติ */
+            justify-content: center;
+            gap: 0.75rem;
             margin-bottom: 1rem;
         }
 
         .animal-btn {
-            aspect-ratio: 1/1;
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 0.75rem;
+            width: clamp(60px, 15vw, 80px); /* ขนาดปุ่มสัมพันธ์กับจอ */
+            height: clamp(60px, 15vw, 80px);
+            background: var(--white);
+            border: var(--border-thick);
+            border-radius: 1rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: clamp(1.5rem, 6vw, 2.5rem); /* ปรับขนาดฟอนต์ตามจอ */
-            transition: all 0.2s;
+            font-size: clamp(2rem, 8vw, 3rem); 
+            transition: all 0.15s;
             cursor: pointer;
+            box-shadow: var(--shadow-solid-sm);
+            flex: 0 0 auto;
+        }
+        .animal-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
         }
         .animal-btn.selected {
-            border-color: #10b981;
-            background: #d1fae5;
-            box-shadow: inset 0 0 0 3px #34d399;
-            transform: translateY(-2px);
+            background: var(--pastel-yellow);
+            transform: translate(2px, 2px);
+            box-shadow: none;
         }
 
-        .action-btn {
-            background: #10b981;
-            color: white;
-            width: 100%;
-            padding: 1rem;
-            border-radius: 1rem;
-            font-size: 1.25rem;
-            font-weight: bold;
-            box-shadow: 0 4px 0 #047857;
-            transition: all 0.1s;
-            border: none;
-            cursor: pointer;
-        }
-        .action-btn:active {
-            transform: translateY(2px);
-            box-shadow: 0 2px 0 #047857;
-        }
-
-        /* Menus & Modals */
-        #menu-interface {
-            background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%);
-            padding-top: max(1.5rem, env(safe-area-inset-top));
-            padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
-        }
-
-        .menu-btn {
-            background: white;
-            border: 2px solid #bbf7d0;
-            border-radius: 1.5rem;
-            padding: 1.25rem;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            margin-bottom: 0.75rem;
-            cursor: pointer;
-        }
-        
         .hidden { display: none !important; }
-        .shake { animation: shake 0.4s ease-in-out; }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-6px); }
-            75% { transform: translateX(6px); }
+        
+        .wiggle { animation: wiggle 0.4s ease-in-out; }
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+            75% { transform: rotate(-3deg); }
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            z-index: 100;
+            animation: fall 1.5s ease-out forwards;
+        }
+        @keyframes fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(200px) rotate(360deg); opacity: 0; }
         }
     </style>
 </head>
@@ -242,128 +315,86 @@
     <div class="app-container" id="main-app">
         
         <!-- === 1. MENU INTERFACE === -->
-        <div id="menu-interface" class="w-full h-full flex flex-col p-6 overflow-y-auto">
-            <div class="text-center mb-6">
-                <div class="text-6xl mb-2 animate-bounce">🦁</div>
-                <h1 class="text-3xl font-black text-emerald-800">Zoo Detective</h1>
-                <p class="text-slate-500 font-bold">ฝึกสมองวัยเก๋า</p>
+        <div id="menu-interface">
+            <div class="paper-panel text-center mb-6 mt-4">
+                <div class="text-6xl mb-2">🕵️‍♂️🦁</div>
+                <h1 class="text-3xl font-black" style="color: var(--stroke-dark);">สวนสัตว์นักสืบ</h1>
+                <p class="text-lg font-semibold mt-2" style="color: #64748b;">
+                    ฝึกสมองด้วยปริศนาจัดบ้านสัตว์<br>สังเกตคำใบ้ แล้ววางสัตว์ให้ถูกที่!
+                </p>
             </div>
 
-            <div class="flex-1 space-y-2 mb-4 overflow-y-auto px-1">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">เลือกระดับความยาก</p>
+            <div class="flex-1 mb-4">
+                <p class="text-xl font-bold mb-3 ml-2">ระดับความยาก</p>
                 
-                <div onclick="startGameAtLevel(1)" class="menu-btn hover:bg-emerald-50 active:scale-95 transition">
-                    <div class="flex items-center">
-                        <div class="text-3xl mr-4 bg-emerald-100 p-2 rounded-xl">🐣</div>
-                        <div class="text-left">
-                            <div class="font-bold text-lg text-slate-800">ฝึกหัด (10 ด่าน)</div>
-                            <div class="text-xs text-slate-500">ตาราง 1x3 (ง่ายมาก)</div>
-                        </div>
+                <div onclick="selectDifficulty(1)" id="diff-1" class="diff-option active">
+                    <div class="diff-icon" style="background-color: var(--pastel-mint);">🐣</div>
+                    <div class="text-left">
+                        <div class="font-bold text-2xl">Easy (ง่าย)</div>
+                        <div class="text-base text-slate-600 font-medium">ตาราง 3 ช่อง - เริ่มต้นง่ายๆ</div>
                     </div>
                 </div>
 
-                <div onclick="startGameAtLevel(2)" class="menu-btn hover:bg-blue-50 active:scale-95 transition">
-                    <div class="flex items-center">
-                        <div class="text-3xl mr-4 bg-blue-100 p-2 rounded-xl">🐢</div>
-                        <div class="text-left">
-                            <div class="font-bold text-lg text-slate-800">ทั่วไป (10 ด่าน)</div>
-                            <div class="text-xs text-slate-500">ตาราง 2x2 (มาตรฐาน)</div>
-                        </div>
+                <div onclick="selectDifficulty(2)" id="diff-2" class="diff-option">
+                    <div class="diff-icon" style="background-color: var(--pastel-yellow);">🐢</div>
+                    <div class="text-left">
+                        <div class="font-bold text-2xl">Medium (ปานกลาง)</div>
+                        <div class="text-base text-slate-600 font-medium">ตาราง 4 ช่อง - ซับซ้อนขึ้นอีกนิด</div>
                     </div>
                 </div>
 
-                <div onclick="startGameAtLevel(3)" class="menu-btn hover:bg-orange-50 active:scale-95 transition">
-                    <div class="flex items-center">
-                        <div class="text-3xl mr-4 bg-orange-100 p-2 rounded-xl">🦊</div>
-                        <div class="text-left">
-                            <div class="font-bold text-lg text-slate-800">เก่งมาก (10 ด่าน)</div>
-                            <div class="text-xs text-slate-500">ตาราง 3x2 (ท้าทาย)</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div onclick="startGameAtLevel(4)" class="menu-btn hover:bg-purple-50 active:scale-95 transition">
-                    <div class="flex items-center">
-                        <div class="text-3xl mr-4 bg-purple-100 p-2 rounded-xl">🦁</div>
-                        <div class="text-left">
-                            <div class="font-bold text-lg text-slate-800">เซียน (10 ด่าน)</div>
-                            <div class="text-xs text-slate-500">ตาราง 3x3 (ยากที่สุด)</div>
-                        </div>
+                <div onclick="selectDifficulty(3)" id="diff-3" class="diff-option">
+                    <div class="diff-icon" style="background-color: var(--pastel-peach);">🦊</div>
+                    <div class="text-left">
+                        <div class="font-bold text-2xl">Hard (ยาก)</div>
+                        <div class="text-base text-slate-600 font-medium">ตาราง 6 ช่อง - ท้าทายความจำ</div>
                     </div>
                 </div>
             </div>
 
-            <div class="space-y-3 mt-auto pt-4 border-t border-slate-100">
-                <button onclick="showLeaderboard()" class="w-full py-4 bg-slate-800 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg active:scale-95 transition">
-                    <span>🏆</span> ดูคะแนนสูงสุด
+            <div class="mt-auto pt-2">
+                <button onclick="startGame()" class="paper-btn w-full text-2xl py-4" style="background-color: var(--pastel-mint);">
+                    ▶ เริ่มเล่นเกม
                 </button>
-                
-                <button onclick="downloadAnalytics()" class="w-full py-3 bg-emerald-600 text-white rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-md active:scale-95 transition">
-                    <span>📥</span> ดาวน์โหลดข้อมูล
-                </button>
+                <div class="flex justify-between items-center mt-4 px-2">
+                    <button onclick="toggleMusic()" id="music-btn" class="text-2xl opacity-70 hover:opacity-100 transition">🎵 เปิดเพลง</button>
+                </div>
             </div>
         </div>
-
-        <!-- === LEADERBOARD INTERFACE === -->
-        <div id="leaderboard-interface" class="w-full h-full hidden flex flex-col pt-safe pb-safe bg-slate-50">
-            <header class="hud-bar justify-center relative">
-                <button onclick="backToMenu()" class="absolute left-4 text-slate-400 hover:text-slate-800 text-2xl p-2 rounded-full hover:bg-slate-100">⬅</button>
-                <h2 class="text-xl font-bold text-slate-800">🏆 กระดานผู้นำ</h2>
-            </header>
-            
-            <div class="flex border-b border-slate-200 bg-white sticky top-0 z-10 shadow-sm">
-                <div onclick="switchLeaderboardTab(1)" class="flex-1 py-3 text-center cursor-pointer border-b-4 border-transparent text-slate-400 font-bold transition lb-tab active" id="tab-1" style="border-color: #10b981; color: #10b981; background: #ecfdf5;">ฝึกหัด</div>
-                <div onclick="switchLeaderboardTab(2)" class="flex-1 py-3 text-center cursor-pointer border-b-4 border-transparent text-slate-400 font-bold transition lb-tab" id="tab-2">ทั่วไป</div>
-                <div onclick="switchLeaderboardTab(3)" class="flex-1 py-3 text-center cursor-pointer border-b-4 border-transparent text-slate-400 font-bold transition lb-tab" id="tab-3">เก่งมาก</div>
-                <div onclick="switchLeaderboardTab(4)" class="flex-1 py-3 text-center cursor-pointer border-b-4 border-transparent text-slate-400 font-bold transition lb-tab" id="tab-4">เซียน</div>
-            </div>
-
-            <div id="lb-content" class="flex-1 overflow-y-auto p-4 space-y-2">
-                <div class="text-center text-slate-400 mt-10">กำลังโหลดข้อมูล...</div>
-            </div>
-        </div>
-
 
         <!-- === 2. GAME INTERFACE === -->
-        <div id="game-interface" class="hidden h-full flex flex-col">
+        <div id="game-interface" class="hidden">
             <!-- Header -->
             <header class="hud-bar">
-                <button onclick="backToMenu()" class="mr-3 text-2xl text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
-                    🏠
+                <button onclick="backToMenu()" class="paper-btn text-xl px-4 py-2" style="background: var(--white); box-shadow: var(--shadow-solid-sm);">
+                    ◀ ย้อนกลับ
                 </button>
-                <div class="flex flex-col mr-auto">
-                    <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">ระดับ <span id="level-name">ฝึกหัด</span></span>
-                    <div class="flex items-baseline gap-1">
-                        <span class="text-2xl font-black text-slate-800">ด่าน <span id="stage-display">1</span>/10</span>
-                        <span class="text-xs text-slate-400 font-medium" id="grid-info">1x3</span>
-                    </div>
-                </div>
                 <div class="flex flex-col items-end">
-                    <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">เวลา</span>
-                    <div class="flex items-center gap-1 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">
-                        <span class="text-sm">⏱️</span>
-                        <span id="timer-text" class="text-lg font-mono font-bold text-emerald-700">00:00</span>
-                    </div>
+                    <span class="text-sm font-bold uppercase tracking-wider">ด่านที่ <span id="stage-display">1</span>/10</span>
+                    <span class="text-lg font-bold" id="level-name">Easy</span>
                 </div>
             </header>
 
             <!-- Main Content -->
             <main class="game-content">
+                
+                <!-- กล่องคำใบ้ -->
                 <section class="clues-card">
                     <div class="clues-header">
-                        <span class="text-xl mr-2">🕵️</span>
-                        <h2 class="font-bold text-emerald-900 text-base">ข้อมูลนักสืบ (ทำตามลำดับ)</h2>
+                        <span class="text-2xl mr-2">📝</span>
+                        <h2 class="font-bold text-xl">คำใบ้</h2>
                     </div>
                     <div class="clues-list-wrapper">
-                        <ul id="hint-list" class="space-y-3 text-lg text-slate-700 font-medium list-none pb-2">
-                            <!-- Hints -->
+                        <ul id="hint-list" class="space-y-4 text-2xl font-medium list-none p-0 m-0 pb-4 leading-relaxed">
+                            <!-- Hints จะถูกเติมที่นี่ -->
                         </ul>
                     </div>
                 </section>
 
+                <!-- กล่องตารางเกม -->
                 <div class="grid-wrapper" id="grid-wrapper">
                     <section class="grid-layout" id="game-grid">
-                        <!-- Slots -->
+                        <!-- Slots จะถูกสร้างที่นี่ตามการคำนวณ -->
                     </section>
                 </div>
             </main>
@@ -371,221 +402,157 @@
             <!-- Footer -->
             <footer class="controls">
                 <div id="animal-bank" class="animal-bank">
-                    <!-- Buttons -->
+                    <!-- ปุ่มสัตว์แบบ flex-wrap เพื่อไม่ให้ล้น -->
                 </div>
-                <button onclick="onCheckAnswer()" class="action-btn">
-                    ส่งคำตอบ
+                <button onclick="onCheckAnswer()" class="paper-btn w-full text-2xl py-3" style="background: var(--pastel-peach);">
+                    ✅ ส่งคำตอบ
                 </button>
             </footer>
         </div>
 
         <!-- Win Modal -->
-        <div id="modal-win" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center p-6 backdrop-blur-sm">
-            <div class="bg-white rounded-[2rem] w-full max-w-xs p-8 text-center border-8 border-emerald-400 shadow-2xl relative overflow-hidden overflow-y-auto max-h-[90vh]">
-                <div class="text-7xl mb-4 animate-bounce">🏆</div>
-                <h2 class="text-3xl font-bold text-slate-800 mb-2" id="win-title">ด่านสำเร็จ!</h2>
-                <div class="flex justify-center gap-1 mb-6 text-3xl text-yellow-400" id="star-rating">
-                    ★ ★ ★
-                </div>
+        <div id="modal-win" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+            <div class="paper-panel w-full max-w-xs text-center relative overflow-hidden" style="background: var(--bg-cream);">
+                <div class="text-7xl mb-4 mt-2">🎉</div>
+                <h2 class="text-3xl font-bold mb-6" id="win-title">เก่งมาก!</h2>
                 
-                <div class="bg-slate-50 rounded-2xl p-5 mb-6 border border-slate-200 space-y-3">
-                    <div class="flex justify-between items-center text-sm border-b border-slate-200 pb-3">
-                        <span class="text-slate-500 font-bold">เวลาด่านนี้</span>
-                        <span class="font-mono font-bold text-slate-700 text-lg" id="res-stage-time">00:00</span>
-                    </div>
-                    <div class="flex justify-between items-center text-sm border-b border-slate-200 pb-3">
-                        <span class="text-slate-500 font-bold">เวลารวมทั้งหมด</span>
-                        <span class="font-mono font-bold text-emerald-600 text-lg" id="res-total-time">00:00</span>
-                    </div>
-                    <div class="flex justify-between items-center pt-1">
-                        <span class="text-slate-500 font-bold">คะแนนรวม</span>
-                        <span class="font-black text-emerald-600 text-3xl" id="res-score">1000</span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3" id="win-buttons">
-                    <!-- Buttons injected by JS -->
+                <div class="grid gap-3" id="win-buttons">
+                    <!-- Buttons -->
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Background Music -->
+    <audio id="bgm" loop>
+        <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=bossa-nova-111064.mp3" type="audio/mpeg">
+    </audio>
+
     <script>
         const ALL_ANIMALS = ['🦁', '🐘', '🦒', '🐒', '🦓', '🐯', '🦛', '🐼', '🦊', '🐨', '🐮', '🐷', '🐸', '🐔', '🐧'];
         
         let state = {
+            selectedDifficulty: 1,
             level: 1,
-            stage: 1, // 1 to 10
+            stage: 1, 
             rows: 1,
             cols: 2,
             solution: [],
             currentBoard: [],
-            selectedAnimal: null,
-            elapsedSeconds: 0,
-            timerId: null,
-            availableAnimals: [],
-            runId: null,
-            totalLevelSeconds: 0,
-            totalScore: 0,
-            moveCount: 0,
-            wrongAttempts: 0
+            selectedAnimal: null
         };
 
-        const LEVEL_NAMES = {1: "ฝึกหัด", 2: "ทั่วไป", 3: "เก่งมาก", 4: "เซียน"};
+        const LEVEL_NAMES = {1: "Easy", 2: "Medium", 3: "Hard"};
 
-        function formatTime(seconds) {
-            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-            const s = (seconds % 60).toString().padStart(2, '0');
-            return `${m}:${s}`;
+        // --- Audio System ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function playSound(type) {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            if (type === 'pop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'chime') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
+                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); 
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.6);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.6);
+            } else if (type === 'error') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(150, audioCtx.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            }
+        }
+
+        let isMusicPlaying = false;
+        function toggleMusic() {
+            const bgm = document.getElementById('bgm');
+            const btn = document.getElementById('music-btn');
+            bgm.volume = 0.3; 
+            if (isMusicPlaying) {
+                bgm.pause();
+                btn.innerText = "🎵 เปิดเพลง";
+                btn.style.opacity = "0.7";
+            } else {
+                bgm.play().catch(e => console.log("Audio play failed:", e));
+                btn.innerText = "🔇 ปิดเพลง";
+                btn.style.opacity = "1";
+            }
+            isMusicPlaying = !isMusicPlaying;
+        }
+
+        // --- Visual Feedback ---
+        function shootConfetti() {
+            const colors = ['var(--pastel-peach)', 'var(--pastel-mint)', 'var(--pastel-blue)', 'var(--pastel-yellow)'];
+            for(let i=0; i<30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.innerText = Math.random() > 0.5 ? '✨' : '⭐';
+                particle.style.left = Math.random() * 100 + 'vw';
+                particle.style.top = (Math.random() * 20 + 20) + 'vh';
+                particle.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';
+                particle.style.color = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.animationDuration = (Math.random() * 1 + 1) + 's';
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 2000);
+            }
         }
 
         // --- Navigation ---
+        function selectDifficulty(lvl) {
+            state.selectedDifficulty = lvl;
+            playSound('pop');
+            document.querySelectorAll('.diff-option').forEach(el => el.classList.remove('active'));
+            document.getElementById(`diff-${lvl}`).classList.add('active');
+        }
+
         function showMenu() {
             document.getElementById('menu-interface').classList.remove('hidden');
             document.getElementById('game-interface').classList.add('hidden');
-            document.getElementById('leaderboard-interface').classList.add('hidden');
-            if(state.timerId) clearInterval(state.timerId);
         }
 
         function backToMenu() {
+            playSound('pop');
             showMenu();
         }
 
-        function startGameAtLevel(lvl) {
-            state.level = lvl;
+        function startGame() {
+            playSound('pop');
+            state.level = state.selectedDifficulty;
             state.stage = 1;
-            state.totalLevelSeconds = 0;
-            state.totalScore = 0;
-            state.runId = Date.now();
             document.getElementById('menu-interface').classList.add('hidden');
             document.getElementById('game-interface').classList.remove('hidden');
             initGameRound();
         }
 
-        // --- Analytics & Save ---
-        function saveAnalyticsLog(isWin) {
-            const logs = JSON.parse(localStorage.getItem('zoo_analytics_logs') || '[]');
-            const logEntry = {
-                timestamp: new Date().toISOString(),
-                runId: state.runId,
-                level: state.level,
-                stage: state.stage,
-                gridSize: `${state.rows}x${state.cols}`,
-                timeTakenSeconds: state.elapsedSeconds,
-                moveCount: state.moveCount,
-                wrongAttempts: state.wrongAttempts,
-                totalScoreSnapshot: state.totalScore,
-                result: isWin ? 'WIN' : 'INCOMPLETE'
-            };
-            logs.push(logEntry);
-            localStorage.setItem('zoo_analytics_logs', JSON.stringify(logs));
-        }
-
-        function downloadAnalytics() {
-            const logs = localStorage.getItem('zoo_analytics_logs');
-            if (!logs || logs === '[]') {
-                alert('ยังไม่มีข้อมูลการเล่นที่บันทึกไว้ครับ');
-                return;
-            }
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(logs);
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "zoo_detective_data_" + new Date().toISOString().slice(0,10) + ".json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-        }
-
-        function getScores() {
-            const data = localStorage.getItem('zoo_scores_v2');
-            return data ? JSON.parse(data) : { 1: [], 2: [], 3: [], 4: [] };
-        }
-
-        function saveScore(level, score, totalSeconds, stage, runId) {
-            const scores = getScores();
-            const date = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-            const existingIndex = scores[level].findIndex(s => s.runId === runId);
-            const entry = { score, totalSeconds, timeText: formatTime(totalSeconds), date, stage, runId };
-
-            if (existingIndex !== -1) scores[level][existingIndex] = entry;
-            else scores[level].push(entry);
-            
-            scores[level].sort((a, b) => b.score - a.score);
-            scores[level] = scores[level].slice(0, 20);
-            localStorage.setItem('zoo_scores_v2', JSON.stringify(scores));
-        }
-
-        // --- Leaderboard UI ---
-        function showLeaderboard() {
-            document.getElementById('menu-interface').classList.add('hidden');
-            document.getElementById('leaderboard-interface').classList.remove('hidden');
-            switchLeaderboardTab(1); 
-        }
-        
-        function showLeaderboardFromModal() {
-            document.getElementById('modal-win').classList.add('hidden');
-            document.getElementById('game-interface').classList.add('hidden');
-            document.getElementById('leaderboard-interface').classList.remove('hidden');
-            switchLeaderboardTab(state.level); 
-        }
-
-        function switchLeaderboardTab(level) {
-            document.querySelectorAll('.lb-tab').forEach(t => {
-                t.classList.remove('active');
-                t.style.borderColor = 'transparent';
-                t.style.color = '#64748b';
-                t.style.background = 'transparent';
-            });
-            const activeTab = document.getElementById(`tab-${level}`);
-            activeTab.classList.add('active');
-            activeTab.style.borderColor = '#10b981';
-            activeTab.style.color = '#10b981';
-            activeTab.style.background = '#ecfdf5';
-
-            const scores = getScores();
-            const list = scores[level] || [];
-            const container = document.getElementById('lb-content');
-            
-            if (list.length === 0) {
-                container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-48 text-slate-400">
-                        <span class="text-4xl mb-2">📝</span>
-                        <p>ยังไม่มีประวัติการเล่นในระดับนี้</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = list.map((item, index) => {
-                const rankClass = index === 0 ? 'top-1' : index === 1 ? 'top-2' : index === 2 ? 'top-3' : '';
-                return `
-                    <div class="lb-item">
-                        <div class="flex items-center">
-                            <div class="lb-rank ${rankClass}">${index + 1}</div>
-                            <div class="flex flex-col">
-                                <span class="text-xs text-slate-400">${item.date}</span>
-                                <span class="font-bold text-slate-700">ถึงด่าน ${item.stage}</span>
-                            </div>
-                        </div>
-                        <div class="flex flex-col items-end">
-                            <span class="font-bold text-emerald-600 text-lg">${item.score}</span>
-                            <span class="text-xs text-slate-400 font-mono">รวม ${item.timeText}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
         // --- Game Logic ---
         function initGameRound() {
-            state.moveCount = 0;
-            state.wrongAttempts = 0;
-            state.elapsedSeconds = 0;
-
+            // Level 1 = 1x3, Level 2 = 2x2, Level 3 = 2x3 (แนวนอน)
             if (state.level === 1) { state.rows = 1; state.cols = 3; }
             else if (state.level === 2) { state.rows = 2; state.cols = 2; }
-            else if (state.level === 3) { state.rows = 3; state.cols = 2; }
-            else { state.rows = 3; state.cols = 3; }
+            else { state.rows = 2; state.cols = 3; } 
 
             const totalSlots = state.rows * state.cols;
             const shuffledAnimals = [...ALL_ANIMALS].sort(() => Math.random() - 0.5);
@@ -596,13 +563,12 @@
             
             document.getElementById('level-name').innerText = LEVEL_NAMES[state.level];
             document.getElementById('stage-display').innerText = state.stage;
-            document.getElementById('grid-info').innerText = `${state.rows}x${state.cols}`;
-            updateTimerDisplay();
             
             renderAnimalBank();
             generateHints();
+            
+            // ให้ Browser วาด Layout เสร็จก่อน ค่อยคำนวณพื้นที่ตาราง
             setTimeout(renderGrid, 50); 
-            startTimer();
         }
 
         function renderGrid() {
@@ -610,29 +576,31 @@
             const wrapper = document.getElementById('grid-wrapper');
             grid.innerHTML = '';
             
+            // อ่านค่าพื้นที่ว่างที่เหลือจริงๆ จากการแบ่ง Flex
             const availWidth = wrapper.clientWidth - 10;
             const availHeight = wrapper.clientHeight - 10;
 
-            const gap = 8;
+            const gap = 12;
             const totalGapW = (state.cols - 1) * gap;
             const totalGapH = (state.rows - 1) * gap;
 
+            // คำนวณขนาดเซลล์ที่ใหญ่ที่สุดที่จะเป็นไปได้โดยไม่ล้น
             const maxCellW = (availWidth - totalGapW) / state.cols;
             const maxCellH = (availHeight - totalGapH) / state.rows;
             
-            const cellSize = Math.floor(Math.min(maxCellW, maxCellH));
+            let cellSize = Math.floor(Math.min(maxCellW, maxCellH));
+            // นำค่าจำกัดความกว้าง/สูงตายตัวออก เพื่อให้ยืดหดได้ตามจริง 100%
             
             grid.style.gridTemplateColumns = `repeat(${state.cols}, ${cellSize}px)`;
             grid.style.gridTemplateRows = `repeat(${state.rows}, ${cellSize}px)`;
             grid.style.gap = `${gap}px`;
 
-            const fontSize = Math.floor(cellSize * 0.6);
+            const fontSize = Math.floor(cellSize * 0.5);
 
             for (let i = 0; i < state.rows * state.cols; i++) {
                 const slot = document.createElement('div');
                 slot.className = 'slot';
                 slot.style.fontSize = `${fontSize}px`;
-                slot.innerHTML = `<span class="opacity-20 text-slate-300 font-bold select-none text-[30%]">${i+1}</span>`; 
                 slot.onclick = () => onSlotClick(i);
                 grid.appendChild(slot);
             }
@@ -641,8 +609,6 @@
         function renderAnimalBank() {
             const bank = document.getElementById('animal-bank');
             bank.innerHTML = '';
-            const count = state.availableAnimals.length;
-            bank.style.gridTemplateColumns = `repeat(${Math.min(count, 5)}, 1fr)`;
 
             state.availableAnimals.forEach(animal => {
                 const btn = document.createElement('div');
@@ -654,60 +620,33 @@
             });
         }
 
-        function startTimer() {
-            if (state.timerId) clearInterval(state.timerId);
-            state.timerId = setInterval(() => {
-                state.elapsedSeconds++;
-                updateTimerDisplay();
-            }, 1000);
-        }
-
-        function updateTimerDisplay() {
-            const timeStr = formatTime(state.elapsedSeconds);
-            document.getElementById('timer-text').innerText = timeStr;
-            return timeStr;
-        }
-
         function getPositionName(idx) {
             const r = Math.floor(idx / state.cols);
             const c = idx % state.cols;
             
             if (state.rows === 1) {
-                if (state.cols === 3) {
-                     const names = ["ซ้ายสุด", "ตรงกลาง", "ขวาสุด"];
-                     return names[c];
-                }
-                return c === 0 ? "ซ้าย" : "ขวา";
+                const names = ["ซ้าย", "กลาง", "ขวา"];
+                return names[c];
             }
             if (state.rows === 2 && state.cols === 2) {
                 const rowName = r === 0 ? "บน" : "ล่าง";
                 const colName = c === 0 ? "ซ้าย" : "ขวา";
-                return `มุม${colName}${rowName}`;
+                return `${colName}${rowName}`;
             }
-            if (state.rows === 3 && state.cols === 3) {
-                if (r === 1 && c === 1) return "ตรงกลางตาราง";
-                if (r === 0 && c === 0) return "มุมซ้ายบน";
-                if (r === 0 && c === 2) return "มุมขวาบน";
-                if (r === 2 && c === 0) return "มุมซ้ายล่าง";
-                if (r === 2 && c === 2) return "มุมขวาล่าง";
-                if (r === 0 && c === 1) return "แถวบน ตรงกลาง";
-                if (r === 2 && c === 1) return "แถวล่าง ตรงกลาง";
-                if (r === 1 && c === 0) return "แถวกลาง ด้านซ้าย";
-                if (r === 1 && c === 2) return "แถวกลาง ด้านขวา";
-            }
-            const rowNames = ["บน", "กลาง", "ล่าง"];
+            // 2x3 Hard (แนวนอน)
+            const rowNames = ["บน", "ล่าง"];
             const colNames = ["ซ้าย", "กลาง", "ขวา"];
-            return `${colNames[c]} แถว${rowNames[r]}`;
+            return `${rowNames[r]}${colNames[c]}`;
         }
 
         function getPhrase(type, a1, a2) {
             const phrases = {
-                up: [`🔼 <b>${a1}</b> อยู่ด้านบนของ <b>${a2}</b>`, `🔼 <b>${a1}</b> พักอยู่ชั้นบนของ <b>${a2}</b>`, `🔼 <b>${a2}</b> ถูก <b>${a1}</b> ทับอยู่`],
-                down: [`🔽 <b>${a1}</b> อยู่ด้านล่างของ <b>${a2}</b>`, `🔽 <b>${a1}</b> พักอยู่ใต้ <b>${a2}</b>`, `🔽 <b>${a2}</b> นั่งทับ <b>${a1}</b> อยู่`],
-                left: [`👈 <b>${a1}</b> อยู่ทางซ้ายของ <b>${a2}</b>`, `👈 <b>${a1}</b> ยืนต่อแถวซ้ายมือของ <b>${a2}</b>`, `👈 <b>${a2}</b> มี <b>${a1}</b> อยู่ด้านซ้าย`],
-                right: [`👉 <b>${a1}</b> อยู่ทางขวาของ <b>${a2}</b>`, `👉 <b>${a1}</b> ยืนต่อแถวขวามือของ <b>${a2}</b>`, `👉 <b>${a2}</b> มี <b>${a1}</b> อยู่ด้านขวา`]
+                up: `<b>${a1}</b> อยู่บน <b>${a2}</b>`,
+                down: `<b>${a1}</b> อยู่ล่าง <b>${a2}</b>`,
+                left: `<b>${a1}</b> อยู่ซ้ายของ <b>${a2}</b>`,
+                right: `<b>${a1}</b> อยู่ขวาของ <b>${a2}</b>`
             };
-            return phrases[type][Math.floor(Math.random() * phrases[type].length)];
+            return phrases[type];
         }
 
         function generateHints() {
@@ -718,15 +657,9 @@
             const visited = new Set();
             
             let rootIdx = Math.floor(Math.random() * total);
-            if (state.rows === 3 && state.cols === 3) {
-                const easyStarts = [0, 2, 4, 6, 8];
-                rootIdx = easyStarts[Math.floor(Math.random() * easyStarts.length)];
-            } else if (state.rows === 1) {
-                rootIdx = Math.floor(Math.random() * 3);
-            }
-
             visited.add(rootIdx);
-            hints.push(`📍 <span class="text-emerald-700 font-bold">${sol[rootIdx]}</span> อยู่ที่ <b>${getPositionName(rootIdx)}</b>`);
+            
+            hints.push(`<span style="color: var(--pastel-peach); font-weight:900;">${sol[rootIdx]}</span> อยู่ที่ <b>${getPositionName(rootIdx)}</b>`);
 
             while (visited.size < total - 1) {
                 const candidates = [];
@@ -757,11 +690,20 @@
                 visited.add(pick.v);
             }
             
-            hints.push(`<li class="bg-amber-50 text-amber-800 p-2 rounded-lg text-sm border border-amber-200 mt-2">💡 ตัวสุดท้ายไม่มีคำใบ้ ต้องหาที่ว่างเองนะครับ</li>`);
-            list.innerHTML = hints.map(h => h.startsWith('<li') ? h : `<li class="pl-2 border-l-4 border-emerald-200">${h}</li>`).join('');
+            // คำใบ้สุดท้าย
+            hints.push(`<span style="color: var(--stroke-dark); opacity: 0.8; font-size: 1.25rem;">ตัวที่เหลือให้วางในช่องว่าง</span>`);
+            
+            // เรียงลำดับคำใบ้และใช้ตัวเลข
+            list.innerHTML = hints.map((h, index) => `
+                <li class="flex items-start">
+                    <span style="font-weight:900; color:#94a3b8; margin-right:12px; min-width: 24px;">${index + 1}.</span>
+                    <span>${h}</span>
+                </li>
+            `).join('');
         }
 
         function onAnimalSelect(animal) {
+            playSound('pop');
             state.selectedAnimal = animal;
             document.querySelectorAll('.animal-btn').forEach(b => b.classList.remove('selected'));
             document.getElementById(`btn-${animal}`).classList.add('selected');
@@ -769,21 +711,22 @@
 
         function onSlotClick(idx) {
             if (!state.selectedAnimal) return;
+            playSound('pop');
             const prevIdx = state.currentBoard.indexOf(state.selectedAnimal);
             if (prevIdx !== -1) {
                 state.currentBoard[prevIdx] = null;
                 const prevSlot = document.querySelectorAll('.slot')[prevIdx];
-                prevSlot.innerHTML = `<span class="opacity-20 text-slate-300 font-bold select-none text-[30%]">${prevIdx+1}</span>`;
+                prevSlot.innerHTML = ``;
                 prevSlot.classList.remove('active');
             }
             state.currentBoard[idx] = state.selectedAnimal;
             const slot = document.querySelectorAll('.slot')[idx];
             slot.innerText = state.selectedAnimal;
             slot.classList.add('active');
-            state.moveCount++;
         }
 
         function nextStage() {
+            playSound('pop');
             state.stage++;
             document.getElementById('modal-win').classList.add('hidden');
             initGameRound();
@@ -791,70 +734,52 @@
 
         function onCheckAnswer() {
             if (state.currentBoard.includes(null)) {
+                playSound('error');
                 const app = document.getElementById('main-app');
-                app.classList.add('shake');
-                setTimeout(() => app.classList.remove('shake'), 400);
+                app.classList.add('wiggle');
+                setTimeout(() => app.classList.remove('wiggle'), 400);
                 return;
             }
 
             const isCorrect = state.currentBoard.every((val, i) => val === state.solution[i]);
 
             if (isCorrect) {
-                clearInterval(state.timerId);
-                const baseScore = state.level * 1000;
-                const timePenalty = state.elapsedSeconds * 10;
-                const stageScore = Math.max(100, baseScore - timePenalty);
+                playSound('chime');
+                shootConfetti();
                 
-                state.totalLevelSeconds += state.elapsedSeconds;
-                state.totalScore += stageScore;
-
-                saveScore(state.level, state.totalScore, state.totalLevelSeconds, state.stage, state.runId);
-                saveAnalyticsLog(true);
-
-                document.getElementById('res-stage-time').innerText = formatTime(state.elapsedSeconds);
-                document.getElementById('res-total-time').innerText = formatTime(state.totalLevelSeconds);
-                document.getElementById('res-score').innerText = state.totalScore;
-                
-                const stars = document.getElementById('star-rating');
-                if (stageScore > baseScore * 0.8) stars.innerHTML = '★ ★ ★';
-                else if (stageScore > baseScore * 0.5) stars.innerHTML = '★ ★ ☆';
-                else stars.innerHTML = '★ ☆ ☆';
-
                 const btnContainer = document.getElementById('win-buttons');
                 const isLastStage = state.stage === 10;
                 
                 let nextBtnHtml = '';
-                let titleHtml = `ด่าน ${state.stage} สำเร็จ!`;
+                let titleHtml = `เยี่ยมมาก!`;
 
                 if (isLastStage) {
-                    titleHtml = `🎉 พิชิตระดับ ${LEVEL_NAMES[state.level]} สำเร็จ!`;
+                    titleHtml = `🎉 จบด่านระดับ ${LEVEL_NAMES[state.level]} !`;
                     nextBtnHtml = `
-                        <button onclick="backToMenu(); document.getElementById('modal-win').classList.add('hidden')" class="col-span-2 py-3 rounded-xl font-bold text-white bg-emerald-500 shadow-md hover:bg-emerald-600 text-lg">
-                            กลับสู่เมนูหลัก
+                        <button onclick="backToMenu(); document.getElementById('modal-win').classList.add('hidden')" class="paper-btn w-full text-xl" style="background: var(--pastel-mint);">
+                            🏠 กลับหน้าหลัก
                         </button>
                     `;
                 } else {
                     nextBtnHtml = `
-                        <button onclick="showLeaderboardFromModal()" class="py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200">
-                            🏆 คะแนนรวม
-                        </button>
-                        <button onclick="nextStage()" class="py-3 rounded-xl font-bold text-white bg-emerald-500 shadow-md hover:bg-emerald-600">
-                            ด่านต่อไป (${state.stage+1}/10)
+                        <button onclick="nextStage()" class="paper-btn w-full text-2xl" style="background: var(--pastel-mint);">
+                            ไปต่อ ด่าน ${state.stage+1} ➔
                         </button>
                     `;
                 }
 
-                document.getElementById('win-title').innerText = titleHtml;
+                document.getElementById('win-title').innerHTML = titleHtml;
                 btnContainer.innerHTML = nextBtnHtml;
                 document.getElementById('modal-win').classList.remove('hidden');
             } else {
+                playSound('error');
                 const app = document.getElementById('main-app');
-                app.classList.add('shake');
-                setTimeout(() => app.classList.remove('shake'), 400);
-                state.wrongAttempts++;
+                app.classList.add('wiggle');
+                setTimeout(() => app.classList.remove('wiggle'), 400);
             }
         }
 
+        // วาดตารางใหม่เสมอเมื่อมีการปรับขนาดหน้าจอ (เช่น หมุนโทรศัพท์)
         window.addEventListener('resize', renderGrid);
     </script>
 </body>

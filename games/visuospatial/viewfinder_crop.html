@@ -277,7 +277,7 @@
 
                 <div class="btn" onclick="startGame('hard')" style="background: #FFB3B3; margin-bottom: 0;">
                     ยาก (Hard)
-                    <div style="font-size: 14px; font-weight: 300; margin-top: 2px; color: #854040;">ภาพตัวอย่างถูก "หมุน 90 องศา" (ต้องคิดกลับด้าน)</div>
+                    <div style="font-size: 14px; font-weight: 300; margin-top: 2px; color: #854040;">ภาพตัวอย่างถูก "หมุน 90 องศา" (ระบุทิศทางตาม/ทวนเข็ม)</div>
                 </div>
             </div>
         </div>
@@ -411,9 +411,9 @@
         
         updateUI();
         
-        // Update Instruction Text
+        // Update Instruction Text Placeholer
         if (difficulty === 'hard') {
-            document.getElementById('ui-instruction').innerHTML = 'หาลายนี้ให้เจอ (ภาพนี้ถูกหมุน <span style="color:#E57373">90 องศา</span>)';
+            document.getElementById('ui-instruction').innerHTML = 'กำลังสุ่มทิศทางการหมุน...';
         } else {
             document.getElementById('ui-instruction').innerText = 'หาลายที่ตรงกับภาพนี้ในกระดาน!';
         }
@@ -501,11 +501,18 @@
         tgtCtx.clearRect(0, 0, VF_SIZE, VF_SIZE);
         tgtCtx.save();
         
-        // If Hard mode, apply 90 degree rotation to the target preview
+        // If Hard mode, apply 90 degree rotation to the target preview and update instruction
         if (currentDifficulty === 'hard') {
+            let isClockwise = Math.random() > 0.5;
+            let directionText = isClockwise ? 'ตามเข็มนาฬิกา' : 'ทวนเข็มนาฬิกา';
+            document.getElementById('ui-instruction').innerHTML = `หาลายนี้ให้เจอ (หมุน <span style="color:#E57373">90 องศา ${directionText}</span>)`;
+            
             tgtCtx.translate(VF_SIZE / 2, VF_SIZE / 2);
-            tgtCtx.rotate(Math.PI / 2); // Rotate 90 deg
+            // Rotate 90 deg clockwise or counter-clockwise
+            tgtCtx.rotate(isClockwise ? Math.PI / 2 : -Math.PI / 2); 
             tgtCtx.translate(-VF_SIZE / 2, -VF_SIZE / 2);
+        } else {
+            document.getElementById('ui-instruction').innerText = 'หาลายที่ตรงกับภาพนี้ในกระดาน!';
         }
         
         // Draw the exact sub-rectangle from wallpaper to the target canvas

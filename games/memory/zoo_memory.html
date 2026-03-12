@@ -5,8 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>สวนสัตว์แห่งความทรงจำ (Zoo Memory Quest)</title>
     
+    <!-- Google Fonts: Kanit (Rounded Sans-Serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'sans-serif'],
+                    },
+                    colors: {
+                        cream: '#FFF9F0',
+                        peach: { 100: '#FFE5D4', 400: '#FFAD85', 500: '#FA9261' },
+                        mint: { 100: '#E0F5EC', 400: '#8CDCB8', 500: '#6ABFA2' },
+                        sky: { 100: '#E0F2FA', 400: '#8ACAE6', 500: '#69B6D9' },
+                        lemon: { 100: '#FEF4D4', 400: '#FDE08B', 500: '#E8C55A' },
+                        ink: '#4A4A4A'
+                    },
+                    keyframes: {
+                        wiggle: {
+                            '0%, 100%': { transform: 'rotate(-3deg)' },
+                            '50%': { transform: 'rotate(3deg)' },
+                        },
+                        pop: {
+                            '0%': { transform: 'scale(0.8)', opacity: '0' },
+                            '50%': { transform: 'scale(1.1)' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        }
+                    },
+                    animation: {
+                        wiggle: 'wiggle 0.3s ease-in-out 2',
+                        pop: 'pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                    }
+                }
+            }
+        }
+    </script>
     
     <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -16,54 +55,89 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        /* Custom Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        body {
+            background-color: #FFF9F0;
+            color: #4A4A4A;
+            -webkit-tap-highlight-color: transparent;
         }
-        @keyframes zoomIn {
-            from { transform: scale(0.95); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-        .animate-zoom-in { animation: zoomIn 0.5s ease-out; }
-        .animate-slide-up { animation: slideUp 0.5s ease-out forwards; }
         
         /* Hide Scrollbar */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Paper Cut Effects */
+        .paper-card {
+            background: white;
+            border: 4px solid #F3E8D6;
+            border-radius: 2rem;
+            box-shadow: 0 12px 0 0 #F3E8D6;
+            margin-bottom: 12px;
         }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+
+        .paper-btn {
+            border: 3px solid rgba(0,0,0,0.1);
+            border-bottom-width: 8px;
+            border-radius: 1.5rem;
+            transition: all 0.15s ease;
+        }
+        .paper-btn:active:not(:disabled) {
+            transform: translateY(4px);
+            border-bottom-width: 4px;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #f00;
+            border-radius: 4px;
+            animation: fall 2s linear forwards;
+            z-index: 100;
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(300px) rotate(360deg); opacity: 0; }
         }
     </style>
 </head>
-<body class="bg-slate-800 text-slate-800 font-sans select-none">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
-        const APP_VERSION = "v1.1.0";
+        const { useState, useEffect, useRef } = React;
+        const APP_VERSION = "v2.0.0";
 
-        // --- Icons (SVG Components) ---
-        const Icon = ({ path, size = 24, className = "" }) => (
-            <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width={size} 
-                height={size} 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                className={className}
-            >
+        // --- Audio System (Soft Synths) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        const playTone = (freq, type, duration, vol = 0.1) => {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        };
+
+        const playClick = () => playTone(600, 'sine', 0.1, 0.05);
+        const playCorrect = () => {
+            playTone(523.25, 'sine', 0.4, 0.1); // C5
+            setTimeout(() => playTone(659.25, 'sine', 0.6, 0.1), 150); // E5
+        };
+        const playWrong = () => {
+            playTone(300, 'triangle', 0.4, 0.1);
+            setTimeout(() => playTone(250, 'triangle', 0.6, 0.1), 200);
+        };
+
+        // --- Icons ---
+        const Icon = ({ path, size = 28, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 {path}
             </svg>
         );
@@ -71,18 +145,11 @@
         const Icons = {
             Play: <polygon points="5 3 19 12 5 21 5 3"></polygon>,
             RefreshCw: <><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></>,
-            CheckCircle2: <><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></>,
-            XCircle: <><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></>,
-            ArrowRight: <><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></>,
-            Trees: <><path d="M10 10v.2A3 3 0 0 1 8.9 16v0H5v0h0a3 3 0 0 1-1-5.8V10a3 3 0 0 1 5.3-2.1"/><path d="M7 16v6"/><path d="M13 19v3"/><path d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .6-1.7L13 2.6a1 1 0 0 0-1.4 0L8.2 7.3a1 1 0 0 0 .6 1.7H9l-2.4 3.4A1 1 0 0 0 7.3 14h.3a1 1 0 0 0 .7 1.7l1.4 3.3"/></>,
-            PawPrint: <><circle cx="12" cy="17" r="5"/><circle cx="5" cy="10" r="3"/><circle cx="9" cy="5" r="3"/><circle cx="15" cy="5" r="3"/><circle cx="19" cy="10" r="3"/></>,
-            HelpCircle: <><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></>,
-            Star: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>,
-            Trophy: <><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></>,
             Home: <><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
             ListChecks: <><path d="M10 6h11"/><path d="M10 12h11"/><path d="M10 18h11"/><path d="M3 6h1"/><path d="M3 12h1"/><path d="M3 18h1"/></>,
-            Brain: <><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></>,
-            ClipboardCheck: <><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></>
+            Star: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>,
+            Trophy: <><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></>,
+            ArrowLeft: <><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></>
         };
 
         // --- Game Data ---
@@ -102,82 +169,74 @@
         ];
 
         const DISTRACTION_QUIZ_POOL = [
-            { q: "สัตว์ตัวไหน 'คอยาว' ที่สุด?", a: '🦒', options: ['🦁', '🦒', '🐧'] },
-            { q: "สัตว์ตัวไหนชอบกิน 'กล้วย'?", a: '🐵', options: ['🐵', '🐯', '🦓'] },
-            { q: "สัตว์ตัวไหนมี 'งวง'?", a: '🐘', options: ['🐼', '🐘', '🦁'] },
-            { q: "สัตว์ตัวไหนมีลาย 'ขาว-ดำ'?", a: '🦓', options: ['🦓', '🐘', '🐯'] },
-            { q: "สัตว์ตัวไหนเป็น 'เจ้าป่า'?", a: '🦁', options: ['🐧', '🦁', '🦓'] },
-            { q: "สัตว์ตัวไหนกิน 'ไผ่' เป็นอาหาร?", a: '🐼', options: ['🐵', '🐼', '🦁'] },
-            { q: "สัตว์ตัวไหนอยู่บน 'น้ำแข็ง'?", a: '🐧', options: ['🐧', '🦒', '🐘'] },
-            { q: "สัตว์ตัวไหนร้อง 'อู๊ดๆ'?", a: '🐷', options: ['🐷', '🐮', '🐸'] },
-            { q: "สัตว์ตัวไหนชอบกิน 'นม'?", a: '🐮', options: ['🐮', '🐸', '🐨'] },
-            { q: "สัตว์ตัวไหน 'กระโดด' เก่ง?", a: '🐸', options: ['🐸', '🐷', '🐮'] },
+            { q: "สัตว์ตัวไหนคอยาวที่สุด?", a: '🦒', options: ['🦁', '🦒', '🐧'] },
+            { q: "สัตว์ตัวไหนชอบกินกล้วย?", a: '🐵', options: ['🐵', '🐯', '🦓'] },
+            { q: "สัตว์ตัวไหนมีงวงยาว?", a: '🐘', options: ['🐼', '🐘', '🦁'] },
+            { q: "สัตว์ตัวไหนมีลายขาว-ดำ?", a: '🦓', options: ['🦓', '🐘', '🐯'] },
+            { q: "สัตว์ตัวไหนคือเจ้าป่า?", a: '🦁', options: ['🐧', '🦁', '🦓'] },
+            { q: "สัตว์ตัวไหนกินไผ่?", a: '🐼', options: ['🐵', '🐼', '🦁'] },
+            { q: "สัตว์ตัวไหนอยู่ในที่หนาวเย็น?", a: '🐧', options: ['🐧', '🦒', '🐘'] },
+            { q: "สัตว์ตัวไหนร้องอู๊ดๆ?", a: '🐷', options: ['🐷', '🐮', '🐸'] },
+            { q: "สัตว์ตัวไหนให้นมเราดื่ม?", a: '🐮', options: ['🐮', '🐸', '🐨'] },
+            { q: "สัตว์ตัวไหนกระโดดเก่ง?", a: '🐸', options: ['🐸', '🐷', '🐮'] },
         ];
 
-        const TOTAL_ROUNDS = 10;
-        const INITIAL_LEADERBOARD = [
-            { id: 1, mode: 'training', difficulty: 'Easy', correct: 10, total: 10, time: '3:30' },
-            { id: 2, mode: 'testing', difficulty: 'Medium', correct: 8, total: 10, time: '5:45' },
-        ];
+        const TOTAL_ROUNDS = 5;
 
-        // --- Common Components ---
-        const BigButton = ({ onClick, children, colorClass = "bg-green-600 hover:bg-green-700", disabled = false, className = "" }) => (
+        // --- Common UI Components ---
+        const PaperButton = ({ onClick, children, colorClass = "bg-mint-400 border-mint-500", disabled = false, className = "" }) => (
             <button
-                onClick={onClick}
+                onClick={() => { playClick(); onClick(); }}
                 disabled={disabled}
-                className={`w-full py-4 px-6 rounded-2xl text-xl font-bold text-white transition-transform active:scale-95 shadow-lg flex items-center justify-center gap-3 border-b-4 border-black/20 ${colorClass} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
+                className={`w-full py-5 px-6 text-2xl font-bold text-ink flex items-center justify-center gap-4 paper-btn ${colorClass} ${disabled ? 'opacity-60 cursor-not-allowed' : ''} ${className}`}
             >
                 {children}
             </button>
         );
 
-        const Card = ({ children, className = "" }) => (
-            <div className={`bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-6 w-full mx-auto text-center border-4 border-amber-100 ${className}`}>
-                {children}
-            </div>
-        );
+        const Confetti = () => {
+            const colors = ['#8CDCB8', '#FDE08B', '#FFAD85', '#8ACAE6'];
+            return (
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    {[...Array(30)].map((_, i) => {
+                        const style = {
+                            left: `${Math.random() * 100}%`,
+                            backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+                            animationDuration: `${Math.random() * 2 + 1}s`,
+                            animationDelay: `${Math.random() * 0.5}s`
+                        };
+                        return <div key={i} className="confetti" style={style} />;
+                    })}
+                </div>
+            );
+        };
 
-        // --- Main App Component ---
+        // --- Main App ---
         function App() {
-            // States: 'menu', 'difficulty', 'leaderboard', 'memorize', 'distract', 'recall', 'feedback', 'summary'
+            // States: 'menu', 'leaderboard', 'distract', 'recall', 'feedback', 'summary'
             const [gameState, setGameState] = useState('menu');
+            
+            // Session State
+            const [fixedLevel, setFixedLevel] = useState(3);
+            const [currentDifficulty, setCurrentDifficulty] = useState('Easy');
+            const [currentRound, setCurrentRound] = useState(1);
+            const [correctCount, setCorrectCount] = useState(0);
+            const [gameStartTime, setGameStartTime] = useState(null);
+            
+            // Round State
             const [targetItem, setTargetItem] = useState(null);
             const [distractionStep, setDistractionStep] = useState(0);
             const [currentQuiz, setCurrentQuiz] = useState(null);
             const [quizPool, setQuizPool] = useState([]);
             const [recallOptions, setRecallOptions] = useState([]);
-            
-            // Session State
-            const [gameMode, setGameMode] = useState('training'); // 'training' | 'testing'
             const [isCorrect, setIsCorrect] = useState(false);
-            const [fixedLevel, setFixedLevel] = useState(3);
-            const [currentRound, setCurrentRound] = useState(1);
-            const [correctCount, setCorrectCount] = useState(0);
-            const [currentDifficulty, setCurrentDifficulty] = useState('Easy');
-            const [gameStartTime, setGameStartTime] = useState(null);
+            const [wigglingOption, setWigglingOption] = useState(null);
             
-            // Load leaderboard from Local Storage
-            const [leaderboard, setLeaderboard] = useState(() => {
-                try {
-                    const saved = localStorage.getItem('zooMemoryLeaderboard');
-                    return saved ? JSON.parse(saved) : INITIAL_LEADERBOARD;
-                } catch (error) {
-                    console.error('Error loading leaderboard:', error);
-                    return INITIAL_LEADERBOARD;
-                }
-            });
+            // Final Time State
+            const [finalTime, setFinalTime] = useState("0:00");
             
-            const [leaderboardTab, setLeaderboardTab] = useState('Easy');
-            const [leaderboardMode, setLeaderboardMode] = useState('training');
-
-            // Save leaderboard to Local Storage whenever it changes
-            useEffect(() => {
-                try {
-                    localStorage.setItem('zooMemoryLeaderboard', JSON.stringify(leaderboard));
-                } catch (error) {
-                    console.error('Error saving leaderboard:', error);
-                }
-            }, [leaderboard]);
+            // Exit Confirmation State
+            const [showExitConfirm, setShowExitConfirm] = useState(false);
 
             const formatTime = (ms) => {
                 const totalSeconds = Math.floor(ms / 1000);
@@ -186,114 +245,49 @@
                 return `${minutes}:${seconds.toString().padStart(2, '0')}`;
             };
 
-            const getElapsedTime = () => {
-                if (!gameStartTime) return "0:00";
-                const now = Date.now();
-                return formatTime(now - gameStartTime);
-            };
+            const getElapsedTime = () => gameStartTime ? formatTime(Date.now() - gameStartTime) : "0:00";
+            const getQuestionsCount = () => fixedLevel;
 
-            const getQuestionsCount = () => Math.min(fixedLevel, 10);
-
-            // Step 1: Select Mode (from Menu)
-            const selectModeAndGoToDifficulty = (mode) => {
-                setGameMode(mode);
-                setGameState('difficulty');
-            };
-
-            // Step 2: Select Difficulty and Start
-            const startGameFromDifficulty = (level, difficultyName) => {
+            // --- Game Flow Logic ---
+            const startGame = (level, diffName) => {
                 setFixedLevel(level);
-                setCurrentDifficulty(difficultyName);
-                
-                // Init Game
+                setCurrentDifficulty(diffName);
                 setCurrentRound(1);
                 setCorrectCount(0);
                 setGameStartTime(Date.now());
-                
-                // Start First Round
-                startRound(gameMode);
+                startRound();
             };
 
-            const startRound = (mode) => {
+            const startRound = () => {
                 const shuffledQuiz = [...DISTRACTION_QUIZ_POOL].sort(() => Math.random() - 0.5);
                 setQuizPool(shuffledQuiz);
                 setDistractionStep(0);
 
-                if (mode === 'training') {
-                    // Training Mode: Random target -> Memorize -> Distract
-                    const randomItem = MEMORY_ITEMS[Math.floor(Math.random() * MEMORY_ITEMS.length)];
-                    setTargetItem(randomItem);
-                    setGameState('memorize');
-                } else {
-                    // Test Mode: Target is answer to 1st question -> Distract
-                    const firstQuizAnswer = shuffledQuiz[0].a;
-                    const target = MEMORY_ITEMS.find(item => item.icon === firstQuizAnswer);
-                    setTargetItem(target || MEMORY_ITEMS[0]);
-                    
-                    setCurrentQuiz(shuffledQuiz[0]);
-                    setGameState('distract');
-                }
-            };
-
-            const nextRoundOrFinish = () => {
-                if (currentRound < TOTAL_ROUNDS) {
-                    setCurrentRound(prev => prev + 1);
-                    startRound(gameMode);
-                } else {
-                    saveScore();
-                }
-            };
-
-            const saveScore = () => {
-                const finalTime = getElapsedTime();
-                const newEntry = {
-                    id: Date.now(),
-                    mode: gameMode,
-                    difficulty: currentDifficulty,
-                    correct: correctCount,
-                    total: TOTAL_ROUNDS,
-                    time: finalTime
-                };
+                // Set Target based on Answer to 1st Question
+                const targetIcon = shuffledQuiz[0].a;
+                const targetObj = MEMORY_ITEMS.find(item => item.icon === targetIcon);
+                setTargetItem(targetObj || MEMORY_ITEMS[0]);
                 
-                const updatedLeaderboard = [...leaderboard, newEntry].sort((a, b) => {
-                    if (b.correct !== a.correct) return b.correct - a.correct;
-                    return a.time.localeCompare(b.time);
-                });
-                
-                setLeaderboard(updatedLeaderboard);
-                setGameState('summary');
+                setCurrentQuiz(shuffledQuiz[0]);
+                setGameState('distract');
             };
 
-            const loadNextDistraction = () => {
-                const totalQuestions = getQuestionsCount();
-                if (distractionStep < totalQuestions) {
-                    const quizIndex = distractionStep % quizPool.length;
-                    setCurrentQuiz(quizPool[quizIndex]);
-                    setGameState('distract');
-                } else {
+            const handleDistractionAnswer = () => {
+                // Ignore if correct or wrong, just proceed
+                const nextStep = distractionStep + 1;
+                const totalQs = getQuestionsCount();
+                
+                if (nextStep >= totalQs) {
                     setupRecall();
-                }
-            };
-
-            const handleDistractionAnswer = (selectedAnswer) => {
-                setTimeout(() => {
-                    const nextStep = distractionStep + 1;
-                    const totalQuestions = getQuestionsCount();
+                } else {
                     setDistractionStep(nextStep);
-                    if (nextStep >= totalQuestions) {
-                        setupRecall();
-                    } else {
-                        const quizIndex = nextStep % quizPool.length;
-                        setCurrentQuiz(quizPool[quizIndex]);
-                    }
-                }, 200);
+                    setCurrentQuiz(quizPool[nextStep % quizPool.length]);
+                }
             };
 
             const setupRecall = () => {
                 let options = [targetItem];
-                let numDistractors = 2;
-                if (fixedLevel >= 3 && fixedLevel <= 5) numDistractors = 3;
-                if (fixedLevel >= 6) numDistractors = 5;
+                let numDistractors = fixedLevel >= 6 ? 5 : 3; // Easy: 4 options, Med/Hard: 6 options
 
                 const distractors = MEMORY_ITEMS.filter(item => item.id !== targetItem.id);
                 const randomDistractors = distractors.sort(() => Math.random() - 0.5).slice(0, numDistractors);
@@ -303,255 +297,241 @@
                 setGameState('recall');
             };
 
-            const checkRecall = (selectedItem) => {
+            const handleRecallAnswer = (selectedItem) => {
                 const correct = selectedItem.id === targetItem.id;
-                setIsCorrect(correct);
-                if (correct) setCorrectCount(prev => prev + 1);
-                setGameState('feedback');
+                
+                if (correct) {
+                    playCorrect();
+                    setIsCorrect(true);
+                    setCorrectCount(prev => prev + 1);
+                    setGameState('feedback');
+                } else {
+                    playWrong();
+                    setWigglingOption(selectedItem.id);
+                    // Wiggle effect delay before moving to feedback
+                    setTimeout(() => {
+                        setWigglingOption(null);
+                        setIsCorrect(false);
+                        setGameState('feedback');
+                    }, 800);
+                }
             };
 
-            // --- Sub-Screens ---
-            
+            const nextRoundOrFinish = () => {
+                if (currentRound < TOTAL_ROUNDS) {
+                    setCurrentRound(prev => prev + 1);
+                    startRound();
+                } else {
+                    saveScore();
+                }
+            };
+
+            const saveScore = () => {
+                setFinalTime(getElapsedTime());
+                setGameState('summary');
+            };
+
+            const goHome = () => {
+                playClick();
+                setShowExitConfirm(true);
+            };
+
+            const confirmExit = () => {
+                playClick();
+                setShowExitConfirm(false);
+                setGameState('menu');
+            };
+
+            const cancelExit = () => {
+                playClick();
+                setShowExitConfirm(false);
+            };
+
+            // --- Screens ---
             const MenuScreen = () => (
-                <div className="flex flex-col items-center justify-center h-full p-6 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] relative">
-                    <Card className="py-8 border-green-200 relative overflow-hidden animate-zoom-in">
-                        <div className="absolute top-[-50px] left-[-50px] w-32 h-32 bg-green-100 rounded-full opacity-50 z-0"></div>
-                        <div className="relative z-10">
-                            <div className="flex justify-center mb-4">
-                                <div className="bg-green-100 p-5 rounded-full shadow-inner">
-                                    <Icon path={Icons.Trees} size={64} className="text-green-600" />
-                                </div>
-                            </div>
-                            <h1 className="text-3xl font-bold text-green-800 mb-2">สวนสัตว์<br/>แห่งความทรงจำ</h1>
-                            <p className="text-base text-green-600 mb-6">ฝึกสมองประลองปัญญา</p>
-                            <div className="flex flex-col gap-3">
-                                <BigButton onClick={() => selectModeAndGoToDifficulty('training')} colorClass="bg-blue-500 hover:bg-blue-600">
-                                    <Icon path={Icons.Brain} size={28} /> โหมดฝึกฝน
-                                </BigButton>
-                                <BigButton onClick={() => selectModeAndGoToDifficulty('testing')} colorClass="bg-purple-500 hover:bg-purple-600">
-                                    <Icon path={Icons.ClipboardCheck} size={28} /> โหมดทดสอบ
-                                </BigButton>
-                                <BigButton onClick={() => setGameState('leaderboard')} colorClass="bg-amber-500 hover:bg-amber-600">
-                                    <Icon path={Icons.Trophy} size={28} /> ดูคะแนนสูงสุด
-                                </BigButton>
+                <div className="flex flex-col items-center h-full p-6 animate-pop">
+                    <div className="paper-card p-8 w-full text-center relative overflow-hidden bg-cream">
+                        <div className="flex justify-center mb-4">
+                            <div className="bg-lemon-400 p-4 rounded-full border-4 border-lemon-500 shadow-sm">
+                                <span className="text-5xl">🦁</span>
                             </div>
                         </div>
-                    </Card>
-                    <div className="absolute bottom-4 right-6 text-slate-400 text-sm font-bold opacity-70">
-                        {APP_VERSION}
-                    </div>
-                </div>
-            );
-
-            const DifficultyScreen = () => (
-                <div className="flex flex-col items-center justify-center h-full p-6 relative">
-                    <Card className="py-6 border-blue-200 animate-slide-up">
-                        <h2 className="text-2xl font-bold text-slate-800 mb-6">
-                            เลือกระดับ ({gameMode === 'training' ? 'ฝึกฝน' : 'ทดสอบ'})
-                        </h2>
+                        <h1 className="text-3xl font-extrabold text-ink mb-3 leading-snug">สวนสัตว์<br/>แห่งความทรงจำ</h1>
+                        <p className="text-xl text-ink/80 mb-8 bg-white p-4 rounded-2xl border-2 border-slate-100">
+                            จำคำตอบของ <span className="text-peach-500 font-bold">"ข้อแรก"</span> ไว้ให้ดี<br/>แล้วตอบคำถามคั่นเวลาให้ครบ!
+                        </p>
+                        
                         <div className="flex flex-col gap-4">
-                            <button onClick={() => startGameFromDifficulty(3, 'Easy')} className="p-4 bg-green-100 border-2 border-green-400 rounded-2xl flex items-center gap-4 hover:bg-green-200 transition-all">
-                                <div className="bg-green-500 text-white p-3 rounded-xl"><Icon path={Icons.Star} size={24} /></div>
-                                <div className="text-left">
-                                    <div className="text-xl font-bold text-green-800">ระดับง่าย</div>
-                                    <div className="text-sm text-green-700">คำถามคั่น 3 ข้อ</div>
-                                </div>
-                            </button>
-                            <button onClick={() => startGameFromDifficulty(6, 'Medium')} className="p-4 bg-yellow-100 border-2 border-yellow-400 rounded-2xl flex items-center gap-4 hover:bg-yellow-200 transition-all">
-                                <div className="bg-yellow-500 text-white p-3 rounded-xl flex gap-1">
-                                    <Icon path={Icons.Star} size={16} /><Icon path={Icons.Star} size={16} />
-                                </div>
-                                <div className="text-left">
-                                    <div className="text-xl font-bold text-yellow-800">ระดับกลาง</div>
-                                    <div className="text-sm text-yellow-700">คำถามคั่น 6 ข้อ</div>
-                                </div>
-                            </button>
-                            <button onClick={() => startGameFromDifficulty(10, 'Hard')} className="p-4 bg-red-100 border-2 border-red-400 rounded-2xl flex items-center gap-4 hover:bg-red-200 transition-all">
-                                <div className="bg-red-500 text-white p-3 rounded-xl flex gap-1">
-                                    <Icon path={Icons.Star} size={12} /><Icon path={Icons.Star} size={12} /><Icon path={Icons.Star} size={12} />
-                                </div>
-                                <div className="text-left">
-                                    <div className="text-xl font-bold text-red-800">ระดับยาก</div>
-                                    <div className="text-sm text-red-700">คำถามคั่น 10 ข้อ</div>
-                                </div>
-                            </button>
+                            <PaperButton onClick={() => startGame(3, 'Easy')} colorClass="bg-mint-400 border-[#6ABFA2]">
+                                ระดับง่าย <span className="text-lg font-normal opacity-80">(คั่น 3 ข้อ)</span>
+                            </PaperButton>
+                            <PaperButton onClick={() => startGame(6, 'Medium')} colorClass="bg-lemon-400 border-[#E8C55A]">
+                                ระดับกลาง <span className="text-lg font-normal opacity-80">(คั่น 6 ข้อ)</span>
+                            </PaperButton>
+                            <PaperButton onClick={() => startGame(10, 'Hard')} colorClass="bg-peach-400 border-[#FA9261]">
+                                ระดับยาก <span className="text-lg font-normal opacity-80">(คั่น 10 ข้อ)</span>
+                            </PaperButton>
                         </div>
-                        <button onClick={() => setGameState('menu')} className="mt-6 text-slate-500 underline text-sm">ย้อนกลับ</button>
-                    </Card>
-                </div>
-            );
-
-            const MemorizeScreen = () => (
-                <div className="flex flex-col items-center justify-center h-full p-6 relative">
-                    <div className="absolute top-4 right-4 bg-white/80 px-3 py-1 rounded-full text-slate-600 font-bold shadow-sm z-10">ด่าน {currentRound}/{TOTAL_ROUNDS}</div>
-                    <h2 className="text-xl text-center text-green-700 mb-6 font-semibold bg-white/80 px-6 py-2 rounded-full shadow-sm">ขั้นตอนที่ 1: จำสัตว์ตัวนี้</h2>
-                    <Card className="py-10 border-green-200 animate-zoom-in">
-                        <div className="flex flex-col items-center gap-6">
-                            <div className="text-[100px] leading-none filter drop-shadow-md transform hover:scale-110 transition-transform cursor-default">{targetItem.icon}</div>
-                            <h3 className="text-4xl font-bold text-slate-800">{targetItem.name}</h3>
-                            <p className="text-base text-slate-500 mt-2">จำให้แม่น แล้วกดปุ่มสีส้มเลย!</p>
-                        </div>
-                    </Card>
-                    <div className="w-full mt-8">
-                        <BigButton onClick={() => loadNextDistraction()} colorClass="bg-amber-500 hover:bg-amber-600">จำได้แล้วครับ <Icon path={Icons.ArrowRight} size={28} /></BigButton>
                     </div>
                 </div>
             );
 
             const DistractionScreen = () => (
-                <div className="flex flex-col items-center justify-center h-full p-6 relative">
-                    <div className="absolute top-4 right-4 bg-white/80 px-3 py-1 rounded-full text-slate-600 font-bold shadow-sm z-10">ด่าน {currentRound}/{TOTAL_ROUNDS}</div>
-                    <div className="w-full flex justify-between items-center mb-6">
-                        <h2 className="text-lg text-amber-800 font-semibold flex items-center gap-2"><Icon path={Icons.PawPrint} size={18} /> กิจกรรมคั่นเวลา</h2>
-                        <span className="bg-amber-200 text-amber-800 px-3 py-1 rounded-full text-base font-bold shadow-inner">ข้อที่ {distractionStep + 1} / {getQuestionsCount()}</span>
+                <div className="flex flex-col h-full p-4 relative animate-pop">
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-6 bg-white p-3 rounded-2xl border-2 border-slate-100 shadow-sm">
+                        <button onClick={goHome} className="text-ink/60 hover:text-peach-500 p-2"><Icon path={Icons.ArrowLeft} /></button>
+                        <div className="text-xl font-bold text-ink">ด่าน {currentRound}/{TOTAL_ROUNDS}</div>
+                        <div className="w-10"></div> {/* Spacer for balance */}
                     </div>
-                    <Card className="py-8 border-amber-200 animate-fade-in">
-                        <div className="mb-6"><p className="text-xl font-bold text-slate-700 mb-4 min-h-[3.5rem] flex items-center justify-center">{currentQuiz?.q}</p></div>
-                        <div className="grid grid-cols-3 gap-3">
+
+                    <div className="paper-card py-10 px-6 flex-1 flex flex-col justify-center bg-cream">
+                        {distractionStep === 0 && (
+                            <div className="bg-peach-100 text-peach-500 font-bold text-xl py-2 px-4 rounded-xl mb-6 mx-auto w-max animate-bounce">
+                                ⭐ จำคำตอบข้อนี้ไว้ให้ดี!
+                            </div>
+                        )}
+                        
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-ink/60 font-bold text-lg">คำถามข้อที่ {distractionStep + 1}</span>
+                        </div>
+                        
+                        <h2 className="text-3xl font-extrabold text-ink mb-8 min-h-[4rem] flex items-center justify-center text-center leading-relaxed">
+                            {currentQuiz?.q}
+                        </h2>
+                        
+                        <div className="grid grid-cols-1 gap-4 mt-auto">
                             {currentQuiz?.options.map((opt, idx) => (
-                                <button key={idx} onClick={() => handleDistractionAnswer(opt)} className="aspect-square flex flex-col items-center justify-center bg-orange-50 text-5xl rounded-2xl hover:bg-orange-200 active:scale-95 transition-all shadow-md border-b-4 border-orange-200/50">{opt}</button>
+                                <button 
+                                    key={idx} 
+                                    onClick={() => { playClick(); handleDistractionAnswer(); }} 
+                                    className="paper-btn bg-white border-slate-200 py-6 text-6xl shadow-sm hover:bg-sky-100 flex items-center justify-center"
+                                >
+                                    {opt}
+                                </button>
                             ))}
                         </div>
-                    </Card>
+                    </div>
                 </div>
             );
 
             const RecallScreen = () => (
-                <div className="flex flex-col items-center justify-center h-full p-6 relative">
-                    <div className="absolute top-4 right-4 bg-white/80 px-3 py-1 rounded-full text-slate-600 font-bold shadow-sm z-10">ด่าน {currentRound}/{TOTAL_ROUNDS}</div>
-                    <h2 className="text-xl text-center text-green-700 mb-6 font-semibold bg-white/80 px-6 py-2 rounded-full">ขั้นตอนที่ 3: ทดสอบความจำ</h2>
-                    <Card className="py-6 border-green-200 animate-slide-up">
-                        <div className="flex flex-col items-center gap-3 mb-6">
-                            <div className="p-3 bg-green-100 rounded-full text-green-600 animate-pulse"><Icon path={Icons.HelpCircle} size={40} /></div>
-                            <h3 className="text-xl font-bold text-slate-800">
-                                {gameMode === 'training' 
-                                    ? 'สัตว์ตัวแรกสุด คือตัวไหน?' 
-                                    : 'คำตอบของคำถามข้อแรก คือตัวไหน?'}
-                            </h3>
-                        </div>
-                        <div className={`grid gap-3 w-full ${recallOptions.length > 4 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                            {recallOptions.map((item, idx) => (
-                                <button key={idx} onClick={() => checkRecall(item)} className={`flex items-center gap-4 p-3 w-full bg-white border-2 border-slate-100 rounded-2xl hover:border-green-500 hover:bg-green-50 hover:shadow-md transition-all group ${recallOptions.length > 4 ? 'flex-col text-center p-2' : 'text-left'}`}>
-                                    <div className="w-14 h-14 flex-shrink-0 flex items-center justify-center bg-slate-50 rounded-xl text-3xl shadow-sm group-hover:scale-110 transition-transform">{item.icon}</div>
-                                    <span className="text-xl font-bold text-slate-700">{item.name}</span>
+                <div className="flex flex-col h-full p-4 relative animate-pop">
+                    <div className="flex justify-between items-center mb-6 bg-white p-3 rounded-2xl border-2 border-slate-100 shadow-sm">
+                        <button onClick={goHome} className="text-ink/60 hover:text-peach-500 p-2"><Icon path={Icons.ArrowLeft} /></button>
+                        <div className="text-xl font-bold text-ink">ทายคำตอบ</div>
+                        <div className="w-10"></div>
+                    </div>
+
+                    <div className="paper-card py-8 px-6 flex-1 flex flex-col bg-sky-100/50">
+                        <h2 className="text-3xl font-extrabold text-ink mb-8 text-center leading-snug">
+                            คำตอบของ <span className="text-peach-500">"คำถามข้อแรกสุด"</span><br/>คือสัตว์ตัวไหน?
+                        </h2>
+                        
+                        <div className={`grid gap-4 w-full mt-auto ${recallOptions.length > 4 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                            {recallOptions.map((item) => (
+                                <button 
+                                    key={item.id} 
+                                    disabled={wigglingOption !== null}
+                                    onClick={() => handleRecallAnswer(item)} 
+                                    className={`paper-btn bg-white border-slate-200 p-4 shadow-sm flex items-center gap-4 hover:bg-lemon-100
+                                        ${recallOptions.length > 4 ? 'flex-col text-center justify-center py-6' : 'text-left'}
+                                        ${wigglingOption === item.id ? 'animate-wiggle bg-red-50 border-red-200' : ''}
+                                    `}
+                                >
+                                    <div className="text-5xl">{item.icon}</div>
+                                    <span className="text-2xl font-bold text-ink">{item.name}</span>
                                 </button>
                             ))}
                         </div>
-                    </Card>
+                    </div>
                 </div>
             );
 
             const FeedbackScreen = () => (
-                <div className="flex flex-col items-center justify-center h-full p-6 relative overflow-hidden">
-                    <Card className="py-8 border-green-200 animate-zoom-in">
-                        <div className="flex justify-center mb-4">
-                            {isCorrect ? <div className="relative"><Icon path={Icons.CheckCircle2} size={80} className="text-green-500 relative z-10" /></div> : <Icon path={Icons.XCircle} size={80} className="text-red-500" />}
+                <div className="flex flex-col items-center justify-center h-full p-4 relative animate-pop">
+                    {isCorrect && <Confetti />}
+                    
+                    <div className={`paper-card p-8 w-full text-center z-10 ${isCorrect ? 'bg-mint-100 border-[#8CDCB8]' : 'bg-cream border-slate-200'}`}>
+                        <div className="text-7xl mb-6">
+                            {isCorrect ? '🌟' : '💡'}
                         </div>
-                        <h2 className="text-3xl font-bold text-slate-800 mb-2">{isCorrect ? 'เก่งมากครับ!' : 'ยังไม่ถูกครับ'}</h2>
-                        <div className="text-base text-slate-600 mb-6">
-                            {isCorrect ? 'ความจำแม่นยำสุดๆ เลย' : <div className="flex flex-col items-center gap-2"><span>คำตอบที่ถูกคือ</span><div className="bg-green-50 px-4 py-2 rounded-xl border border-green-100 flex items-center gap-2 mt-1"><span className="text-2xl">{targetItem.icon}</span><span className="text-lg font-bold text-green-700">{targetItem.name}</span></div></div>}
+                        
+                        <h2 className={`text-4xl font-extrabold mb-4 ${isCorrect ? 'text-mint-500' : 'text-ink'}`}>
+                            {isCorrect ? 'ยอดเยี่ยมมาก!' : 'เกือบถูกแล้วครับ'}
+                        </h2>
+                        
+                        <div className="bg-white p-6 rounded-2xl border-2 border-slate-100 mb-8 inline-block shadow-sm w-full">
+                            <span className="text-xl text-ink/70 block mb-2">คำตอบที่ถูกต้องคือ</span>
+                            <div className="flex items-center justify-center gap-4">
+                                <span className="text-5xl">{targetItem.icon}</span>
+                                <span className="text-3xl font-bold text-ink">{targetItem.name}</span>
+                            </div>
                         </div>
-                        <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100 flex justify-between items-center">
-                            <span className="font-bold text-slate-500">คะแนนปัจจุบัน</span>
-                            <span className="text-xl font-bold text-green-600">{correctCount} / {TOTAL_ROUNDS}</span>
-                        </div>
-                        <BigButton onClick={nextRoundOrFinish} colorClass="bg-green-600 hover:bg-green-700">
-                            <Icon path={Icons.RefreshCw} size={24} /> {currentRound < TOTAL_ROUNDS ? 'ไปด่านต่อไป' : 'ดูสรุปผล'}
-                        </BigButton>
-                    </Card>
+
+                        <PaperButton onClick={nextRoundOrFinish} colorClass="bg-sky-400 border-[#69B6D9]">
+                            {currentRound < TOTAL_ROUNDS ? 'ไปด่านต่อไป' : 'ดูสรุปผลคะแนน'} <Icon path={Icons.ArrowRight} />
+                        </PaperButton>
+                    </div>
                 </div>
             );
 
             const SummaryScreen = () => (
-                <div className="flex flex-col items-center justify-center h-full p-6 relative">
-                    <Card className="py-8 border-green-200 animate-zoom-in">
-                        <div className="flex justify-center mb-6"><Icon path={Icons.Trophy} size={80} className="text-yellow-500" /></div>
-                        <h2 className="text-3xl font-bold text-slate-800 mb-2">จบเกมแล้ว!</h2>
-                        <p className="text-lg text-slate-600 mb-8">
-                            โหมด: {gameMode === 'training' ? 'ฝึกฝน' : 'ทดสอบ'}<br/>
+                <div className="flex flex-col items-center justify-center h-full p-4 relative animate-pop">
+                    <div className="paper-card p-8 w-full text-center bg-cream">
+                        <div className="text-7xl mb-4">🏆</div>
+                        <h2 className="text-4xl font-extrabold text-ink mb-2">จบเกมแล้ว!</h2>
+                        <p className="text-xl text-ink/70 mb-8 bg-white py-2 px-4 rounded-xl border border-slate-100 inline-block">
                             ระดับ: {currentDifficulty === 'Easy' ? 'ง่าย' : currentDifficulty === 'Medium' ? 'กลาง' : 'ยาก'}
                         </p>
+                        
                         <div className="grid grid-cols-2 gap-4 mb-8">
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                <div className="text-slate-400 text-sm mb-1">คะแนน</div>
-                                <div className="text-3xl font-bold text-green-600">{correctCount}/{TOTAL_ROUNDS}</div>
+                            <div className="bg-mint-100 p-6 rounded-2xl border-2 border-mint-400 text-center">
+                                <div className="text-ink/70 text-lg font-bold mb-2">คะแนน</div>
+                                <div className="text-4xl font-extrabold text-mint-500">{correctCount}/{TOTAL_ROUNDS}</div>
                             </div>
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                <div className="text-slate-400 text-sm mb-1">เวลาที่ใช้</div>
-                                <div className="text-3xl font-bold text-blue-600">{getElapsedTime()}</div>
+                            <div className="bg-sky-100 p-6 rounded-2xl border-2 border-sky-400 text-center">
+                                <div className="text-ink/70 text-lg font-bold mb-2">เวลาที่ใช้</div>
+                                <div className="text-3xl font-extrabold text-sky-500 mt-3">{finalTime}</div>
                             </div>
                         </div>
-                        <BigButton onClick={() => { setLeaderboardMode(gameMode); setLeaderboardTab(currentDifficulty); setGameState('leaderboard'); }} colorClass="bg-green-600 hover:bg-green-700">ดูอันดับคะแนน</BigButton>
-                    </Card>
+                        
+                        <PaperButton onClick={() => setGameState('menu')} colorClass="bg-lemon-400 border-[#E8C55A]">
+                            <Icon path={Icons.Home} /> กลับหน้าหลัก
+                        </PaperButton>
+                    </div>
                 </div>
             );
 
-            const LeaderboardScreen = () => {
-                const filteredLeaderboard = leaderboard.filter(entry => 
-                    entry.difficulty === leaderboardTab && 
-                    (entry.mode === leaderboardMode || (!entry.mode && leaderboardMode === 'training')) 
-                );
-                
-                return (
-                    <div className="flex flex-col items-center h-full p-6 relative">
-                        <div className="w-full mb-4 flex items-center justify-between">
-                            <h2 className="text-2xl font-bold text-amber-500 flex items-center gap-2"><Icon path={Icons.ListChecks} size={28} /> Leaderboard</h2>
-                            <button onClick={() => setGameState('menu')} className="p-2 bg-slate-200 rounded-full"><Icon path={Icons.Home} size={20} className="text-slate-600" /></button>
-                        </div>
-                        
-                        {/* Mode Toggle */}
-                        <div className="w-full flex p-1 bg-slate-200 rounded-xl mb-3">
-                            <button onClick={() => setLeaderboardMode('training')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${leaderboardMode === 'training' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>โหมดฝึกฝน</button>
-                            <button onClick={() => setLeaderboardMode('testing')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${leaderboardMode === 'testing' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500'}`}>โหมดทดสอบ</button>
-                        </div>
-
-                        {/* Difficulty Tabs */}
-                        <div className="w-full grid grid-cols-3 gap-2 mb-4 p-1 bg-slate-100 rounded-xl">
-                            {['Easy', 'Medium', 'Hard'].map(tab => (
-                                <button key={tab} onClick={() => setLeaderboardTab(tab)} className={`py-2 rounded-lg text-sm font-bold transition-all ${leaderboardTab === tab ? (tab==='Easy'?'bg-white text-green-600 shadow-sm':tab==='Medium'?'bg-white text-yellow-600 shadow-sm':'bg-white text-red-600 shadow-sm') : 'text-slate-400'}`}>
-                                    {tab === 'Easy' ? 'ง่าย' : tab === 'Medium' ? 'กลาง' : 'ยาก'}
-                                </button>
-                            ))}
-                        </div>
-                        
-                        <div className="w-full flex-1 overflow-y-auto pr-1">
-                            <div className="grid grid-cols-12 text-xs text-slate-400 font-bold px-4 mb-2">
-                                <div className="col-span-2">#</div>
-                                <div className="col-span-5 text-center">คะแนน</div>
-                                <div className="col-span-5 text-right">เวลา</div>
-                            </div>
-                            {filteredLeaderboard.length === 0 ? <div className="text-center py-10 text-slate-400"><p>ยังไม่มีสถิติในระดับนี้</p></div> : 
-                                filteredLeaderboard.map((entry, index) => (
-                                <div key={entry.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-3 grid grid-cols-12 items-center animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
-                                    <div className="col-span-2 flex justify-center">
-                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs text-white ${index === 0 ? 'bg-yellow-400' : index === 1 ? 'bg-slate-400' : index === 2 ? 'bg-orange-400' : 'bg-slate-200 text-slate-500'}`}>{index + 1}</div>
-                                    </div>
-                                    <div className="col-span-5 text-center font-bold text-slate-700 text-lg">{entry.correct}/{entry.total}</div>
-                                    <div className="col-span-5 text-right text-sm text-slate-500 font-mono">{entry.time}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                );
-            };
-
             return (
-                <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8">
-                    <div className="relative w-full max-w-[400px] aspect-[9/16] bg-green-50 shadow-2xl rounded-[3rem] overflow-hidden ring-8 ring-slate-900 flex flex-col">
-                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-xl z-50"></div>
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden pt-8 pb-4 no-scrollbar">
+                <div className="h-[100dvh] w-full flex items-center justify-center bg-slate-800 p-0 sm:p-4">
+                    <div className="relative w-full h-full sm:h-auto sm:max-h-[900px] max-w-[450px] sm:aspect-[9/16] bg-[#FFF9F0] sm:rounded-[3rem] overflow-hidden sm:ring-8 ring-slate-900 flex flex-col shadow-2xl">
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
                             {gameState === 'menu' && <MenuScreen />}
-                            {gameState === 'difficulty' && <DifficultyScreen />}
-                            {gameState === 'leaderboard' && <LeaderboardScreen />}
-                            {gameState === 'summary' && <SummaryScreen />}
-                            {gameState === 'memorize' && <MemorizeScreen />}
                             {gameState === 'distract' && <DistractionScreen />}
                             {gameState === 'recall' && <RecallScreen />}
                             {gameState === 'feedback' && <FeedbackScreen />}
+                            {gameState === 'summary' && <SummaryScreen />}
                         </div>
-                        <div className="h-4 w-full flex justify-center items-center pb-2">
-                            <div className="w-32 h-1 bg-slate-300 rounded-full"></div>
-                        </div>
+
+                        {/* Custom Exit Confirmation Modal */}
+                        {showExitConfirm && (
+                            <div className="absolute inset-0 bg-ink/50 z-[100] flex items-center justify-center p-4 animate-fade-in">
+                                <div className="paper-card p-6 w-full max-w-[300px] text-center bg-cream animate-pop shadow-2xl">
+                                    <div className="text-5xl mb-4">⚠️</div>
+                                    <h3 className="text-2xl font-extrabold text-ink mb-2">ต้องการออกจากเกม?</h3>
+                                    <p className="text-ink/70 mb-6 font-medium">ความคืบหน้าในรอบนี้จะถูกยกเลิก</p>
+                                    <div className="flex gap-3">
+                                        <button onClick={cancelExit} className="flex-1 py-3 rounded-2xl font-bold text-ink bg-slate-200 hover:bg-slate-300 transition-colors">
+                                            ยกเลิก
+                                        </button>
+                                        <button onClick={confirmExit} className="flex-1 py-3 rounded-2xl font-bold text-white bg-peach-500 hover:bg-peach-600 transition-colors shadow-sm">
+                                            ยืนยัน
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
