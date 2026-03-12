@@ -5,16 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Zoo Feeder - ป้อนอาหารสัตว์</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Kanit:wght@300;500;700&display=swap" rel="stylesheet">
+    <!-- ใช้ฟอนต์หัวมน Mali สำหรับความรู้สึกน่ารัก เป็นมิตร -->
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* ใช้ dvh เพื่อแก้ปัญหา browser bar บังจอ */
             --app-height: 100dvh;
+            
+            /* Color Palette: High Saturation Pastel */
+            --bg-cream: #FDFBF7;
+            --pastel-mint: #A0E8AF;
+            --pastel-sky: #BFE6FF;
+            --pastel-peach: #FFB07C;
+            --pastel-yellow: #FFDF85;
+            --pastel-pink: #FFC4C4;
+            --pastel-gray: #E2DFD8;
+            
+            /* UI Colors */
+            --dark-stroke: #5C4D43; /* สีน้ำตาลเข้มแทนสีดำสนิท */
+            --paper-shadow: 0 6px 0px rgba(92, 77, 67, 0.15);
+            --hard-shadow: 0 4px 0px var(--dark-stroke);
         }
 
         body {
-            font-family: 'Kanit', sans-serif;
-            background-color: #111;
+            font-family: 'Mali', sans-serif;
+            background-color: var(--bg-cream);
             margin: 0;
             display: flex;
             justify-content: center;
@@ -23,32 +37,28 @@
             height: var(--app-height);
             overflow: hidden;
             touch-action: none;
-            /* ลายพื้นหลัง */
-            background-image: radial-gradient(#333 2px, transparent 2px);
+            /* ลายพื้นหลังจุดสีน้ำตาลอ่อนๆ */
+            background-image: radial-gradient(rgba(92, 77, 67, 0.1) 2px, transparent 2px);
             background-size: 30px 30px;
+            color: var(--dark-stroke);
         }
 
         #game-container {
             position: relative;
-            /* บังคับสัดส่วน 9:18 (1:2) */
             aspect-ratio: 9 / 18;
-            
-            /* Logic การขยายเต็มจอโดยไม่เสียสัดส่วน */
             width: auto;
             height: 100%;
             max-height: 100dvh;
             max-width: 100vw;
             
-            /* ถ้าจอกว้างกว่า 9:18 ให้จำกัดความสูงไว้ที่ 95% เพื่อความสวยงาม */
             @media (min-aspect-ratio: 9/18) {
-                height: 98dvh;
+                height: 96dvh;
                 width: auto;
-                border-radius: 24px;
-                border: 4px solid #333;
-                box-shadow: 0 0 50px rgba(0,0,0,0.8);
+                border-radius: 32px;
+                border: 4px solid var(--dark-stroke);
+                box-shadow: 0 15px 30px rgba(92, 77, 67, 0.2), var(--hard-shadow);
             }
 
-            /* ถ้าจอแคบกว่า 9:18 (มือถือยาวๆ) ให้เต็มความกว้าง */
             @media (max-aspect-ratio: 9/18) {
                 width: 100vw;
                 height: auto;
@@ -56,11 +66,11 @@
                 border-radius: 0;
             }
 
-            background: linear-gradient(180deg, #a7f3d0 0%, #6ee7b7 100%);
+            background: linear-gradient(180deg, var(--pastel-sky) 0%, var(--bg-cream) 100%);
             overflow: hidden;
         }
 
-        /* --- Game Elements --- */
+        /* --- Game Elements (Paper Cut Style) --- */
         
         #belt-container {
             position: absolute;
@@ -74,21 +84,23 @@
 
         .belt {
             position: absolute;
-            top: -5%; /* ซ่อนปลายด้านบน */
-            height: 78%; /* ปรับความยาวให้พอดีกับจอ 9:18 */
-            background: #64748b;
-            border-left: 3px solid rgba(0,0,0,0.1);
-            border-right: 3px solid rgba(0,0,0,0.1);
+            top: -5%;
+            height: 78%;
+            background: #E2DFD8;
+            border-left: 3px solid var(--dark-stroke);
+            border-right: 3px solid var(--dark-stroke);
+            border-bottom: 3px solid var(--dark-stroke);
             transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.5s ease-in-out;
-            border-radius: 0 0 20px 20px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border-radius: 0 0 24px 24px;
+            box-shadow: 4px 4px 0px rgba(92, 77, 67, 0.1);
+            overflow: hidden;
         }
 
         .belt-marking {
             position: absolute;
             width: 100%;
-            height: 2%;
-            background: rgba(255,255,255,0.1);
+            height: 3%;
+            background: rgba(92, 77, 67, 0.1);
             animation: moveBelt 3s linear infinite;
         }
 
@@ -103,9 +115,10 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 25%; /* ใช้ % เพื่อความยืดหยุ่น */
-            min-height: 200px;
-            /* เพิ่ม Padding ด้านล่างสำหรับ Home Bar (iPhone X+) */
+            height: 28%;
+            min-height: 220px;
+            background: var(--pastel-mint);
+            border-top: 4px solid var(--dark-stroke);
             padding-bottom: env(safe-area-inset-bottom); 
             z-index: 15;
             pointer-events: none;
@@ -113,7 +126,7 @@
 
         .animal-slot {
             position: absolute;
-            bottom: 10px; /* ขยับขึ้นมาจากขอบล่างนิดหน่อย */
+            bottom: 5%;
             transform: translateX(-50%);
             display: flex;
             flex-direction: column;
@@ -124,57 +137,65 @@
         }
 
         .animal-emoji {
-            font-size: clamp(4rem, 12vh, 8rem); /* ปรับขนาดตามความสูงจอ */
+            font-size: clamp(4.5rem, 12vh, 8rem);
             line-height: 1;
-            filter: drop-shadow(0 8px 12px rgba(0,0,0,0.15));
+            /* Drop shadow ทำให้เหมือนกระดาษตัดแปะ */
+            filter: drop-shadow(3px 4px 0px rgba(92, 77, 67, 0.2));
             transition: transform 0.2s;
             z-index: 20;
-            cursor: pointer;
         }
         
         .animal-diet-bubble {
             background: white;
-            color: #334155;
-            padding: 4px 12px;
+            color: var(--dark-stroke);
+            padding: 6px 16px;
             border-radius: 20px;
-            font-size: clamp(0.7rem, 1.5vh, 1.1rem);
-            font-weight: 600;
-            font-family: 'Fredoka', sans-serif;
+            font-size: clamp(1rem, 2vh, 1.4rem);
+            font-weight: 700;
             margin-bottom: -1vh;
             z-index: 25;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 3px solid var(--dark-stroke);
+            box-shadow: var(--hard-shadow);
             white-space: nowrap;
             display: flex;
             align-items: center;
-            gap: 4px;
-            border: 2px solid #f1f5f9;
+            gap: 6px;
             transform: scale(0.95);
         }
 
-        .animal-happy .animal-emoji { animation: bounce 0.6s infinite alternate; }
-        .animal-angry .animal-emoji { animation: shake 0.5s; }
+        .animal-happy .animal-emoji { animation: bounce 0.5s ease-out alternate; }
+        .animal-angry .animal-emoji { animation: wiggle 0.4s ease-in-out; }
 
-        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-2vh); } }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        @keyframes bounce { from { transform: translateY(0) scale(1); } to { transform: translateY(-3vh) scale(1.1); } }
+        @keyframes wiggle { 
+            0%, 100% { transform: rotate(0deg); } 
+            25% { transform: rotate(-10deg); } 
+            75% { transform: rotate(10deg); } 
+        }
 
         .food-item {
             position: absolute;
-            width: 18%; /* ปรับขนาดตามความกว้างจอ */
+            width: 20%;
+            max-width: 90px;
             aspect-ratio: 1/1;
             transform: translateX(-50%);
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: clamp(2.5rem, 6vh, 4.5rem);
+            font-size: clamp(3rem, 7vh, 5rem);
             z-index: 30;
             cursor: pointer;
             user-select: none;
-            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.1));
+            filter: drop-shadow(2px 3px 0px rgba(92, 77, 67, 0.2));
             touch-action: manipulation;
             pointer-events: auto; 
             transition: transform 0.1s, opacity 0.3s;
         }
-        .food-item:active { transform: translateX(-50%) scale(0.9); }
+        .food-item:active { transform: translateX(-50%) scale(0.85); }
+        .food-item.trash-item {
+            /* สีของขยะให้ต่างออกไปเล็กน้อย */
+            filter: drop-shadow(2px 3px 0px rgba(92, 77, 67, 0.4)) grayscale(0.2);
+        }
 
         /* --- HUD --- */
         .hud {
@@ -182,9 +203,8 @@
             top: 0;
             left: 0;
             width: 100%;
-            padding: 15px;
-            /* เพิ่ม Padding ด้านบนสำหรับ Notch */
-            padding-top: max(15px, env(safe-area-inset-top)); 
+            padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top)); 
             display: flex;
             justify-content: space-between;
             pointer-events: none;
@@ -193,81 +213,96 @@
         .stat-group {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
         .stat-box {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(8px);
-            color: #475569;
-            padding: 6px 14px;
-            border-radius: 30px;
-            font-size: clamp(0.9rem, 2vh, 1.1rem);
-            font-family: 'Fredoka', sans-serif;
-            font-weight: 600;
+            background: white;
+            color: var(--dark-stroke);
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: clamp(1rem, 2.5vh, 1.3rem);
+            font-weight: 700;
+            border: 3px solid var(--dark-stroke);
             display: flex;
             align-items: center;
-            gap: 6px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
+            gap: 8px;
+            box-shadow: 2px 3px 0px rgba(92, 77, 67, 0.15);
         }
+        .stat-box.highlight { background: var(--pastel-yellow); }
 
         .pause-btn {
             background: white;
-            color: #64748b;
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
+            color: var(--dark-stroke);
+            width: 50px;
+            height: 50px;
+            border-radius: 16px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             cursor: pointer;
             pointer-events: auto;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            transition: all 0.2s;
-            border: 1px solid #f1f5f9;
+            border: 3px solid var(--dark-stroke);
+            box-shadow: 0 4px 0 var(--dark-stroke);
+            transition: all 0.1s;
         }
-        .pause-btn:active { transform: scale(0.9); }
+        .pause-btn:active { transform: translateY(4px); box-shadow: 0 0px 0 var(--dark-stroke); }
 
-        /* --- Overlays --- */
+        /* --- Panels & Overlays --- */
         .overlay {
             position: absolute;
             inset: 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            background: rgba(253, 251, 247, 0.9);
+            backdrop-filter: blur(5px);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            color: #334155;
+            color: var(--dark-stroke);
             z-index: 100;
-            text-align: center;
-            /* เพิ่ม Padding หลบ Safe Area ทั้งหมด */
-            padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom)) 20px;
+            padding: max(20px, env(safe-area-inset-top)) 24px max(20px, env(safe-area-inset-bottom)) 24px;
             overflow-y: auto;
+        }
+
+        .panel {
+            background: white;
+            border: 4px solid var(--dark-stroke);
+            border-radius: 32px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 8px 0 rgba(92, 77, 67, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         /* Level Cards */
         .level-card {
-            background: white;
+            background: var(--bg-cream);
             border-radius: 20px;
-            padding: 14px;
+            padding: 12px 16px;
             width: 100%;
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
-            gap: 14px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            margin-bottom: 10px;
-            border: 2px solid transparent;
+            gap: 16px;
+            border: 3px solid #E2DFD8;
+            box-shadow: 0 4px 0 #E2DFD8;
         }
-        .level-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        .level-card:active { transform: scale(0.98); }
+        .level-card:hover { transform: translateY(-2px); }
+        .level-card:active { transform: translateY(4px); box-shadow: 0 0px 0 transparent; }
+        
+        .level-card.selected {
+            background: white;
+            border: 3px solid var(--dark-stroke);
+            box-shadow: 0 4px 0 var(--dark-stroke);
+        }
 
-        .level-card.easy { border-color: #86efac; }
-        .level-card.medium { border-color: #fde047; }
-        .level-card.hard { border-color: #fca5a5; }
+        .level-card.easy.selected { background: var(--pastel-mint); }
+        .level-card.medium.selected { background: var(--pastel-yellow); }
+        .level-card.hard.selected { background: var(--pastel-pink); }
 
         .level-icon-box {
             width: 50px;
@@ -277,52 +312,87 @@
             justify-content: center;
             align-items: center;
             font-size: 1.8rem;
+            background: white;
+            border: 2px solid rgba(0,0,0,0.1);
         }
-        .level-card.easy .level-icon-box { background: #dcfce7; color: #166534; }
-        .level-card.medium .level-icon-box { background: #fef9c3; color: #854d0e; }
-        .level-card.hard .level-icon-box { background: #fee2e2; color: #991b1b; }
 
         .level-info { text-align: left; flex: 1; }
-        .level-title { font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 2px; }
-        .level-desc { font-size: 0.85rem; font-weight: 400; color: #64748b; }
+        .level-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 2px; }
+        .level-desc { font-size: 0.9rem; font-weight: 500; opacity: 0.8; line-height: 1.3;}
+
+        /* Tutorial Box Styles */
+        .tutorial-box {
+            background: var(--bg-cream);
+            border: 3px solid var(--dark-stroke);
+            border-radius: 16px;
+            padding: 12px;
+            text-align: center;
+        }
+        .tutorial-box.herbivore { background: var(--pastel-mint); }
+        .tutorial-box.carnivore { background: var(--pastel-peach); }
+        .tutorial-box.trash { background: var(--pastel-gray); }
+        
+        .tutorial-emoji-group {
+            font-size: 2rem;
+            letter-spacing: 4px;
+            margin: 4px 0;
+            filter: drop-shadow(1px 2px 0px rgba(92, 77, 67, 0.2));
+        }
+        .tutorial-food-group {
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+        }
 
         /* Buttons */
         .btn-game {
-            background: #3b82f6;
-            color: white;
-            padding: 12px 0;
+            background: var(--pastel-sky);
+            color: var(--dark-stroke);
+            padding: 16px 0;
             width: 100%;
-            border-radius: 16px;
-            font-size: 1.1rem;
-            font-family: 'Fredoka', sans-serif;
-            font-weight: 600;
-            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
-            transition: all 0.2s;
-            border: none;
+            border-radius: 20px;
+            font-size: 1.4rem;
+            font-family: 'Mali', sans-serif;
+            font-weight: 700;
+            border: 3px solid var(--dark-stroke);
+            box-shadow: 0 6px 0 var(--dark-stroke);
+            transition: all 0.1s;
+            cursor: pointer;
         }
-        .btn-game:active { transform: scale(0.98); box-shadow: 0 2px 5px rgba(59, 130, 246, 0.2); }
+        .btn-game:active { transform: translateY(6px); box-shadow: 0 0px 0 var(--dark-stroke); }
         
-        .btn-yellow { background: #f59e0b; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); }
-        .btn-green { background: #10b981; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); }
-        .btn-secondary { background: #e2e8f0; color: #475569; box-shadow: none; }
-        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-primary { background: var(--pastel-mint); }
+        .btn-secondary { background: var(--bg-cream); font-size: 1.1rem; padding: 12px 0;}
 
-        /* Animations */
+        /* Feedback Animations */
         .feedback-text {
             position: absolute;
-            font-family: 'Fredoka', sans-serif;
+            font-family: 'Mali', sans-serif;
             font-weight: 700;
-            font-size: clamp(1.5rem, 4vh, 2.5rem); 
+            font-size: clamp(1.8rem, 4vh, 2.5rem); 
             pointer-events: none;
             z-index: 60;
-            animation: floatUp 0.8s forwards;
-            text-shadow: 2px 2px 0px rgba(255,255,255,0.8);
+            animation: floatSoft 1s forwards;
+            text-shadow: 2px 2px 0px white, -2px -2px 0px white, 2px -2px 0px white, -2px 2px 0px white;
             white-space: nowrap;
         }
-        @keyframes floatUp {
+        @keyframes floatSoft {
             0% { transform: translateY(0) scale(0.8); opacity: 0; }
-            20% { transform: translateY(-3vh) scale(1.1); opacity: 1; }
-            100% { transform: translateY(-8vh) scale(1); opacity: 0; }
+            20% { transform: translateY(-2vh) scale(1.1); opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateY(-6vh) scale(1); opacity: 0; }
+        }
+
+        /* Particle Stars */
+        .particle {
+            position: absolute;
+            font-size: 1.5rem;
+            pointer-events: none;
+            z-index: 55;
+            animation: popStar 0.8s ease-out forwards;
+        }
+        @keyframes popStar {
+            0% { transform: translate(0, 0) scale(0.5); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(1.5) rotate(180deg); opacity: 0; }
         }
         
         .levelup-text {
@@ -330,20 +400,21 @@
             top: 25%;
             left: 50%;
             transform: translateX(-50%);
-            font-family: 'Fredoka', sans-serif;
+            font-family: 'Mali', sans-serif;
             font-weight: 700;
             font-size: clamp(3rem, 8vh, 5rem);
-            color: #f59e0b;
+            color: var(--pastel-yellow);
             pointer-events: none;
             z-index: 70;
-            animation: popText 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            text-shadow: 3px 3px 0 #fff, 0 4px 15px rgba(245, 158, 11, 0.4);
+            animation: popText 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-shadow: 3px 3px 0 var(--dark-stroke);
             white-space: nowrap;
         }
         @keyframes popText {
             0% { transform: translateX(-50%) scale(0); opacity: 0; }
-            50% { transform: translateX(-50%) scale(1.2); opacity: 1; }
-            100% { transform: translateX(-50%) scale(1); opacity: 0; }
+            20% { transform: translateX(-50%) scale(1.2); opacity: 1; }
+            80% { transform: translateX(-50%) scale(1); opacity: 1; }
+            100% { transform: translateX(-50%) scale(1.5); opacity: 0; }
         }
 
         .switch-alert {
@@ -352,96 +423,32 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background: white;
-            color: #334155;
+            color: var(--dark-stroke);
             padding: 20px;
-            border-radius: 20px;
-            font-family: 'Kanit', sans-serif;
-            font-size: clamp(1.2rem, 3vh, 1.8rem);
+            border-radius: 24px;
+            font-family: 'Mali', sans-serif;
+            font-size: clamp(1.2rem, 3vh, 1.6rem);
             font-weight: 700;
             z-index: 80;
             text-align: center;
-            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            animation: slideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 0 rgba(92, 77, 67, 0.1);
             width: 80%;
-            border: 1px solid #f1f5f9;
+            border: 4px solid var(--pastel-yellow);
         }
         @keyframes slideIn {
             from { transform: translate(-50%, -20%) scale(0.9); opacity: 0; }
             to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
 
-        /* Leaderboard */
-        .leaderboard-container {
-            width: 100%;
-            background: #f8fafc;
-            border-radius: 20px;
-            padding: 8px;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
-        }
-        .lb-tabs {
-            display: flex;
-            background: #e2e8f0;
-            border-radius: 14px;
-            padding: 4px;
-            margin: 8px;
-        }
-        .lb-tab {
-            flex: 1;
-            text-align: center;
-            padding: 8px 0;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            color: #64748b;
-            transition: all 0.2s;
-            font-size: 0.85rem;
-        }
-        .lb-tab.active {
-            background: white;
-            color: #0f172a;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        
-        .leaderboard-table { width: 100%; font-size: 0.9rem; }
-        .leaderboard-table th {
-            text-align: left;
-            padding: 10px;
-            color: #94a3b8;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            font-weight: 600;
-        }
-        .leaderboard-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; color: #334155; }
-        .leaderboard-table tr:last-child td { border-bottom: none; }
-        .rank-1 { color: #f59e0b; font-weight: 800; }
-        .rank-2 { color: #94a3b8; font-weight: 800; }
-        .rank-3 { color: #b45309; font-weight: 800; }
-
-        #name-input {
-            background: #f1f5f9;
-            border: 2px solid #e2e8f0;
-            padding: 14px;
-            border-radius: 14px;
-            color: #334155;
-            font-size: 1.3rem;
-            text-align: center;
-            margin-bottom: 15px;
-            outline: none;
-            width: 100%;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        #name-input:focus { border-color: #3b82f6; background: white; }
-
         /* Version */
         .version-tag {
             position: absolute;
             bottom: max(10px, env(safe-area-inset-bottom));
             right: 15px;
-            color: rgba(51, 65, 85, 0.3);
-            font-size: 0.7rem;
-            font-family: monospace;
+            color: rgba(92, 77, 67, 0.4);
+            font-size: 0.8rem;
+            font-weight: 600;
             pointer-events: none;
         }
     </style>
@@ -452,22 +459,22 @@
         <!-- HUD -->
         <div class="hud">
             <div class="stat-group">
-                <div class="stat-box text-yellow-500">
+                <div class="stat-box highlight">
                     <span class="text-xl">⭐</span> <span id="score">0</span>
                 </div>
-                <div class="stat-box text-blue-500">
+                <div class="stat-box">
                     <span>⚡</span> Lv.<span id="level">1</span>
                 </div>
             </div>
             
             <div class="stat-group items-end">
                 <button class="pause-btn" onclick="togglePause()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
                 </button>
-                <div class="stat-box text-red-500">
+                <div class="stat-box">
                     <span id="lives">❤️❤️❤️</span>
                 </div>
-                <div class="stat-box text-gray-500 text-sm">
+                <div class="stat-box text-sm">
                     ⏱️ <span id="timer">00:00</span>
                 </div>
             </div>
@@ -483,130 +490,116 @@
 
         <!-- Start Overlay -->
         <div id="start-overlay" class="overlay">
-            <div class="mb-6 pt-8 animate-bounce transform hover:scale-110 transition-transform">
-                <h1 class="text-7xl sm:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-green-400 to-green-600 drop-shadow-sm" style="font-family: 'Fredoka', sans-serif;">
+            <div class="mb-4 pt-4">
+                <h1 class="text-6xl sm:text-7xl font-black text-center" style="color: var(--pastel-mint); text-shadow: 3px 4px 0 var(--dark-stroke), -1px -1px 0 var(--dark-stroke), 1px -1px 0 var(--dark-stroke), -1px 1px 0 var(--dark-stroke), 1px 1px 0 var(--dark-stroke);">
                     ZOO<br>FEEDER
                 </h1>
             </div>
             
-            <div class="w-full max-w-sm mb-4 px-4 flex flex-col gap-3 flex-1 overflow-y-auto justify-center no-scrollbar">
-                <div class="level-card easy" onclick="startGame('easy')">
-                    <div class="level-icon-box text-2xl">🐢</div>
-                    <div class="level-info">
-                        <div class="level-title">โหมดง่าย</div>
-                        <div class="level-desc">1 สายพาน • ชิวๆ</div>
+            <div class="panel">
+                <p class="text-center font-semibold text-sm mb-2">เลือกระดับความท้าทายของคุณ</p>
+                
+                <div class="flex flex-col gap-3">
+                    <div class="level-card easy selected" onclick="selectDifficulty('easy')" id="card-easy">
+                        <div class="level-icon-box">🐢</div>
+                        <div class="level-info">
+                            <div class="level-title">ง่าย</div>
+                            <div class="level-desc">1 สายพาน มองเห็นชัดเจน</div>
+                        </div>
+                    </div>
+
+                    <div class="level-card medium" onclick="selectDifficulty('medium')" id="card-medium">
+                        <div class="level-icon-box">🐆</div>
+                        <div class="level-info">
+                            <div class="level-title">ปานกลาง</div>
+                            <div class="level-desc">2 สายพาน ต้องแยกประสาท</div>
+                        </div>
+                    </div>
+
+                    <div class="level-card hard" onclick="selectDifficulty('hard')" id="card-hard">
+                        <div class="level-icon-box">🦅</div>
+                        <div class="level-info">
+                            <div class="level-title">ยาก</div>
+                            <div class="level-desc">3 สายพาน ไวและท้าทายสุด!</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="level-card medium" onclick="startGame('medium')">
-                    <div class="level-icon-box text-2xl">🐆</div>
-                    <div class="level-info">
-                        <div class="level-title">โหมดทั่วไป</div>
-                        <div class="level-desc">2 สายพาน • เริ่มตึง</div>
-                    </div>
-                </div>
-
-                <div class="level-card hard" onclick="startGame('hard')">
-                    <div class="level-icon-box text-2xl">🦅</div>
-                    <div class="level-info">
-                        <div class="level-title">โหมดโปร</div>
-                        <div class="level-desc">3 สายพาน • ไวจัด!</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white p-4 rounded-2xl mb-4 max-w-sm w-full mx-4 text-left text-sm shadow-sm border border-slate-100">
-                <div class="mb-2 text-slate-500 flex items-center gap-2">
-                    <span class="bg-red-100 text-red-600 p-1 rounded font-bold">🥕 +10</span> แตะอาหารผิดทิ้ง
-                </div>
-                <div class="mb-2 text-slate-500 flex items-center gap-2">
-                    <span class="bg-green-100 text-green-600 p-1 rounded font-bold">🥩 +20</span> ปล่อยให้กิน
-                </div>
-                <div class="text-yellow-600 font-bold mt-2 pt-2 border-t border-slate-100">⚠️ เปลี่ยนสัตว์ทุก 500 คะแนน!</div>
-            </div>
-
-            <div class="w-full max-w-sm px-4 pb-8">
-                <button class="btn-game btn-secondary" onclick="showLeaderboard('easy')">
-                    🏆 อันดับคะแนน
+                <button class="btn-game btn-primary mt-2" onclick="startGameClick()">
+                    ▶ เริ่มเกมเลย!
                 </button>
             </div>
 
             <div class="version-tag">v<span id="version-display"></span></div>
         </div>
 
-        <!-- Pause Overlay -->
-        <div id="pause-overlay" class="overlay hidden">
-            <h2 class="text-5xl font-black mb-8 text-slate-800" style="font-family: 'Fredoka', sans-serif;">พักยก!</h2>
-            <div class="flex flex-col gap-4 w-full max-w-xs">
-                <button class="btn-game btn-green text-xl py-4" onclick="togglePause()">
-                    ▶ เล่นต่อเลย
-                </button>
-                <button class="btn-game btn-secondary text-lg" onclick="quitToMenu()">
-                    🏠 กลับหน้าหลัก
+        <!-- Tutorial Overlay -->
+        <div id="tutorial-overlay" class="overlay hidden">
+            <div class="panel">
+                <h2 class="text-3xl font-black text-center mb-2">คู่มือให้อาหาร 📖</h2>
+                
+                <!-- สัตว์กินพืช -->
+                <div class="tutorial-box herbivore">
+                    <h3 class="font-bold text-lg">🌿 สัตว์กินพืช (ปล่อยให้กิน)</h3>
+                    <div class="tutorial-emoji-group">🐘 🦒 🐇 🦍</div>
+                    <div class="text-sm font-bold mt-1 opacity-70">กินสิ่งเหล่านี้ ▼</div>
+                    <div id="tut-food-herb" class="tutorial-food-group mt-1">🌿 🍎 🥕 🥬 🌽 🍉 🍌</div>
+                </div>
+
+                <!-- สัตว์กินเนื้อ -->
+                <div class="tutorial-box carnivore">
+                    <h3 class="font-bold text-lg">🥩 สัตว์กินเนื้อ (ปล่อยให้กิน)</h3>
+                    <div class="tutorial-emoji-group">🦁 🐯 🐊</div>
+                    <div class="text-sm font-bold mt-1 opacity-70">กินสิ่งเหล่านี้ ▼</div>
+                    <div id="tut-food-carn" class="tutorial-food-group mt-1">🥩 🍗 🥓 🐟 🍖 🦐</div>
+                </div>
+
+                <!-- ขยะกินไม่ได้ -->
+                <div class="tutorial-box trash">
+                    <h3 class="font-bold text-lg text-red-600">❌ ของกินไม่ได้! (แตะเพื่อทิ้ง)</h3>
+                    <div id="tut-food-trash" class="tutorial-food-group mt-2">👟 💣 🥫 🧱 🧤 📦</div>
+                    <div class="text-sm font-bold mt-2 text-red-500">แตะที่ของเหล่านี้เพื่อทิ้งมันไปซะ!</div>
+                </div>
+
+                <button class="btn-game btn-primary mt-2" onclick="confirmTutorial()">
+                    เข้าใจแล้ว ลุยเลย!
                 </button>
             </div>
         </div>
 
-        <!-- Leaderboard Overlay -->
-        <div id="leaderboard-overlay" class="overlay hidden">
-            <h2 class="text-4xl font-black mb-4 text-slate-800 pt-8" style="font-family: 'Fredoka', sans-serif;">🏆 หอเกียรติยศ</h2>
-            
-            <div class="leaderboard-container max-w-sm w-full mb-4 max-h-[55vh] flex flex-col">
-                <div class="lb-tabs">
-                    <div id="tab-easy" class="lb-tab" onclick="renderLeaderboard('easy')">ง่าย</div>
-                    <div id="tab-medium" class="lb-tab" onclick="renderLeaderboard('medium')">ทั่วไป</div>
-                    <div id="tab-hard" class="lb-tab" onclick="renderLeaderboard('hard')">โปร</div>
+        <!-- Pause Overlay -->
+        <div id="pause-overlay" class="overlay hidden">
+            <div class="panel text-center">
+                <h2 class="text-4xl font-black mb-4">พักยก!</h2>
+                <div class="flex flex-col gap-4">
+                    <button class="btn-game btn-primary" onclick="togglePause()">
+                        ▶ เล่นต่อ
+                    </button>
+                    <button class="btn-game btn-secondary" onclick="quitToMenu()">
+                        🏠 กลับหน้าหลัก
+                    </button>
                 </div>
-
-                <div class="overflow-y-auto flex-1 no-scrollbar">
-                    <table class="leaderboard-table">
-                        <thead>
-                            <tr>
-                                <th width="15%">#</th>
-                                <th>ชื่อ</th>
-                                <th width="25%" class="text-right">คะแนน</th>
-                                <th width="20%" class="text-right">เวลา</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leaderboard-list"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="flex flex-col w-full max-w-xs gap-3 mb-8">
-                <button class="btn-game btn-yellow py-3 text-lg text-white" onclick="downloadAnalytics()">
-                    📥 โหลดข้อมูลดิบ
-                </button>
-                <button class="btn-game btn-secondary w-full" onclick="showStartScreen()">
-                    กลับ
-                </button>
             </div>
         </div>
 
         <!-- Game Over Overlay -->
         <div id="gameover-overlay" class="overlay hidden">
-            <div class="bg-white p-8 rounded-[30px] w-full max-w-xs shadow-2xl text-slate-800 border border-slate-100 animate-bounce-in">
-                <h1 class="text-5xl font-black mb-2 text-red-500 text-center" style="font-family: 'Fredoka', sans-serif;">จบเกม!</h1>
+            <div class="panel text-center animate-bounce-in">
+                <h1 class="text-4xl font-black text-red-400 mb-2">จบเกม!</h1>
                 
-                <div class="text-center mb-6">
-                    <div class="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">คะแนนรวม</div>
-                    <div id="final-score" class="text-7xl font-black text-slate-800">0</div>
+                <div class="mb-4">
+                    <div class="text-sm font-bold opacity-70 mb-1">คะแนนรวม</div>
+                    <div id="final-score" class="text-6xl font-black text-yellow-500">0</div>
                 </div>
 
-                <div class="flex justify-between bg-slate-50 p-4 rounded-2xl mb-6 font-bold text-slate-500 text-sm">
+                <div class="flex justify-center gap-4 bg-gray-50 p-3 rounded-2xl mb-4 font-bold text-sm">
                     <div>⏱️ <span id="final-time">00:00</span></div>
                     <div>🎮 <span id="final-mode">ง่าย</span></div>
                 </div>
                 
-                <div id="highscore-section" class="hidden mb-6">
-                    <p class="text-green-500 text-lg mb-2 font-bold animate-pulse text-center">🎉 ติดอันดับสูงสุด! 🎉</p>
-                    <input type="text" id="player-name" placeholder="กรอกชื่อของคุณ" maxlength="10">
-                    <button class="btn-game btn-green text-xl py-3 shadow-none mt-3" onclick="saveScore()">บันทึก</button>
-                </div>
-
                 <div id="gameover-buttons" class="flex flex-col gap-3">
-                    <button class="btn-game btn-yellow text-xl text-white" onclick="startGame(currentDifficulty)">🔄 เล่นใหม่</button>
-                    <button class="btn-game btn-secondary text-xl" onclick="showStartScreen()">🏠 หน้าหลัก</button>
+                    <button class="btn-game btn-primary" onclick="startGame(currentDifficulty)">🔄 เล่นใหม่อีกครั้ง</button>
+                    <button class="btn-game btn-secondary" onclick="showStartScreen()">🏠 กลับหน้าหลัก</button>
                 </div>
             </div>
         </div>
@@ -623,37 +616,26 @@
         const timerEl = document.getElementById('timer');
         
         const startOverlay = document.getElementById('start-overlay');
-        const leaderboardOverlay = document.getElementById('leaderboard-overlay');
+        const tutorialOverlay = document.getElementById('tutorial-overlay');
         const gameoverOverlay = document.getElementById('gameover-overlay');
         const pauseOverlay = document.getElementById('pause-overlay');
         const finalScoreEl = document.getElementById('final-score');
         const finalTimeEl = document.getElementById('final-time');
         const finalModeEl = document.getElementById('final-mode');
-        
-        const highscoreSection = document.getElementById('highscore-section');
-        const gameoverButtons = document.getElementById('gameover-buttons');
-        const leaderboardList = document.getElementById('leaderboard-list');
-        const playerNameInput = document.getElementById('player-name');
         const versionDisplay = document.getElementById('version-display');
 
         // Settings & Version
-        const GAME_VERSION = "1.4.0"; 
+        const GAME_VERSION = "0.2.0"; 
         const POINTS_PER_LEVEL = 100;
         const POINTS_PER_ANIMAL_CHANGE = 500;
-        const MAX_BELTS = 3;
         
-        const DB_KEYS = {
-            'easy': 'zoo_score_easy_v1',
-            'medium': 'zoo_score_medium_v1',
-            'hard': 'zoo_score_hard_v1'
-        };
-
         versionDisplay.innerText = GAME_VERSION;
 
         let score = 0;
         let lives = 3;
         let level = 1;
         let beltCount = 1;
+        let selectedDifficulty = 'easy';
         let currentDifficulty = 'easy';
         
         let gameActive = false;
@@ -673,11 +655,37 @@
         let lastPauseStart = 0;
         let elapsedTimeStr = "00:00";
 
-        let sessionStats = {
-            fedCorrect: 0, fedWrongType: 0, fedTrash: 0,
-            discardedCorrect: 0, discardedGood: 0
-        };
+        // Audio System (Soft Web Audio Synth)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(freq, type, duration, vol=0.1) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
 
+        function playCorrectSound() {
+            playTone(600, 'sine', 0.1, 0.05);
+            setTimeout(() => playTone(800, 'sine', 0.2, 0.05), 100);
+        }
+
+        function playWrongSound() {
+            playTone(250, 'triangle', 0.3, 0.1);
+        }
+
+        function playClickSound() {
+            playTone(400, 'sine', 0.1, 0.05);
+        }
+
+        // Handle viewport height
         function setAppHeight() {
             document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
         }
@@ -702,22 +710,50 @@
 
         const BELT_POSITIONS = { 1: [50], 2: [30, 70], 3: [20, 50, 80] };
 
-        function showStartScreen() {
-            leaderboardOverlay.classList.add('hidden');
-            gameoverOverlay.classList.add('hidden');
-            pauseOverlay.classList.add('hidden');
-            startOverlay.classList.remove('hidden');
+        // UI Flow Functions
+        function selectDifficulty(diff) {
+            playClickSound();
+            selectedDifficulty = diff;
+            document.querySelectorAll('.level-card').forEach(el => el.classList.remove('selected'));
+            document.getElementById(`card-${diff}`).classList.add('selected');
         }
 
-        function showLeaderboard(mode = 'easy') {
-            renderLeaderboard(mode);
+        function startGameClick() {
+            playClickSound();
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            showTutorial();
+        }
+
+        function showTutorial() {
+            let limit = 7;
+            if (selectedDifficulty === 'easy') limit = 2;
+            else if (selectedDifficulty === 'medium') limit = 4;
+
+            document.getElementById('tut-food-herb').innerText = FOOD_TYPES.HERB.slice(0, limit).join(' ');
+            document.getElementById('tut-food-carn').innerText = FOOD_TYPES.CARN.slice(0, limit).join(' ');
+            document.getElementById('tut-food-trash').innerText = FOOD_TYPES.TRASH.slice(0, limit).join(' ');
+
             startOverlay.classList.add('hidden');
+            tutorialOverlay.classList.remove('hidden');
+        }
+
+        function confirmTutorial() {
+            playClickSound();
+            tutorialOverlay.classList.add('hidden');
+            startGame(selectedDifficulty);
+        }
+
+        function showStartScreen() {
+            playClickSound();
             gameoverOverlay.classList.add('hidden');
-            leaderboardOverlay.classList.remove('hidden');
+            pauseOverlay.classList.add('hidden');
+            tutorialOverlay.classList.add('hidden');
+            startOverlay.classList.remove('hidden');
         }
 
         function togglePause() {
             if (!gameActive) return;
+            playClickSound();
             isPaused = !isPaused;
             if (isPaused) {
                 pauseOverlay.classList.remove('hidden');
@@ -732,84 +768,13 @@
         }
 
         function quitToMenu() {
+            playClickSound();
             gameActive = false;
             isPaused = false;
             cancelAnimationFrame(gameLoopReq);
             clearInterval(timerInterval);
             pauseOverlay.classList.add('hidden');
             showStartScreen();
-        }
-
-        function renderLeaderboard(mode) {
-            const tabs = ['easy', 'medium', 'hard'];
-            tabs.forEach(t => {
-                const el = document.getElementById(`tab-${t}`);
-                if(t === mode) el.classList.add('active');
-                else el.classList.remove('active');
-                el.onclick = () => renderLeaderboard(t);
-            });
-
-            const key = DB_KEYS[mode];
-            const scores = JSON.parse(localStorage.getItem(key)) || [];
-            
-            leaderboardList.innerHTML = scores.map((s, index) => {
-                let rankClass = index === 0 ? 'rank-1' : (index === 1 ? 'rank-2' : (index === 2 ? 'rank-3' : 'text-slate-400'));
-                return `
-                    <tr>
-                        <td class="${rankClass} text-center font-bold">${index + 1}</td>
-                        <td class="font-semibold text-slate-700 truncate max-w-[100px]">${s.name}</td>
-                        <td class="${rankClass} text-right">${s.score}</td>
-                        <td class="text-slate-400 text-sm text-right font-medium">${s.time || '00:00'}</td>
-                    </tr>
-                `;
-            }).join('') || '<tr><td colspan="4" class="text-center text-slate-400 py-8">ยังไม่มีผู้ท้าชิง</td></tr>';
-        }
-
-        function saveScore() {
-            const name = playerNameInput.value.trim() || 'นิรนาม';
-            const newScore = {
-                name: name,
-                score: score,
-                time: elapsedTimeStr,
-                date: new Date().toISOString()
-            };
-            
-            const key = DB_KEYS[currentDifficulty];
-            let scores = JSON.parse(localStorage.getItem(key)) || [];
-            scores.push(newScore);
-            scores.sort((a, b) => b.score - a.score);
-            scores = scores.slice(0, 10); 
-            localStorage.setItem(key, JSON.stringify(scores));
-            showLeaderboard(currentDifficulty);
-        }
-
-        function saveSessionAnalytics() {
-            const sessionData = {
-                id: Date.now(),
-                timestamp: new Date().toISOString(),
-                mode: currentDifficulty,
-                finalScore: score,
-                finalLevel: level,
-                durationSeconds: Math.floor((Date.now() - startTime - pausedTime) / 1000),
-                stats: { ...sessionStats }
-            };
-            let history = JSON.parse(localStorage.getItem('zoo_game_analytics')) || [];
-            history.push(sessionData);
-            localStorage.setItem('zoo_game_analytics', JSON.stringify(history));
-        }
-
-        function downloadAnalytics() {
-            const data = localStorage.getItem('zoo_game_analytics');
-            if (!data) { alert('ยังไม่มีข้อมูลการเล่นในเครื่อง'); return; }
-            const blob = new Blob([data], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `zoo_feeder_analytics_${new Date().toISOString().slice(0,10)}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
         }
 
         function updateTimer() {
@@ -822,6 +787,7 @@
             timerEl.innerText = elapsedTimeStr;
         }
 
+        // Game Logic
         function startGame(difficulty) {
             score = 0;
             lives = 3;
@@ -830,11 +796,9 @@
             pausedTime = 0;
             isPaused = false;
             
-            sessionStats = { fedCorrect: 0, fedWrongType: 0, fedTrash: 0, discardedCorrect: 0, discardedGood: 0 };
-            
-            if (difficulty === 'easy') { beltCount = 1; speed = 1.0; spawnRate = 2000; }
-            else if (difficulty === 'medium') { beltCount = 2; speed = 0.9; spawnRate = 1400; }
-            else if (difficulty === 'hard') { beltCount = 3; speed = 0.8; spawnRate = 900; }
+            if (difficulty === 'easy') { beltCount = 1; speed = 1.2; spawnRate = 1800; }
+            else if (difficulty === 'medium') { beltCount = 2; speed = 1.0; spawnRate = 1300; }
+            else if (difficulty === 'hard') { beltCount = 3; speed = 0.9; spawnRate = 900; }
             
             clearFood();
             startTime = Date.now();
@@ -850,7 +814,7 @@
             gameActive = true;
             startOverlay.classList.add('hidden');
             gameoverOverlay.classList.add('hidden');
-            leaderboardOverlay.classList.add('hidden');
+            tutorialOverlay.classList.add('hidden');
             pauseOverlay.classList.add('hidden');
             
             lastSpawnTime = performance.now();
@@ -878,7 +842,7 @@
             if (updateBelts) {
                 beltContainer.innerHTML = '';
                 const positions = BELT_POSITIONS[beltCount];
-                const beltWidth = beltCount === 3 ? '22%' : (beltCount === 2 ? '32%' : '45%');
+                const beltWidth = beltCount === 3 ? '24%' : (beltCount === 2 ? '34%' : '45%');
 
                 positions.forEach(pos => {
                     const belt = document.createElement('div');
@@ -931,8 +895,8 @@
 
             if (newLevel > oldLevel) {
                 level = newLevel;
-                speed += 0.1;
-                spawnRate = Math.max(400, spawnRate - 80);
+                speed += 0.15;
+                spawnRate = Math.max(450, spawnRate - 100);
                 showLevelUpText();
             }
 
@@ -942,7 +906,7 @@
                     generateAnimals(beltCount);
                     const alert = document.createElement('div');
                     alert.className = 'switch-alert';
-                    alert.innerHTML = "เปลี่ยนสัตว์!<br><span class='text-lg font-normal text-slate-500'>เคลียร์สายพาน...</span>";
+                    alert.innerHTML = "เปลี่ยนสัตว์!<br><span class='text-base font-normal opacity-70'>เคลียร์สายพาน...</span>";
                     gameContainer.appendChild(alert);
                     setTimeout(() => alert.remove(), 1500);
                 } else {
@@ -957,7 +921,7 @@
                     
                     const alert = document.createElement('div');
                     alert.className = 'switch-alert';
-                    alert.innerHTML = "ระวัง!<br><span class='text-lg font-normal text-slate-500'>เปลี่ยนสัตว์ & เคลียร์ของ</span>";
+                    alert.innerHTML = "ระวัง!<br><span class='text-base font-normal opacity-70'>เปลี่ยนสัตว์ 1 ตัว</span>";
                     gameContainer.appendChild(alert);
                     setTimeout(() => alert.remove(), 1500);
                 }
@@ -980,18 +944,21 @@
             const targetAnimal = currentAnimals[laneIndex];
             
             const rand = Math.random();
-            let type;
+            let type, poolType;
 
-            if (rand < 0.25) { type = 'trash'; }
-            else if (rand < 0.6) { type = targetAnimal.type === 'herb' ? 'carn' : 'herb'; }
-            else { type = targetAnimal.type; }
+            if (rand < 0.25) { type = 'trash'; poolType = 'TRASH'; }
+            else if (rand < 0.6) { type = targetAnimal.type === 'herb' ? 'carn' : 'herb'; poolType = targetAnimal.type === 'herb' ? 'CARN' : 'HERB'; }
+            else { type = targetAnimal.type; poolType = targetAnimal.type === 'herb' ? 'HERB' : 'CARN'; }
 
-            const emoji = (type === 'trash') ? FOOD_TYPES.TRASH[Math.floor(Math.random() * FOOD_TYPES.TRASH.length)] :
-                          (type === 'herb') ? FOOD_TYPES.HERB[Math.floor(Math.random() * FOOD_TYPES.HERB.length)] :
-                          FOOD_TYPES.CARN[Math.floor(Math.random() * FOOD_TYPES.CARN.length)];
+            let limit = FOOD_TYPES[poolType].length;
+            if (currentDifficulty === 'easy') limit = 2;
+            else if (currentDifficulty === 'medium') limit = 4;
+
+            const pool = FOOD_TYPES[poolType].slice(0, limit);
+            const emoji = pool[Math.floor(Math.random() * pool.length)];
 
             const el = document.createElement('div');
-            el.className = 'food-item';
+            el.className = `food-item ${type === 'trash' ? 'trash-item' : ''}`;
             el.innerText = emoji;
             
             const lanePos = lanes[laneIndex];
@@ -1008,6 +975,7 @@
             };
 
             el.onpointerdown = (e) => {
+                e.preventDefault(); 
                 e.stopPropagation();
                 handleItemClick(itemObj);
             };
@@ -1027,12 +995,31 @@
                 if (!item.sorted) {
                     item.y += speed;
                     item.el.style.top = item.y + 'px';
-                    // 280px is animal zone height
-                    const animalZoneH = 280;
+                    // animal zone is bottom 28%
+                    const animalZoneH = window.innerHeight * 0.28;
                     if (item.y > gameContainer.offsetHeight - animalZoneH) handleReachAnimal(i);
                 }
             }
             gameLoopReq = requestAnimationFrame(gameLoop);
+        }
+
+        function spawnStars(x, lanePercent) {
+            const colors = ['#FFDF85', '#A0E8AF', '#BFE6FF', '#FFB07C'];
+            for(let i=0; i<5; i++) {
+                let star = document.createElement('div');
+                star.innerHTML = '✨';
+                star.className = 'particle';
+                star.style.left = `calc(${lanePercent}% - 15px)`;
+                star.style.bottom = '15%';
+                let tx = (Math.random() - 0.5) * 100 + 'px';
+                let ty = (Math.random() - 1) * 100 + 'px';
+                star.style.setProperty('--tx', tx);
+                star.style.setProperty('--ty', ty);
+                star.style.color = colors[Math.floor(Math.random() * colors.length)];
+                
+                gameContainer.appendChild(star);
+                setTimeout(() => star.remove(), 800);
+            }
         }
 
         function handleReachAnimal(index) {
@@ -1042,27 +1029,28 @@
             const currentAnimalInLane = currentAnimals[item.laneIndex];
             const isCorrectFood = (item.type === currentAnimalInLane.type);
 
-            item.el.style.transition = 'all 0.3s ease-in';
-            item.el.style.transform = `translate(-50%, 50px) scale(0.5)`;
+            item.el.style.transition = 'all 0.2s ease-in';
+            item.el.style.transform = `translate(-50%, 50px) scale(0)`;
             item.el.style.opacity = '0';
 
             const animalSlot = document.getElementById(`animal-slot-${item.laneIndex}`);
+            const lanePos = BELT_POSITIONS[beltCount][item.laneIndex];
 
             if (isCorrectFood) {
+                playCorrectSound();
                 if (animalSlot) {
                     animalSlot.classList.add('animal-happy');
                     setTimeout(() => animalSlot.classList.remove('animal-happy'), 500);
                 }
-                showFeedback('+20', item.laneIndex, '#10b981');
+                spawnStars(0, lanePos);
+                showFeedback('+20', item.laneIndex, 'var(--pastel-mint)');
                 addScore(20); 
-                sessionStats.fedCorrect++;
             } else {
+                playWrongSound();
                 lives--;
-                const msg = item.type === 'trash' ? 'กินขยะ!' : 'ผิด!';
-                if(item.type === 'trash') sessionStats.fedTrash++;
-                else sessionStats.fedWrongType++;
+                const msg = 'พลาด!';
                 
-                showFeedback(`${msg} -❤️`, item.laneIndex, '#ef4444');
+                showFeedback(msg, item.laneIndex, 'var(--pastel-peach)');
                 if (animalSlot) {
                     animalSlot.classList.add('animal-angry');
                     setTimeout(() => animalSlot.classList.remove('animal-angry'), 500);
@@ -1073,7 +1061,7 @@
             setTimeout(() => {
                 if(item.el && item.el.parentNode) item.el.remove();
                 foodItems = foodItems.filter(f => f !== item);
-            }, 300);
+            }, 200);
 
             if (lives <= 0) gameOver();
         }
@@ -1086,27 +1074,27 @@
             const isCorrectFood = (item.type === currentAnimalInLane.type);
 
             const direction = Math.random() > 0.5 ? 'right' : 'left';
-            const targetX = direction === 'left' ? -300 : 300;
+            const targetX = direction === 'left' ? -200 : 200;
 
-            item.el.style.transition = 'all 0.4s ease-out';
-            item.el.style.transform = `translate(calc(-50% + ${targetX}px), 0) rotate(${direction==='left'?'-45deg':'45deg'})`;
+            item.el.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            item.el.style.transform = `translate(calc(-50% + ${targetX}px), -50px) rotate(${direction==='left'?'-45deg':'45deg'}) scale(0.5)`;
             item.el.style.opacity = '0';
 
             if (!isCorrectFood) {
-                showFeedback('+10', item.laneIndex, '#fff');
+                playCorrectSound();
+                showFeedback('+10', item.laneIndex, 'white');
                 addScore(10);
-                sessionStats.discardedCorrect++;
             } else {
+                playWrongSound();
                 lives--;
-                showFeedback('ทิ้งทำไม! -❤️', item.laneIndex, '#f59e0b');
-                sessionStats.discardedGood++;
+                showFeedback('อุ๊ยทิ้งทำไม!', item.laneIndex, 'var(--pastel-peach)');
                 updateUI();
             }
 
             setTimeout(() => {
                 if(item.el && item.el.parentNode) item.el.remove();
                 foodItems = foodItems.filter(f => f !== item);
-            }, 400);
+            }, 300);
 
             if (lives <= 0) gameOver();
         }
@@ -1122,7 +1110,6 @@
             else fb.style.left = '50%';
             
             fb.style.top = '60%';
-            fb.style.transform = 'translateX(-50%)';
             gameContainer.appendChild(fb);
             setTimeout(() => fb.remove(), 1000);
         }
@@ -1130,38 +1117,28 @@
         function updateUI() {
             scoreEl.innerText = score;
             levelEl.innerText = level;
-            livesEl.innerText = '❤️'.repeat(Math.max(0, lives));
+            
+            let hearts = '';
+            for(let i=0; i<3; i++){
+                hearts += i < lives ? '❤️' : '🤍';
+            }
+            livesEl.innerText = hearts;
         }
 
         function gameOver() {
             gameActive = false;
             clearInterval(timerInterval);
             cancelAnimationFrame(gameLoopReq);
-            saveSessionAnalytics();
             
             finalScoreEl.innerText = score;
             finalTimeEl.innerText = elapsedTimeStr;
             
             let modeLabel = 'ง่าย';
-            if(currentDifficulty === 'medium') modeLabel = 'ทั่วไป';
-            if(currentDifficulty === 'hard') modeLabel = 'โปร';
+            if(currentDifficulty === 'medium') modeLabel = 'ปานกลาง';
+            if(currentDifficulty === 'hard') modeLabel = 'ยาก';
             finalModeEl.innerText = modeLabel;
             
             gameoverOverlay.classList.remove('hidden');
-
-            const key = DB_KEYS[currentDifficulty];
-            const scores = JSON.parse(localStorage.getItem(key)) || [];
-            const minScore = scores.length < 10 ? 0 : scores[scores.length - 1].score;
-
-            if (score > minScore || scores.length < 10) {
-                highscoreSection.classList.remove('hidden');
-                gameoverButtons.classList.add('hidden');
-                playerNameInput.value = '';
-                playerNameInput.focus();
-            } else {
-                highscoreSection.classList.add('hidden');
-                gameoverButtons.classList.remove('hidden');
-            }
         }
     </script>
 </body>

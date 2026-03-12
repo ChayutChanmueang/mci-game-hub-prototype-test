@@ -157,7 +157,7 @@
             border-radius: 50%;
         }
 
-        .insect svg {
+        .insect svg, .tutorial-bug svg {
             width: 100%;
             height: 100%;
             pointer-events: none;
@@ -193,10 +193,6 @@
             pointer-events: none;
             z-index: 50;
         }
-
-        /* Hard Mode Filters (Make bad bugs look like good bugs) */
-        .hard-mode .bug-fly { filter: hue-rotate(220deg) saturate(1.5); } /* Make fly look yellowish/bee-like */
-        .hard-mode .bug-caterpillar { filter: hue-rotate(180deg) saturate(1.2); } /* Make caterpillar blueish/butterfly-like */
 
         /* Floating Animation for bugs */
         @keyframes float {
@@ -243,7 +239,7 @@
     <div id="screen-menu" class="screen justify-center">
         <div class="paper-panel flex flex-col items-center text-center gap-4">
             <h1 style="color: #FF8A65;">ผู้พิทักษ์สวน</h1>
-            <p class="text-sm">แตะไล่ศัตรูพืช 🐛🪰<br>ห้ามแตะแมลงดีเด็ดขาด! 🦋🐝</p>
+            <p class="text-sm">แตะไล่ศัตรูพืช <br>ห้ามแตะแมลงดีเด็ดขาด! </p>
             
             <div class="w-full flex flex-col gap-3 mt-4">
                 <p class="font-bold text-left mb-1">เลือกระดับความยาก:</p>
@@ -257,11 +253,36 @@
                 </button>
                 <button class="paper-btn btn-hard py-2 px-4 text-left flex flex-col" onclick="selectDiff('hard')">
                     <span>🔴 ยาก</span>
-                    <span class="text-xs font-normal">สีหลอกตา ต้องดูที่รูปร่าง!</span>
+                    <span class="text-xs font-normal">มีแมลงหลากหลายชนิดมากขึ้น!</span>
                 </button>
             </div>
 
-            <button id="btn-start" class="paper-btn btn-start mt-6 w-full text-white" onclick="startGame()" disabled style="opacity: 0.5;">เริ่มเกม</button>
+            <button id="btn-start" class="paper-btn btn-start mt-6 w-full text-white" onclick="showTutorial()" disabled style="opacity: 0.5;">เริ่มเกม</button>
+        </div>
+    </div>
+
+    <!-- TUTORIAL SCREEN -->
+    <div id="screen-tutorial" class="screen justify-center hidden">
+        <div class="paper-panel flex flex-col items-center text-center gap-4 w-full">
+            <h2 style="color: #4A90E2;" class="text-2xl font-bold mb-2">เป้าหมายของคุณ</h2>
+
+            <div id="tutorial-bugs-container" class="w-full flex flex-col gap-4">
+                <!-- Bad Bugs -->
+                <div class="bg-red-50 p-4 rounded-2xl border-2 border-red-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
+                    <p class="text-red-500 font-bold mb-3">🔴 แตะเพื่อไล่ (+10 คะแนน)</p>
+                    <div class="flex justify-center gap-4 flex-wrap" id="tut-bad-bugs">
+                    </div>
+                </div>
+
+                <!-- Good Bugs -->
+                <div class="bg-green-50 p-4 rounded-2xl border-2 border-green-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
+                    <p class="text-green-600 font-bold mb-3">🟢 ห้ามแตะ! (-5 คะแนน)</p>
+                    <div class="flex justify-center gap-4 flex-wrap" id="tut-good-bugs">
+                    </div>
+                </div>
+            </div>
+
+            <button class="paper-btn btn-start w-full text-white mt-4" onclick="startGame()">ลุยเลย!</button>
         </div>
     </div>
 
@@ -399,15 +420,62 @@
                 <!-- Stinger -->
                 <polygon points="25,60 15,65 25,70" fill="#4A4A4A" />
             </g>
+        </svg>`,
+        // Bad Bug: Snail (Brown)
+        snail: `<svg viewBox="0 0 100 100" class="bug-snail float-anim">
+            <g stroke="rgba(0,0,0,0.3)" stroke-width="2">
+                <!-- Body -->
+                <path d="M 20 70 Q 50 75 80 70 Q 85 65 75 60 Q 50 65 25 60 Q 15 65 20 70 Z" fill="#DCEDC1" />
+                <!-- Head/Antennae -->
+                <circle cx="80" cy="65" r="6" fill="#DCEDC1" />
+                <path d="M 80 60 L 75 45 M 82 60 L 87 45" stroke="#4A4A4A" stroke-width="2" fill="none"/>
+                <circle cx="75" cy="45" r="2" fill="#4A4A4A" />
+                <circle cx="87" cy="45" r="2" fill="#4A4A4A" />
+                <!-- Shell -->
+                <circle cx="45" cy="55" r="20" fill="#F4A261" />
+                <path d="M 45 35 A 15 15 0 0 1 60 50 A 10 10 0 0 1 50 60 A 5 5 0 0 1 45 55" fill="none" stroke="#E76F51" stroke-width="4" stroke-linecap="round"/>
+            </g>
+        </svg>`,
+        // Good Bug: Ladybug (Red)
+        ladybug: `<svg viewBox="0 0 100 100" class="bug-ladybug float-anim">
+            <g stroke="rgba(0,0,0,0.3)" stroke-width="2">
+                <!-- Legs -->
+                <path d="M 30 40 L 20 30 M 30 50 L 15 50 M 30 60 L 20 70" stroke="#4A4A4A" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <path d="M 70 40 L 80 30 M 70 50 L 85 50 M 70 60 L 80 70" stroke="#4A4A4A" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <!-- Body -->
+                <circle cx="50" cy="50" r="22" fill="#FF6B6B" />
+                <!-- Head -->
+                <circle cx="50" cy="25" r="10" fill="#4A4A4A" />
+                <!-- Spots -->
+                <circle cx="40" cy="45" r="4" fill="#4A4A4A" />
+                <circle cx="60" cy="45" r="4" fill="#4A4A4A" />
+                <circle cx="50" cy="60" r="5" fill="#4A4A4A" />
+                <circle cx="38" cy="60" r="3" fill="#4A4A4A" />
+                <circle cx="62" cy="60" r="3" fill="#4A4A4A" />
+                <!-- Wing split -->
+                <path d="M 50 28 L 50 72" stroke="#4A4A4A" stroke-width="2" />
+            </g>
         </svg>`
     };
 
-    const INSECT_TYPES = [
+    const BASE_INSECTS = [
         { id: 'caterpillar', isBad: true, score: 10 },
         { id: 'fly', isBad: true, score: 10 },
         { id: 'butterfly', isBad: false, score: -5 },
         { id: 'bee', isBad: false, score: -5 }
     ];
+
+    const HARD_INSECTS = [
+        { id: 'snail', isBad: true, score: 10 },
+        { id: 'ladybug', isBad: false, score: -5 }
+    ];
+
+    function getActiveInsects() {
+        if (state.difficulty === 'hard') {
+            return [...BASE_INSECTS, ...HARD_INSECTS];
+        }
+        return BASE_INSECTS;
+    }
 
     // --- Game State ---
     let state = {
@@ -458,21 +526,42 @@
     }
 
     // --- Core Game Logic ---
-    function startGame() {
+    function showTutorial() {
         if(audioCtx.state === 'suspended') audioCtx.resume();
         
+        const insects = getActiveInsects();
+        const badBugs = insects.filter(i => i.isBad);
+        const goodBugs = insects.filter(i => !i.isBad);
+
+        const badContainer = document.getElementById('tut-bad-bugs');
+        const goodContainer = document.getElementById('tut-good-bugs');
+
+        badContainer.innerHTML = '';
+        goodContainer.innerHTML = '';
+
+        badBugs.forEach(bug => {
+            const div = document.createElement('div');
+            div.className = 'w-16 h-16 tutorial-bug drop-shadow-md';
+            div.innerHTML = svgAssets[bug.id];
+            badContainer.appendChild(div);
+        });
+
+        goodBugs.forEach(bug => {
+            const div = document.createElement('div');
+            div.className = 'w-16 h-16 tutorial-bug drop-shadow-md';
+            div.innerHTML = svgAssets[bug.id];
+            goodContainer.appendChild(div);
+        });
+
+        switchScreen('screen-tutorial');
+    }
+
+    function startGame() {
         state.score = 0;
         state.timeLeft = 180;
         state.activeInsects = [];
         document.getElementById('game-canvas').innerHTML = '';
         
-        const canvas = document.getElementById('game-canvas');
-        if(state.difficulty === 'hard') {
-            canvas.classList.add('hard-mode');
-        } else {
-            canvas.classList.remove('hard-mode');
-        }
-
         updateHUD();
         switchScreen('screen-game');
 
@@ -513,7 +602,8 @@
         if (state.activeInsects.length >= settings.maxActive) return;
 
         const canvas = document.getElementById('game-canvas');
-        const insectData = INSECT_TYPES[Math.floor(Math.random() * INSECT_TYPES.length)];
+        const activeInsectsList = getActiveInsects();
+        const insectData = activeInsectsList[Math.floor(Math.random() * activeInsectsList.length)];
         
         const insectEl = document.createElement('div');
         insectEl.className = 'insect pop-in';

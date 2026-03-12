@@ -210,19 +210,115 @@
     // --- Data Base ---
     const questionDB = {
         easy: [
-            { text: "สวัสดีครับตา วันนี้ผมไป ทะเล และกิน ปูเผา อร่อยมาก", q: "หลานไปเที่ยวที่ไหนมา?", options: [{img: "🌊", label:"ทะเล", correct: true}, {img: "⛰️", label:"ภูเขา", correct: false}, {img: "🏞️", label:"น้ำตก", correct: false}] },
-            { text: "สวัสดีครับตา วันนี้ผมไป ทะเล และกิน ปูเผา อร่อยมาก", q: "หลานกินอะไร?", options: [{img: "🦀", label:"ปูเผา", correct: true}, {img: "🐟", label:"ปลาทอด", correct: false}, {img: "🦐", label:"กุ้งเผา", correct: false}] },
-            { text: "ผมซื้อ เสื้อใหม่ สีฟ้า สวยมากครับ", q: "หลานซื้อเสื้อสีอะไร?", options: [{img: "🟦", label:"สีฟ้า", correct: true}, {img: "🟥", label:"สีแดง", correct: false}, {img: "🟩", label:"สีเขียว", correct: false}] }
+            {
+                text: "สวัสดีครับตา วันนี้ผมไป ทะเล และกิน ปูเผา อร่อยมาก",
+                questions: [
+                    { q: "หลานไปเที่ยวที่ไหนมา?", options: [{img: "🌊", label:"ทะเล", correct: true}, {img: "⛰️", label:"ภูเขา", correct: false}, {img: "🏞️", label:"น้ำตก", correct: false}] },
+                    { q: "หลานกินอะไร?", options: [{img: "🦀", label:"ปูเผา", correct: true}, {img: "🐟", label:"ปลาทอด", correct: false}, {img: "🦐", label:"กุ้งเผา", correct: false}] }
+                ]
+            },
+            {
+                text: "ผมซื้อ เสื้อใหม่ สีฟ้า สวยมากครับ และซื้อ หมวก สีขาว มาด้วย",
+                questions: [
+                    { q: "หลานซื้อเสื้อสีอะไร?", options: [{img: "🟦", label:"สีฟ้า", correct: true}, {img: "🟥", label:"สีแดง", correct: false}, {img: "🟩", label:"สีเขียว", correct: false}] },
+                    { q: "หลานซื้อหมวกสีอะไร?", options: [{img: "🤍", label:"สีขาว", correct: true}, {img: "🖤", label:"สีดำ", correct: false}, {img: "💛", label:"สีเหลือง", correct: false}] }
+                ]
+            },
+            {
+                text: "วันหยุดนี้ผมไป ปั่นจักรยาน ที่ สวนสาธารณะ สนุกมากครับ",
+                questions: [
+                    { q: "หลานไปทำกิจกรรมอะไร?", options: [{img: "🚲", label:"ปั่นจักรยาน", correct: true}, {img: "🏃", label:"วิ่งจ๊อกกิ้ง", correct: false}, {img: "⚽", label:"เตะบอล", correct: false}] },
+                    { q: "หลานไปเที่ยวที่ไหนมา?", options: [{img: "🌳", label:"สวนสาธารณะ", correct: true}, {img: "🛒", label:"ห้างสรรพสินค้า", correct: false}, {img: "🌊", label:"ชายทะเล", correct: false}] }
+                ]
+            },
+            {
+                text: "เมื่อเช้าผม ดื่มนม และกิน ขนมปังปิ้ง ก่อนไปโรงเรียน",
+                questions: [
+                    { q: "ตอนเช้าหลานดื่มอะไร?", options: [{img: "🥛", label:"นม", correct: true}, {img: "🧃", label:"น้ำผลไม้", correct: false}, {img: "☕", label:"กาแฟ", correct: false}] },
+                    { q: "ตอนเช้าหลานกินอะไร?", options: [{img: "🍞", label:"ขนมปังปิ้ง", correct: true}, {img: "🍳", label:"ไข่ดาว", correct: false}, {img: "🥣", label:"ซีเรียล", correct: false}] }
+                ]
+            },
+            {
+                text: "ตอนเย็นผมไป เตะบอล กับเพื่อนที่ สนามหญ้า หน้าบ้าน",
+                questions: [
+                    { q: "ตอนเย็นหลานไปเล่นอะไร?", options: [{img: "⚽", label:"เตะบอล", correct: true}, {img: "🏸", label:"ตีแบดมินตัน", correct: false}, {img: "🏀", label:"เล่นบาส", correct: false}] },
+                    { q: "หลานไปเล่นที่ไหน?", options: [{img: "🌱", label:"สนามหญ้า", correct: true}, {img: "🛣️", label:"ลานปูน", correct: false}, {img: "🏫", label:"โรงยิม", correct: false}] }
+                ]
+            }
         ],
         medium: [
-            { text: "วันนี้ผมไป สวนสัตว์ มาครับ ตอนแรกว่าจะไปดู ยีราฟ แต่ผมชอบดู ช้าง ตัวใหญ่ที่สุดเลย", q: "หลานชอบดูสัตว์อะไรที่สุด?", options: [{img: "🐘", label:"ช้าง", correct: true}, {img: "🦒", label:"ยีราฟ", correct: false}, {img: "🐒", label:"ลิง", correct: false}] },
-            { text: "ผมไปเดิน ตลาดน้ำ เห็น น้ำแข็งใส น่ากินมาก แต่สุดท้ายก็ซื้อ ขนมครก มากินครับ", q: "หลานซื้อขนมอะไรมากิน?", options: [{img: "🥞", label:"ขนมครก", correct: true}, {img: "🍧", label:"น้ำแข็งใส", correct: false}, {img: "🍡", label:"ลูกชิ้น", correct: false}] },
-            { text: "อากาศ ร้อน มากครับ เพื่อนซื้อรส สตรอว์เบอร์รี แต่ผมซื้อ ไอศกรีม รสช็อกโกแลต มากิน", q: "หลานกินไอศกรีมรสอะไร?", options: [{img: "🍫", label:"ช็อกโกแลต", correct: true}, {img: "🍓", label:"สตรอว์เบอร์รี", correct: false}, {img: "🍦", label:"วานิลลา", correct: false}] }
+            {
+                text: "วันนี้ผมไป สวนสัตว์ ตอนแรกว่าจะไปดู ยีราฟ แต่ผมชอบดู ช้าง มากกว่า เลยซื้อ กล้วย ไปให้มัน",
+                questions: [
+                    { q: "สรุปแล้วหลานชอบดูสัตว์อะไรมากกว่า?", options: [{img: "🐘", label:"ช้าง", correct: true}, {img: "🦒", label:"ยีราฟ", correct: false}, {img: "🐒", label:"ลิง", correct: false}] },
+                    { q: "หลานซื้ออะไรให้สัตว์กิน?", options: [{img: "🍌", label:"กล้วย", correct: true}, {img: "🥕", label:"แครอท", correct: false}, {img: "🍉", label:"แตงโม", correct: false}] }
+                ]
+            },
+            {
+                text: "ผมไปเดิน ตลาดน้ำ เห็น น้ำแข็งใส น่ากินมาก แต่สุดท้ายก็ซื้อ ขนมครก มากิน แล้วก็ซื้อ น้ำมะพร้าว กลับบ้าน",
+                questions: [
+                    { q: "สรุปหลานซื้อขนมอะไรมากิน?", options: [{img: "🥞", label:"ขนมครก", correct: true}, {img: "🍧", label:"น้ำแข็งใส", correct: false}, {img: "🍡", label:"ลูกชิ้น", correct: false}] },
+                    { q: "หลานซื้อน้ำอะไรกลับบ้าน?", options: [{img: "🥥", label:"น้ำมะพร้าว", correct: true}, {img: "🍊", label:"น้ำส้ม", correct: false}, {img: "🍉", label:"น้ำแตงโม", correct: false}] }
+                ]
+            },
+            {
+                text: "อากาศ ร้อน มากครับ เพื่อนซื้อรส สตรอว์เบอร์รี แต่ผมซื้อ ไอศกรีม รสช็อกโกแลต มากินที่ใต้ ต้นไม้ใหญ่",
+                questions: [
+                    { q: "หลานกินไอศกรีมรสอะไร?", options: [{img: "🍫", label:"ช็อกโกแลต", correct: true}, {img: "🍓", label:"สตรอว์เบอร์รี", correct: false}, {img: "🍦", label:"วานิลลา", correct: false}] },
+                    { q: "หลานไปนั่งกินไอศกรีมที่ไหน?", options: [{img: "🌳", label:"ต้นไม้ใหญ่", correct: true}, {img: "❄️", label:"ห้องแอร์", correct: false}, {img: "🏖️", label:"ริมสระน้ำ", correct: false}] }
+                ]
+            },
+            {
+                text: "วันเกิดปีนี้ แม่ซื้อ กระเป๋า สีดำให้ แต่ผมอยากได้ สีน้ำตาล มากกว่า เลยไปเปลี่ยนที่ ห้างสรรพสินค้า",
+                questions: [
+                    { q: "ตอนแรกแม่ซื้อกระเป๋าสีอะไรให้?", options: [{img: "⬛", label:"สีดำ", correct: true}, {img: "🟫", label:"สีน้ำตาล", correct: false}, {img: "🟥", label:"สีแดง", correct: false}] },
+                    { q: "หลานเอาของไปเปลี่ยนที่ไหน?", options: [{img: "🏬", label:"ห้างสรรพสินค้า", correct: true}, {img: "🏪", label:"ร้านสะดวกซื้อ", correct: false}, {img: "🎪", label:"ตลาด", correct: false}] }
+                ]
+            },
+            {
+                text: "ผมไป ทะเล ตอนเช้ากะจะ ว่ายน้ำ แต่คลื่นแรง เลยเปลี่ยนใจมาสร้าง ปราสาททราย แทน",
+                questions: [
+                    { q: "ตอนแรกหลานตั้งใจจะทำกิจกรรมอะไร?", options: [{img: "🏊", label:"ว่ายน้ำ", correct: true}, {img: "🏄", label:"เล่นเซิร์ฟ", correct: false}, {img: "🤿", label:"ดำน้ำ", correct: false}] },
+                    { q: "สรุปแล้วหลานทำกิจกรรมอะไร?", options: [{img: "🏰", label:"สร้างปราสาททราย", correct: true}, {img: "⚽", label:"เตะฟุตบอล", correct: false}, {img: "🐚", label:"เก็บหอย", correct: false}] }
+                ]
+            }
         ],
         hard: [
-            { text: "ผมไป สวนสนุก ตอนแรกชวนเพื่อนไป 4 คน แต่มาจริงแค่ 3 คน พวกเราไปเล่น รถไฟเหาะ หวาดเสียวมากครับ", q: "หลานไปเที่ยวกับเพื่อนกี่คน?", options: [{img: "3️⃣", label:"3 คน", correct: true}, {img: "2️⃣", label:"2 คน", correct: false}, {img: "4️⃣", label:"4 คน", correct: false}] },
-            { text: "ผมไป สวนสนุก กับเพื่อน 3 คน ตอนแรกว่าจะขึ้น ม้าหมุน แต่คิวยาว เลยไปเล่น รถไฟเหาะ หวาดเสียวมากครับ", q: "หลานเล่นเครื่องเล่นอะไร?", options: [{img: "🎢", label:"รถไฟเหาะ", correct: true}, {img: "🎠", label:"ม้าหมุน", correct: false}, {img: "🎡", label:"ชิงช้าสวรรค์", correct: false}] },
-            { text: "ผมซื้อ เสื้อใหม่ มา 2 ตัว สีแดงกับสีฟ้า ตอนแรกกะจะซื้อ 3 ตัวแต่เงินไม่พอ หมดเงินไป 500 บาทครับ", q: "หลานซื้อเสื้อใหม่มากี่ตัว?", options: [{img: "2️⃣", label:"2 ตัว", correct: true}, {img: "1️⃣", label:"1 ตัว", correct: false}, {img: "3️⃣", label:"3 ตัว", correct: false}] }
+            {
+                text: "ผมไป สวนสนุก ชวนเพื่อนไป 4 คน แต่มาจริงแค่ 3 คน ตอนแรกว่าจะขึ้น ม้าหมุน แต่คิวยาว เลยไปเล่น รถไฟเหาะ หวาดเสียวมากครับ",
+                questions: [
+                    { q: "สรุปแล้วหลานไปเที่ยวกับเพื่อนกี่คน?", options: [{img: "3️⃣", label:"3 คน", correct: true}, {img: "4️⃣", label:"4 คน", correct: false}, {img: "2️⃣", label:"2 คน", correct: false}] },
+                    { q: "หลานเล่นเครื่องเล่นอะไร?", options: [{img: "🎢", label:"รถไฟเหาะ", correct: true}, {img: "🎠", label:"ม้าหมุน", correct: false}, {img: "🎡", label:"ชิงช้าสวรรค์", correct: false}] }
+                ]
+            },
+            {
+                text: "ผมซื้อ เสื้อใหม่ มา 2 ตัว สีแดงกับสีฟ้า ตอนแรกกะจะซื้อ 3 ตัวแต่เงินไม่พอ จ่ายแบงก์ 1000 ได้ทอนมา 500 บาทครับ",
+                questions: [
+                    { q: "หลานซื้อเสื้อใหม่มากี่ตัว?", options: [{img: "2️⃣", label:"2 ตัว", correct: true}, {img: "3️⃣", label:"3 ตัว", correct: false}, {img: "1️⃣", label:"1 ตัว", correct: false}] },
+                    { q: "หลานใช้เงินซื้อเสื้อไปกี่บาท?", options: [{img: "💵", label:"500 บาท", correct: true}, {img: "💴", label:"1000 บาท", correct: false}, {img: "🪙", label:"300 บาท", correct: false}] }
+                ]
+            },
+            {
+                text: "วันนี้ผมตื่น 7 โมงเช้า ปกติจะตื่น 8 โมง เพื่อรีบไปนั่ง รถไฟ ไปเยี่ยม ยาย ที่ต่างจังหวัด",
+                questions: [
+                    { q: "วันนี้หลานตื่นกี่โมง?", options: [{img: "🕖", label:"7 โมงเช้า", correct: true}, {img: "🕗", label:"8 โมงเช้า", correct: false}, {img: "🕕", label:"6 โมงเช้า", correct: false}] },
+                    { q: "หลานเดินทางด้วยยานพาหนะอะไร?", options: [{img: "🚆", label:"รถไฟ", correct: true}, {img: "🚌", label:"รถบัส", correct: false}, {img: "✈️", label:"เครื่องบิน", correct: false}] }
+                ]
+            },
+            {
+                text: "ไปกิน หมูกระทะ กับครอบครัว ผู้ใหญ่ 4 เด็ก 2 คน ผมกิน กุ้งเผา ไปเยอะมากจนพุงกางเลย",
+                questions: [
+                    { q: "มีเด็กไปกินหมูกระทะกี่คน?", options: [{img: "2️⃣", label:"2 คน", correct: true}, {img: "4️⃣", label:"4 คน", correct: false}, {img: "6️⃣", label:"6 คน", correct: false}] },
+                    { q: "หลานกินอะไรเยอะที่สุด?", options: [{img: "🦐", label:"กุ้งเผา", correct: true}, {img: "🥓", label:"หมูสามชั้น", correct: false}, {img: "🦑", label:"ปลาหมึก", correct: false}] }
+                ]
+            },
+            {
+                text: "ผมเก็บเงินได้ 300 บาท แม่ให้เพิ่ม 200 บาท รวมเป็น 500 บาท เลยเอาไปซื้อ หนังสือการ์ตูน เล่มใหม่ที่เพิ่งออก",
+                questions: [
+                    { q: "สรุปแล้วหลานมีเงินรวมกี่บาท?", options: [{img: "💵", label:"500 บาท", correct: true}, {img: "🪙", label:"300 บาท", correct: false}, {img: "💴", label:"200 บาท", correct: false}] },
+                    { q: "หลานเอาเงินไปซื้ออะไร?", options: [{img: "📕", label:"หนังสือการ์ตูน", correct: true}, {img: "🤖", label:"ของเล่น", correct: false}, {img: "🍬", label:"ขนม", correct: false}] }
+                ]
+            }
         ]
     };
 
@@ -234,6 +330,7 @@
     let gameTimerInterval = null;
     let readTimerInterval = null;
     let currentQuestionData = null;
+    let currentQuestionIndex = 0;
     let isAnswering = false;
 
     // --- Audio System (Web Audio API) ---
@@ -345,6 +442,7 @@
 
     function nextRound() {
         isAnswering = false;
+        currentQuestionIndex = 0;
         hideAllScreens();
         document.getElementById('screen-reading').classList.remove('hidden');
         
@@ -383,13 +481,18 @@
     function showQuestion() {
         hideAllScreens();
         document.getElementById('screen-question').classList.remove('hidden');
-        document.getElementById('question-text').innerText = currentQuestionData.q;
+        
+        const currentQ = currentQuestionData.questions[currentQuestionIndex];
+        
+        // Show question counter
+        const qCounterText = `คำถามที่ ${currentQuestionIndex + 1}/${currentQuestionData.questions.length}`;
+        document.getElementById('question-text').innerHTML = `<span class="text-sm font-normal block text-sky-800 mb-1">${qCounterText}</span>${currentQ.q}`;
         
         const container = document.getElementById('options-container');
         container.innerHTML = ''; // clear old
         
         // Shuffle options
-        let options = [...currentQuestionData.options].sort(() => Math.random() - 0.5);
+        let options = [...currentQ.options].sort(() => Math.random() - 0.5);
 
         options.forEach((opt, index) => {
             const btn = document.createElement('button');
@@ -436,7 +539,7 @@
             // Show correct answer visually
             allBtns.forEach(b => {
                 const label = b.querySelector('span').innerText;
-                const correctOpt = currentQuestionData.options.find(o => o.correct);
+                const correctOpt = currentQuestionData.questions[currentQuestionIndex].options.find(o => o.correct);
                 if(label === correctOpt.label) {
                     b.classList.remove('bg-white');
                     b.classList.add('bg-mint', 'border-mint', 'border-4');
@@ -446,10 +549,16 @@
 
         updateScoreDisplay();
 
-        // Wait 2 seconds before next round
+        // Wait 2 seconds before next round or next question
         setTimeout(() => {
             if(timeRemaining > 0) {
-                nextRound();
+                currentQuestionIndex++;
+                if (currentQuestionIndex < currentQuestionData.questions.length) {
+                    isAnswering = false;
+                    showQuestion();
+                } else {
+                    nextRound();
+                }
             }
         }, 2000);
     }

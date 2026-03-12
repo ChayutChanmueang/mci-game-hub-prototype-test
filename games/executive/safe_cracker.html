@@ -170,10 +170,14 @@
                     <h1 class="text-3xl font-bold text-c0 mb-2 drop-shadow-sm">รหัสลับหีบโบราณ</h1>
                     <p class="text-lg font-semibold text-gray-500">Safe Cracker</p>
                     <div class="w-16 h-1 bg-c1 mx-auto my-4 rounded-full"></div>
-                    <p class="text-[1.1rem] leading-relaxed text-gray-600">
+                    <p class="text-[1.1rem] leading-relaxed text-gray-600 mb-4">
                         ถอดรหัสสีเพื่อเปิดหีบสมบัติ<br>
                         ใช้ตรรกะจากคำใบ้เพื่อหาคำตอบ!
                     </p>
+                    <button onclick="openTutorial()" class="paper-btn px-4 py-2 text-sm font-bold text-gray-600 bg-gray-50 w-full flex justify-center items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        อ่านวิธีเล่น
+                    </button>
                 </div>
 
                 <!-- Score Board (Menu) -->
@@ -259,6 +263,40 @@
             </div>
         </div>
 
+        <!-- ================= TUTORIAL OVERLAY ================= -->
+        <div id="tutorial-overlay" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 pointer-events-none z-50 transition-opacity duration-300">
+            <div id="tutorial-panel" class="paper-panel p-6 m-4 w-full max-w-[90%] transform scale-95 transition-transform duration-300">
+                <h2 class="text-2xl font-bold text-c0 mb-4 text-center">วิธีเล่นเบื้องต้น</h2>
+                
+                <div class="space-y-4 mb-6 text-gray-600">
+                    <p class="text-[1.05rem] text-center leading-relaxed">เป้าหมายของคุณคือการ <b class="text-c0">ทายรหัสสี</b> ให้ถูกต้องทั้งหมด ภายในจำนวนครั้งที่กำหนด</p>
+                    
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
+                        <p class="font-bold mb-3 text-sm text-gray-500 text-center">ความหมายของคำใบ้ที่จะได้รับ:</p>
+                        
+                        <div class="flex items-center space-x-3 mb-3">
+                            <svg class="w-7 h-7 text-success flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            <span class="text-[0.95rem]"><b>ถูกสี และ ถูกตำแหน่ง</b> <br><span class="text-xs text-gray-400">สุดยอด! คุณมาถูกทางแล้ว</span></span>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3 mb-3">
+                            <svg class="w-7 h-7 text-warning flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"></circle></svg>
+                            <span class="text-[0.95rem]"><b>ถูกสี แต่ ผิดตำแหน่ง</b> <br><span class="text-xs text-gray-400">รหัสมีสีนี้แน่ๆ ลองสลับที่ดูนะ</span></span>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            <div class="w-7 h-7 rounded-full border-2 border-gray-300 flex-shrink-0"></div>
+                            <span class="text-[0.95rem]"><b>ผิดสี (ไม่มีสีนี้ในรหัส)</b> <br><span class="text-xs text-gray-400">ตัดสีนี้ทิ้งในการทายครั้งต่อไปได้เลย</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="closeTutorial()" class="paper-btn px-6 py-3 text-lg font-bold text-white bg-c1 border-c1 w-full shadow-md">
+                    เข้าใจแล้ว!
+                </button>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -315,6 +353,7 @@
         let currentGuess = [];
         let turn = 1;
         let score = 0;
+        let hasSeenTutorial = false;
 
         // --- DOM Elements ---
         const screenMenu = document.getElementById('screen-menu');
@@ -327,8 +366,29 @@
         const gameScoreDisplay = document.getElementById('game-score');
         const overlayMsg = document.getElementById('overlay-msg');
         const overlayPanel = document.getElementById('overlay-panel');
+        const tutorialOverlay = document.getElementById('tutorial-overlay');
+        const tutorialPanel = document.getElementById('tutorial-panel');
 
         // --- ลอจิกเกม ---
+
+        function openTutorial() {
+            sfx.tap();
+            hasSeenTutorial = true;
+            tutorialOverlay.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                tutorialPanel.classList.remove('scale-95');
+                tutorialPanel.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeTutorial() {
+            sfx.tap();
+            tutorialPanel.classList.remove('scale-100');
+            tutorialPanel.classList.add('scale-95');
+            setTimeout(() => {
+                tutorialOverlay.classList.add('opacity-0', 'pointer-events-none');
+            }, 300);
+        }
 
         function startGame(difficulty) {
             sfx.tap();
@@ -342,6 +402,11 @@
             setTimeout(() => {
                 screenGame.classList.remove('opacity-0', 'pointer-events-none');
                 setupBoard();
+                
+                // ให้ Tutorial โผล่ขึ้นมาตอนเข้าเกมครั้งแรก
+                if (!hasSeenTutorial) {
+                    openTutorial();
+                }
             }, 300);
         }
 

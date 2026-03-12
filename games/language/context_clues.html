@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Context Clues - นักสืบเติมคำ</title>
     
     <!-- Tailwind CSS -->
@@ -47,17 +47,25 @@
         .animate-fade-in {
             animation: fadeIn 0.4s ease-out forwards;
         }
+        
+        /* Safe Area Utilities for iOS/Android */
+        .pt-safe-top { padding-top: max(2rem, env(safe-area-inset-top)); }
+        .pb-safe-bottom { padding-bottom: max(2rem, env(safe-area-inset-bottom)); }
+        .px-safe { 
+            padding-left: max(1.5rem, env(safe-area-inset-left));
+            padding-right: max(1.5rem, env(safe-area-inset-right));
+        }
     </style>
 </head>
 <body class="bg-[#FDFBF7] min-h-screen w-full overflow-hidden flex justify-center items-center">
 
     <!-- Main Container - 9:18 Aspect Ratio Constraint -->
-    <div id="app-container" class="relative w-full h-[100dvh] max-w-[400px] bg-[#FDFBF7] shadow-2xl flex flex-col mx-auto overflow-hidden">
+    <div id="app-container" class="relative w-full h-[100dvh] max-w-[420px] bg-[#FDFBF7] shadow-2xl flex flex-col mx-auto overflow-hidden">
         
         <!-- === SCREEN: MENU === -->
-        <div id="screen-menu" class="flex-1 flex flex-col items-center justify-start p-6 pt-16 space-y-8 animate-fade-in">
+        <div id="screen-menu" class="flex-1 flex flex-col items-center justify-start px-safe pt-safe-top pb-safe-bottom space-y-6 animate-fade-in overflow-y-auto">
             <!-- Title Panel -->
-            <div class="bg-[#FFF3B0] border-2 border-[#D9CDBF] rounded-3xl p-6 w-full text-center paper-shadow relative overflow-hidden">
+            <div class="bg-[#FFF3B0] border-2 border-[#D9CDBF] rounded-3xl p-6 w-full text-center paper-shadow relative overflow-hidden flex-shrink-0 mt-4">
                 <div class="absolute top-0 left-0 w-full h-2 bg-white/40"></div>
                 <h1 class="text-4xl font-bold text-[#4A4036] mb-2 tracking-wide">Context<br/>Clues</h1>
                 <div class="bg-[#4A4036] text-white rounded-full py-1 px-4 inline-block font-semibold">
@@ -66,12 +74,12 @@
             </div>
 
             <!-- Description -->
-            <p class="text-[#6D6257] text-center text-lg leading-relaxed px-4">
+            <p class="text-[#6D6257] text-center text-lg leading-relaxed px-2 flex-shrink-0">
                 อ่านประโยคให้เข้าใจ แล้วลากคำศัพท์ที่ถูกต้องไปเติมในช่องว่างให้สมบูรณ์!
             </p>
 
             <!-- Difficulty Selection -->
-            <div class="w-full space-y-4 pt-4">
+            <div class="w-full space-y-4 pt-2 pb-2 flex-shrink-0">
                 <h2 class="text-xl font-bold text-[#4A4036] ml-2">เลือกระดับความยาก:</h2>
                 
                 <button onclick="startGame('easy')" class="w-full bg-[#B2EBF2] border-2 border-[#D9CDBF] rounded-2xl p-4 text-left paper-shadow active:translate-y-1 active:translate-x-1 active:shadow-none transition-all flex items-center group cursor-pointer">
@@ -107,12 +115,17 @@
                     </div>
                 </button>
             </div>
+            
+            <!-- Version Number -->
+            <div class="w-full text-center text-[#A69B8F] text-sm pb-4 font-medium flex-shrink-0">
+                v0.2.0
+            </div>
         </div>
 
         <!-- === SCREEN: GAME === -->
         <div id="screen-game" class="hidden flex-1 flex flex-col relative animate-fade-in h-full">
             <!-- Header -->
-            <div class="flex justify-between items-center p-4 bg-white/50 backdrop-blur-sm z-10">
+            <div class="flex justify-between items-center px-safe pt-[max(1rem,env(safe-area-inset-top))] pb-4 bg-white/50 backdrop-blur-sm z-10 flex-shrink-0">
                 <button onclick="showMenu()" class="bg-white border-2 border-[#D9CDBF] rounded-xl p-2 paper-shadow-sm active:translate-y-0.5 active:shadow-none cursor-pointer">
                     <svg class="text-[#4A4036]" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
@@ -123,29 +136,29 @@
             </div>
 
             <!-- Progress indicator -->
-            <div id="progress-container" class="px-6 flex justify-center space-x-2 mt-2">
+            <div id="progress-container" class="px-safe flex justify-center space-x-2 mt-2 flex-shrink-0">
                 <!-- Dots injected via JS -->
             </div>
 
             <!-- Game Play Area -->
-            <div class="flex-1 flex flex-col justify-center items-center p-6 space-y-8">
+            <div class="flex-1 flex flex-col justify-center items-center px-safe py-6 space-y-8 overflow-y-auto">
                 
                 <!-- Newspaper / Sentence Board -->
-                <div id="sentence-board" class="bg-white border-2 border-[#D9CDBF] rounded-3xl p-6 w-full paper-shadow transition-transform">
-                    <p id="sentence-text" class="text-[26px] leading-[2.2] text-[#333333] font-medium break-words">
+                <div id="sentence-board" class="bg-white border-2 border-[#D9CDBF] rounded-3xl p-5 sm:p-6 w-full paper-shadow transition-transform">
+                    <p id="sentence-text" class="text-[22px] sm:text-[26px] leading-[2.2] text-[#333333] font-medium break-words">
                         <!-- Text injected via JS -->
                     </p>
                 </div>
 
                 <!-- Instructions -->
-                <p class="text-[#6D6257] text-lg opacity-80 animate-pulse">
+                <p class="text-[#6D6257] text-lg opacity-80 animate-pulse text-center">
                     ↓ ลากคำศัพท์ไปเติมในช่องว่าง ↓
                 </p>
             </div>
 
             <!-- Word Bank (Bottom Panel) -->
-            <div class="bg-white/80 backdrop-blur-md border-t-2 border-[#D9CDBF] p-6 pb-12 rounded-t-3xl">
-                <div id="word-bank" class="flex flex-wrap justify-center gap-4">
+            <div class="bg-white/90 backdrop-blur-md border-t-2 border-[#D9CDBF] px-safe pt-6 pb-[max(3rem,env(safe-area-inset-bottom))] rounded-t-3xl flex-shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+                <div id="word-bank" class="flex flex-wrap justify-center gap-3 sm:gap-4">
                     <!-- Words injected via JS -->
                 </div>
             </div>
@@ -164,17 +177,38 @@
             easy: [
                 { textParts: ["วันนี้ฝนตกหนัก ระวังถนน", ""], blanks: ["ลื่น"], options: ["ลื่น", "แห้ง", "สวย"] },
                 { textParts: ["ฉันชอบกินผลไม้ที่มีรส", "มาก"], blanks: ["หวาน"], options: ["หวาน", "เผ็ด", "สูง"] },
-                { textParts: ["สุนัขตัวนั้นเห่าเสียง", "จนฉันตกใจ"], blanks: ["ดัง"], options: ["ดัง", "เบา", "หอม"] }
+                { textParts: ["สุนัขตัวนั้นเห่าเสียง", "จนฉันตกใจ"], blanks: ["ดัง"], options: ["ดัง", "เบา", "หอม"] },
+                { textParts: ["แม่ทอดไข่เจียวกลิ่น", "ฟุ้งไปทั่วบ้าน"], blanks: ["หอม"], options: ["หอม", "เหม็น", "ขม"] },
+                { textParts: ["อากาศร้อนแบบนี้ ต้องดื่มน้ำ", "ถึงจะชื่นใจ"], blanks: ["เย็น"], options: ["เย็น", "ร้อน", "ขุ่น"] },
+                { textParts: ["น้องชายลืมซักผ้า เสื้อผ้าเลยมีกลิ่น", ""], blanks: ["เหม็น"], options: ["เหม็น", "หอม", "สะอาด"] },
+                { textParts: ["รถติดมาก ฉันเลยไปทำงาน", ""], blanks: ["สาย"], options: ["สาย", "เร็ว", "ตรง"] },
+                { textParts: ["เขาออกกำลังกายทุกวัน ร่างกายจึง", ""], blanks: ["แข็งแรง"], options: ["แข็งแรง", "อ่อนแอ", "ป่วย"] },
+                { textParts: ["คืนนี้พระจันทร์เต็มดวง สว่าง", "มาก"], blanks: ["สวยงาม"], options: ["สวยงาม", "มืดมิด", "น่ากลัว"] },
+                { textParts: ["แกงจืดถ้วยนี้มีรสชาติ", "ไปหน่อย ต้องเติมน้ำปลา"], blanks: ["จืด"], options: ["จืด", "เค็ม", "เผ็ด"] }
             ],
             medium: [
                 { textParts: ["ถึงแม้เขาจะอ่านหนังสือมาอย่างหนักหน่วง แต่เขาก็ยังรู้สึก", "กับการสอบครั้งนี้อยู่ดี"], blanks: ["กังวล"], options: ["กังวล", "มั่นใจ", "ง่วงนอน"] },
                 { textParts: ["อากาศในตอนเช้าวันนี้ช่าง", "ทำให้รู้สึกอยากออกไปวิ่งออกกำลังกาย"], blanks: ["สดใส"], options: ["สดใส", "มืดมิด", "หนาวเหน็บ"] },
-                { textParts: ["พนักงานเสิร์ฟเดินมาที่โต๊ะพร้อมกับรอยยิ้มที่", "ก่อนจะรับออเดอร์ของเรา"], blanks: ["เป็นมิตร"], options: ["เป็นมิตร", "โกรธแค้น", "เศร้าหมอง"] }
+                { textParts: ["พนักงานเสิร์ฟเดินมาที่โต๊ะพร้อมกับรอยยิ้มที่", "ก่อนจะรับออเดอร์ของเรา"], blanks: ["เป็นมิตร"], options: ["เป็นมิตร", "โกรธแค้น", "เศร้าหมอง"] },
+                { textParts: ["หลังจากที่ทำงานหน้าคอมพิวเตอร์มาทั้งวัน ฉันรู้สึก", "และอยากพักผ่อนสายตา"], blanks: ["ปวดตา"], options: ["ปวดตา", "ปวดท้อง", "หิวข้าว"] },
+                { textParts: ["รถไฟฟ้าเสียบ่อยมากในช่วงชั่วโมงเร่งด่วน ทำให้ผู้โดยสารหลายคนรู้สึก", "กับสถานการณ์นี้"], blanks: ["หงุดหงิด"], options: ["หงุดหงิด", "มีความสุข", "ตื่นเต้น"] },
+                { textParts: ["อาหารร้านนี้อร่อยและให้ปริมาณเยอะมาก คุ้มค่ากับ", "ที่จ่ายไปจริงๆ"], blanks: ["ราคา"], options: ["ราคา", "เวลา", "ระยะทาง"] },
+                { textParts: ["เมื่อคืนฉันดูหนังสยองขวัญคนเดียว ทำให้นอนไม่หลับเพราะความ", "ตลอดทั้งคืน"], blanks: ["หวาดกลัว"], options: ["หวาดกลัว", "กล้าหาญ", "ตลกขบขัน"] },
+                { textParts: ["เธอตั้งใจออมเงินทุกเดือนเพื่อนำไปซื้อ", "ชิ้นพิเศษให้คุณแม่ในวันเกิด"], blanks: ["ของขวัญ"], options: ["ของขวัญ", "อาหาร", "หนังสือเรียน"] },
+                { textParts: ["ช่วงนี้ฝนตกหนักและมีน้ำท่วมขัง หลายพื้นที่จึงต้องเฝ้าระวังโรค", "ที่มาจากยุงลาย"], blanks: ["ไข้เลือดออก"], options: ["ไข้เลือดออก", "หวัด", "กระเพาะ"] },
+                { textParts: ["การดื่มกาแฟมากเกินไปในหนึ่งวันอาจทำให้หัวใจเต้นเร็วและรู้สึก", "ได้"], blanks: ["ใจสั่น"], options: ["ใจสั่น", "ง่วงซึม", "หิวโหย"] }
             ],
             hard: [
                 { textParts: ["ฉันชอบไปเที่ยว", "แต่เพื่อนของฉันชอบไปเที่ยว", "มากกว่า"], blanks: ["ภูเขา", "ทะเล"], options: ["ภูเขา", "ทะเล", "ตู้เย็น", "หนังสือ"] },
                 { textParts: ["การดื่ม", "ในตอนเช้าช่วยให้ร่างกาย", "ไปตลอดทั้งวัน"], blanks: ["น้ำเปล่า", "สดชื่น"], options: ["น้ำเปล่า", "สดชื่น", "น้ำอัดลม", "อ่อนเพลีย"] },
-                { textParts: ["ท้องฟ้าคืนนี้เต็มไปด้วย", "และมี", "ส่องสว่างอยู่ตรงกลาง"], blanks: ["ดวงดาว", "ดวงจันทร์"], options: ["ดวงดาว", "ดวงจันทร์", "ก้อนเมฆ", "นกยูง"] }
+                { textParts: ["ท้องฟ้าคืนนี้เต็มไปด้วย", "และมี", "ส่องสว่างอยู่ตรงกลาง"], blanks: ["ดวงดาว", "ดวงจันทร์"], options: ["ดวงดาว", "ดวงจันทร์", "ก้อนเมฆ", "นกยูง"] },
+                { textParts: ["พ่อบอกให้ฉันไปซื้อ", "ที่ร้านค้าปากซอย แต่ฉันดันหยิบ", "มาผิดขวด"], blanks: ["น้ำปลา", "ซีอิ๊ว"], options: ["น้ำปลา", "ซีอิ๊ว", "น้ำตาล", "ผงซักฟอก"] },
+                { textParts: ["เมื่อวานฉันลืมพก", "ออกจากบ้าน พอตอนเย็นฝนตกเลยเปียก", "ไปทั้งตัว"], blanks: ["ร่ม", "ปอน"], options: ["ร่ม", "ปอน", "แว่นตา", "แห้ง"] },
+                { textParts: ["หมอแนะนำให้กิน", "และผลไม้เยอะๆ เพื่อให้ระบบ", "ทำงานได้ดีขึ้น"], blanks: ["ผัก", "ขับถ่าย"], options: ["ผัก", "ขับถ่าย", "ขนมหวาน", "หายใจ"] },
+                { textParts: ["ก่อนออกจากบ้านทุกครั้ง อย่าลืมปิด", "และถอด", "เครื่องใช้ไฟฟ้าเพื่อความปลอดภัย"], blanks: ["พัดลม", "ปลั๊ก"], options: ["พัดลม", "ปลั๊ก", "หน้าต่าง", "รองเท้า"] },
+                { textParts: ["เธอชอบใส่เสื้อสี", "เพราะมันดูสะอาดตา แต่ก็เปื้อน", "สกปรกได้ง่ายมาก"], blanks: ["ขาว", "คราบ"], options: ["ขาว", "คราบ", "ดำ", "กลิ่น"] },
+                { textParts: ["การนอนหลับพักผ่อนให้เพียงพอจะช่วยให้", "ปลอดโปร่งและมีความ", "ที่ดีขึ้นในการเรียน"], blanks: ["สมอง", "จำ"], options: ["สมอง", "จำ", "กระเพาะ", "ลืม"] },
+                { textParts: ["ช่วงวันหยุดสุดสัปดาห์ ครอบครัวของเรามักจะไปทำ", "ที่วัดและปล่อย", "ปล่อยปลาเสมอ"], blanks: ["บุญ", "นก"], options: ["บุญ", "นก", "บาป", "หมา"] }
             ]
         };
 
@@ -284,12 +318,12 @@
                     const filledWord = filledBlanks[index];
                     if (filledWord) {
                         sentenceHtml += `
-                            <span data-blank-index="${index}" class="inline-flex justify-center items-center min-w-[100px] h-[48px] px-4 mx-2 align-middle rounded-xl border-2 border-dashed bg-[#B2EBF2] border-[#81cdd7] text-[#4A4036] font-bold shadow-inner transition-all duration-300">
+                            <span data-blank-index="${index}" class="inline-flex justify-center items-center min-w-[80px] sm:min-w-[100px] h-[40px] sm:h-[48px] px-3 sm:px-4 mx-1 sm:mx-2 align-middle rounded-xl border-2 border-dashed bg-[#B2EBF2] border-[#81cdd7] text-[#4A4036] font-bold shadow-inner transition-all duration-300">
                                 ${filledWord}
                             </span>`;
                     } else {
                         sentenceHtml += `
-                            <span data-blank-index="${index}" class="inline-flex justify-center items-center min-w-[100px] h-[48px] px-4 mx-2 align-middle rounded-xl border-2 border-dashed bg-gray-50 border-gray-300 transition-all duration-300">
+                            <span data-blank-index="${index}" class="inline-flex justify-center items-center min-w-[80px] sm:min-w-[100px] h-[40px] sm:h-[48px] px-3 sm:px-4 mx-1 sm:mx-2 align-middle rounded-xl border-2 border-dashed bg-gray-50 border-gray-300 transition-all duration-300">
                             </span>`;
                     }
                 }
@@ -306,13 +340,13 @@
                 if (isUsed) {
                     // Render hidden/disabled version
                     wordBankHtml += `
-                        <div class="${colorClass} border-2 border-[#D9CDBF] rounded-2xl px-6 py-4 text-2xl font-bold text-[#4A4036] transition-all duration-200 opacity-0 scale-50 pointer-events-none">
+                        <div class="${colorClass} border-2 border-[#D9CDBF] rounded-2xl px-5 py-3 sm:px-6 sm:py-4 text-xl sm:text-2xl font-bold text-[#4A4036] transition-all duration-200 opacity-0 scale-50 pointer-events-none">
                             ${word}
                         </div>`;
                 } else {
                     // Render interactive version
                     wordBankHtml += `
-                        <div data-word="${word}" class="word-drag-item ${colorClass} border-2 border-[#D9CDBF] rounded-2xl px-6 py-4 text-2xl font-bold text-[#4A4036] transition-all duration-200 opacity-100 scale-100 paper-shadow cursor-grab hover:-translate-y-1">
+                        <div data-word="${word}" class="word-drag-item ${colorClass} border-2 border-[#D9CDBF] rounded-2xl px-5 py-3 sm:px-6 sm:py-4 text-xl sm:text-2xl font-bold text-[#4A4036] transition-all duration-200 opacity-100 scale-100 paper-shadow cursor-grab hover:-translate-y-1">
                             ${word}
                         </div>`;
                 }
