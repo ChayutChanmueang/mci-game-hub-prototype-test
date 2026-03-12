@@ -2,1144 +2,585 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Zoo Feeder - ป้อนอาหารสัตว์</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- ใช้ฟอนต์หัวมน Mali สำหรับความรู้สึกน่ารัก เป็นมิตร -->
-    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Proverb Painter - เกมทายสำนวนไทย</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
-            --app-height: 100dvh;
-            
-            /* Color Palette: High Saturation Pastel */
-            --bg-cream: #FDFBF7;
-            --pastel-mint: #A0E8AF;
-            --pastel-sky: #BFE6FF;
-            --pastel-peach: #FFB07C;
-            --pastel-yellow: #FFDF85;
-            --pastel-pink: #FFC4C4;
-            --pastel-gray: #E2DFD8;
-            
-            /* UI Colors */
-            --dark-stroke: #5C4D43; /* สีน้ำตาลเข้มแทนสีดำสนิท */
-            --paper-shadow: 0 6px 0px rgba(92, 77, 67, 0.15);
-            --hard-shadow: 0 4px 0px var(--dark-stroke);
+            --bg-cream: #FFFDF5;
+            --peach: #FFB085;
+            --mint: #B5EAD7;
+            --sky: #A2D2FF;
+            --yellow: #FFDAC1;
+            --dark-text: #4A3F35;
+            --panel-stroke: #6D5D50;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Mitr', sans-serif;
         }
 
         body {
-            font-family: 'Mali', sans-serif;
-            background-color: var(--bg-cream);
             margin: 0;
+            padding: 0;
+            background-color: #333;
             display: flex;
             justify-content: center;
             align-items: center;
-            width: 100vw;
-            height: var(--app-height);
+            height: 100vh;
             overflow: hidden;
-            touch-action: none;
-            /* ลายพื้นหลังจุดสีน้ำตาลอ่อนๆ */
-            background-image: radial-gradient(rgba(92, 77, 67, 0.1) 2px, transparent 2px);
-            background-size: 30px 30px;
-            color: var(--dark-stroke);
         }
 
+        /* 9:18 Aspect Ratio Container */
         #game-container {
+            width: 100vw;
+            height: calc(100vw * 2);
+            max-width: 450px;
+            max-height: 900px;
+            background-color: var(--bg-cream);
             position: relative;
-            aspect-ratio: 9 / 18;
-            width: auto;
-            height: 100%;
-            max-height: 100dvh;
-            max-width: 100vw;
-            
-            @media (min-aspect-ratio: 9/18) {
-                height: 96dvh;
-                width: auto;
-                border-radius: 32px;
-                border: 4px solid var(--dark-stroke);
-                box-shadow: 0 15px 30px rgba(92, 77, 67, 0.2), var(--hard-shadow);
-            }
-
-            @media (max-aspect-ratio: 9/18) {
-                width: 100vw;
-                height: auto;
-                border: none;
-                border-radius: 0;
-            }
-
-            background: linear-gradient(180deg, var(--pastel-sky) 0%, var(--bg-cream) 100%);
             overflow: hidden;
+            border: 4px solid var(--panel-stroke);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
-        /* --- Game Elements (Paper Cut Style) --- */
-        
-        #belt-container {
+        .screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
-            z-index: 10;
-        }
-
-        .belt {
-            position: absolute;
-            top: -5%;
-            height: 78%;
-            background: #E2DFD8;
-            border-left: 3px solid var(--dark-stroke);
-            border-right: 3px solid var(--dark-stroke);
-            border-bottom: 3px solid var(--dark-stroke);
-            transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.5s ease-in-out;
-            border-radius: 0 0 24px 24px;
-            box-shadow: 4px 4px 0px rgba(92, 77, 67, 0.1);
-            overflow: hidden;
-        }
-
-        .belt-marking {
-            position: absolute;
-            width: 100%;
-            height: 3%;
-            background: rgba(92, 77, 67, 0.1);
-            animation: moveBelt 3s linear infinite;
-        }
-
-        @keyframes moveBelt {
-            0% { top: -10%; }
-            100% { top: 100%; }
-        }
-
-        /* Animal Zone */
-        #animal-container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 28%;
-            min-height: 220px;
-            background: var(--pastel-mint);
-            border-top: 4px solid var(--dark-stroke);
-            padding-bottom: env(safe-area-inset-bottom); 
-            z-index: 15;
-            pointer-events: none;
-        }
-
-        .animal-slot {
-            position: absolute;
-            bottom: 5%;
-            transform: translateX(-50%);
-            display: flex;
+            display: none;
             flex-direction: column;
-            align-items: center;
-            justify-content: flex-end;
-            transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-            width: 30%;
+            padding: 30px;
+            animation: fadeIn 0.4s ease-out;
         }
 
-        .animal-emoji {
-            font-size: clamp(4.5rem, 12vh, 8rem);
-            line-height: 1;
-            /* Drop shadow ทำให้เหมือนกระดาษตัดแปะ */
-            filter: drop-shadow(3px 4px 0px rgba(92, 77, 67, 0.2));
-            transition: transform 0.2s;
-            z-index: 20;
-        }
-        
-        .animal-diet-bubble {
-            background: white;
-            color: var(--dark-stroke);
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: clamp(1rem, 2vh, 1.4rem);
-            font-weight: 700;
-            margin-bottom: -1vh;
-            z-index: 25;
-            border: 3px solid var(--dark-stroke);
-            box-shadow: var(--hard-shadow);
-            white-space: nowrap;
+        .screen.active {
             display: flex;
-            align-items: center;
-            gap: 6px;
-            transform: scale(0.95);
         }
 
-        .animal-happy .animal-emoji { animation: bounce 0.5s ease-out alternate; }
-        .animal-angry .animal-emoji { animation: wiggle 0.4s ease-in-out; }
-
-        @keyframes bounce { from { transform: translateY(0) scale(1); } to { transform: translateY(-3vh) scale(1.1); } }
-        @keyframes wiggle { 
-            0%, 100% { transform: rotate(0deg); } 
-            25% { transform: rotate(-10deg); } 
-            75% { transform: rotate(10deg); } 
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
         }
 
-        .food-item {
-            position: absolute;
-            width: 20%;
-            max-width: 90px;
-            aspect-ratio: 1/1;
-            transform: translateX(-50%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: clamp(3rem, 7vh, 5rem);
-            z-index: 30;
-            cursor: pointer;
-            user-select: none;
-            filter: drop-shadow(2px 3px 0px rgba(92, 77, 67, 0.2));
-            touch-action: manipulation;
-            pointer-events: auto; 
-            transition: transform 0.1s, opacity 0.3s;
-        }
-        .food-item:active { transform: translateX(-50%) scale(0.85); }
-        .food-item.trash-item {
-            /* สีของขยะให้ต่างออกไปเล็กน้อย */
-            filter: drop-shadow(2px 3px 0px rgba(92, 77, 67, 0.4)) grayscale(0.2);
-        }
-
-        /* --- HUD --- */
-        .hud {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            padding: 20px;
-            padding-top: max(20px, env(safe-area-inset-top)); 
-            display: flex;
-            justify-content: space-between;
-            pointer-events: none;
-            z-index: 50;
-        }
-        .stat-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .stat-box {
-            background: white;
-            color: var(--dark-stroke);
-            padding: 8px 18px;
-            border-radius: 20px;
-            font-size: clamp(1rem, 2.5vh, 1.3rem);
-            font-weight: 700;
-            border: 3px solid var(--dark-stroke);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 2px 3px 0px rgba(92, 77, 67, 0.15);
-        }
-        .stat-box.highlight { background: var(--pastel-yellow); }
-
-        .pause-btn {
-            background: white;
-            color: var(--dark-stroke);
-            width: 50px;
-            height: 50px;
-            border-radius: 16px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.4rem;
-            cursor: pointer;
-            pointer-events: auto;
-            border: 3px solid var(--dark-stroke);
-            box-shadow: 0 4px 0 var(--dark-stroke);
-            transition: all 0.1s;
-        }
-        .pause-btn:active { transform: translateY(4px); box-shadow: 0 0px 0 var(--dark-stroke); }
-
-        /* --- Panels & Overlays --- */
-        .overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(253, 251, 247, 0.9);
-            backdrop-filter: blur(5px);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: var(--dark-stroke);
-            z-index: 100;
-            padding: max(20px, env(safe-area-inset-top)) 24px max(20px, env(safe-area-inset-bottom)) 24px;
-            overflow-y: auto;
-        }
-
+        /* UI Elements */
         .panel {
             background: white;
-            border: 4px solid var(--dark-stroke);
-            border-radius: 32px;
-            padding: 24px;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 8px 0 rgba(92, 77, 67, 0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+            border: 3px solid var(--panel-stroke);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 4px 4px 0px var(--panel-stroke);
+            margin-bottom: 20px;
+            text-align: center;
         }
 
-        /* Level Cards */
-        .level-card {
-            background: var(--bg-cream);
+        h1 {
+            font-size: 32px;
+            color: var(--dark-text);
+            margin: 0 0 15px 0;
+            line-height: 1.2;
+        }
+
+        p {
+            font-size: 20px;
+            color: var(--dark-text);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 18px;
+            margin-bottom: 15px;
+            border: 3px solid var(--panel-stroke);
             border-radius: 20px;
-            padding: 12px 16px;
-            width: 100%;
+            font-size: 24px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            border: 3px solid #E2DFD8;
-            box-shadow: 0 4px 0 #E2DFD8;
+            transition: all 0.2s;
+            box-shadow: 0 6px 0 var(--panel-stroke);
+            position: relative;
+            top: 0;
+            background-color: white;
+            color: var(--dark-text);
         }
-        .level-card:hover { transform: translateY(-2px); }
-        .level-card:active { transform: translateY(4px); box-shadow: 0 0px 0 transparent; }
+
+        .btn:active {
+            top: 4px;
+            box-shadow: 0 2px 0 var(--panel-stroke);
+        }
+
+        .btn-start { background-color: var(--mint); }
+        .btn-option { background-color: var(--sky); text-align: left; padding-left: 25px; }
+        .btn-diff { background-color: var(--yellow); font-size: 20px; }
         
-        .level-card.selected {
-            background: white;
-            border: 3px solid var(--dark-stroke);
-            box-shadow: 0 4px 0 var(--dark-stroke);
+        .btn-back {
+            width: auto;
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 18px;
+            background: var(--peach);
+            margin-bottom: 10px;
         }
 
-        .level-card.easy.selected { background: var(--pastel-mint); }
-        .level-card.medium.selected { background: var(--pastel-yellow); }
-        .level-card.hard.selected { background: var(--pastel-pink); }
-
-        .level-icon-box {
-            width: 50px;
-            height: 50px;
-            border-radius: 14px;
+        /* Game Area */
+        #visual-panel {
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 1.8rem;
-            background: white;
-            border: 2px solid rgba(0,0,0,0.1);
+            background: #fff;
+            position: relative;
+            margin-bottom: 25px;
+            overflow: hidden;
+            /* Paper Cut Effect */
+            background-image: radial-gradient(circle at 50% 50%, #ffffff 0%, #f0f0f0 100%);
         }
 
-        .level-info { text-align: left; flex: 1; }
-        .level-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 2px; }
-        .level-desc { font-size: 0.9rem; font-weight: 500; opacity: 0.8; line-height: 1.3;}
-
-        /* Tutorial Box Styles */
-        .tutorial-box {
-            background: var(--bg-cream);
-            border: 3px solid var(--dark-stroke);
-            border-radius: 16px;
-            padding: 12px;
-            text-align: center;
-        }
-        .tutorial-box.herbivore { background: var(--pastel-mint); }
-        .tutorial-box.carnivore { background: var(--pastel-peach); }
-        .tutorial-box.trash { background: var(--pastel-gray); }
-        
-        .tutorial-emoji-group {
-            font-size: 2rem;
-            letter-spacing: 4px;
-            margin: 4px 0;
-            filter: drop-shadow(1px 2px 0px rgba(92, 77, 67, 0.2));
-        }
-        .tutorial-food-group {
-            font-size: 1.5rem;
-            letter-spacing: 2px;
+        #visual-panel svg {
+            width: 90%;
+            height: 90%;
+            filter: drop-shadow(4px 4px 2px rgba(0,0,0,0.1));
         }
 
-        /* Buttons */
-        .btn-game {
-            background: var(--pastel-sky);
-            color: var(--dark-stroke);
-            padding: 16px 0;
-            width: 100%;
-            border-radius: 20px;
-            font-size: 1.4rem;
-            font-family: 'Mali', sans-serif;
-            font-weight: 700;
-            border: 3px solid var(--dark-stroke);
-            box-shadow: 0 6px 0 var(--dark-stroke);
-            transition: all 0.1s;
-            cursor: pointer;
+        .score-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--dark-text);
+            background: var(--yellow);
+            padding: 5px 15px;
+            border-radius: 12px;
+            border: 2px solid var(--panel-stroke);
         }
-        .btn-game:active { transform: translateY(6px); box-shadow: 0 0px 0 var(--dark-stroke); }
-        
-        .btn-primary { background: var(--pastel-mint); }
-        .btn-secondary { background: var(--bg-cream); font-size: 1.1rem; padding: 12px 0;}
 
         /* Feedback Animations */
-        .feedback-text {
-            position: absolute;
-            font-family: 'Mali', sans-serif;
-            font-weight: 700;
-            font-size: clamp(1.8rem, 4vh, 2.5rem); 
-            pointer-events: none;
-            z-index: 60;
-            animation: floatSoft 1s forwards;
-            text-shadow: 2px 2px 0px white, -2px -2px 0px white, 2px -2px 0px white, -2px 2px 0px white;
-            white-space: nowrap;
-        }
-        @keyframes floatSoft {
-            0% { transform: translateY(0) scale(0.8); opacity: 0; }
-            20% { transform: translateY(-2vh) scale(1.1); opacity: 1; }
-            80% { opacity: 1; }
-            100% { transform: translateY(-6vh) scale(1); opacity: 0; }
+        .wiggle {
+            animation: wiggle 0.4s ease-in-out;
         }
 
-        /* Particle Stars */
-        .particle {
-            position: absolute;
-            font-size: 1.5rem;
-            pointer-events: none;
-            z-index: 55;
-            animation: popStar 0.8s ease-out forwards;
-        }
-        @keyframes popStar {
-            0% { transform: translate(0, 0) scale(0.5); opacity: 1; }
-            100% { transform: translate(var(--tx), var(--ty)) scale(1.5) rotate(180deg); opacity: 0; }
-        }
-        
-        .levelup-text {
-            position: absolute;
-            top: 25%;
-            left: 50%;
-            transform: translateX(-50%);
-            font-family: 'Mali', sans-serif;
-            font-weight: 700;
-            font-size: clamp(3rem, 8vh, 5rem);
-            color: var(--pastel-yellow);
-            pointer-events: none;
-            z-index: 70;
-            animation: popText 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            text-shadow: 3px 3px 0 var(--dark-stroke);
-            white-space: nowrap;
-        }
-        @keyframes popText {
-            0% { transform: translateX(-50%) scale(0); opacity: 0; }
-            20% { transform: translateX(-50%) scale(1.2); opacity: 1; }
-            80% { transform: translateX(-50%) scale(1); opacity: 1; }
-            100% { transform: translateX(-50%) scale(1.5); opacity: 0; }
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
         }
 
-        .switch-alert {
-            position: absolute;
-            top: 40%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            color: var(--dark-stroke);
-            padding: 20px;
-            border-radius: 24px;
-            font-family: 'Mali', sans-serif;
-            font-size: clamp(1.2rem, 3vh, 1.6rem);
-            font-weight: 700;
-            z-index: 80;
-            text-align: center;
-            animation: slideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 8px 0 rgba(92, 77, 67, 0.1);
-            width: 80%;
-            border: 4px solid var(--pastel-yellow);
-        }
-        @keyframes slideIn {
-            from { transform: translate(-50%, -20%) scale(0.9); opacity: 0; }
-            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        .color-up {
+            animation: colorUp 0.8s forwards;
         }
 
-        /* Version */
-        .version-tag {
-            position: absolute;
-            bottom: max(10px, env(safe-area-inset-bottom));
-            right: 15px;
-            color: rgba(92, 77, 67, 0.4);
-            font-size: 0.8rem;
-            font-weight: 600;
-            pointer-events: none;
+        @keyframes colorUp {
+            from { filter: grayscale(1); }
+            to { filter: grayscale(0); transform: scale(1.05); }
+        }
+
+        /* Difficulty badge info */
+        .diff-info {
+            display: block;
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 4px;
         }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <!-- HUD -->
-        <div class="hud">
-            <div class="stat-group">
-                <div class="stat-box highlight">
-                    <span class="text-xl">⭐</span> <span id="score">0</span>
-                </div>
-                <div class="stat-box">
-                    <span>⚡</span> Lv.<span id="level">1</span>
-                </div>
-            </div>
-            
-            <div class="stat-group items-end">
-                <button class="pause-btn" onclick="togglePause()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-                </button>
-                <div class="stat-box">
-                    <span id="lives">❤️❤️❤️</span>
-                </div>
-                <div class="stat-box text-sm">
-                    ⏱️ <span id="timer">00:00</span>
-                </div>
-            </div>
+<div id="game-container">
+    
+    <!-- หน้าเริ่มเกม -->
+    <div id="home-screen" class="screen active">
+        <div class="panel">
+            <h1>Proverb Painter</h1>
+            <p>ตีความหมายของภาพวาด<br>ให้เป็นสำนวนไทยแสนสนุก</p>
         </div>
 
-        <!-- Belts -->
-        <div id="belt-container"></div>
-
-        <!-- Animals -->
-        <div id="animal-container"></div>
-
-        <div id="food-layer"></div>
-
-        <!-- Start Overlay -->
-        <div id="start-overlay" class="overlay">
-            <div class="mb-4 pt-4">
-                <h1 class="text-6xl sm:text-7xl font-black text-center" style="color: var(--pastel-mint); text-shadow: 3px 4px 0 var(--dark-stroke), -1px -1px 0 var(--dark-stroke), 1px -1px 0 var(--dark-stroke), -1px 1px 0 var(--dark-stroke), 1px 1px 0 var(--dark-stroke);">
-                    ZOO<br>FEEDER
-                </h1>
-            </div>
-            
-            <div class="panel">
-                <p class="text-center font-semibold text-sm mb-2">เลือกระดับความท้าทายของคุณ</p>
-                
-                <div class="flex flex-col gap-3">
-                    <div class="level-card easy selected" onclick="selectDifficulty('easy')" id="card-easy">
-                        <div class="level-icon-box">🐢</div>
-                        <div class="level-info">
-                            <div class="level-title">ง่าย</div>
-                            <div class="level-desc">1 สายพาน มองเห็นชัดเจน</div>
-                        </div>
-                    </div>
-
-                    <div class="level-card medium" onclick="selectDifficulty('medium')" id="card-medium">
-                        <div class="level-icon-box">🐆</div>
-                        <div class="level-info">
-                            <div class="level-title">ปานกลาง</div>
-                            <div class="level-desc">2 สายพาน ต้องแยกประสาท</div>
-                        </div>
-                    </div>
-
-                    <div class="level-card hard" onclick="selectDifficulty('hard')" id="card-hard">
-                        <div class="level-icon-box">🦅</div>
-                        <div class="level-info">
-                            <div class="level-title">ยาก</div>
-                            <div class="level-desc">3 สายพาน ไวและท้าทายสุด!</div>
-                        </div>
-                    </div>
-                </div>
-
-                <button class="btn-game btn-primary mt-2" onclick="startGameClick()">
-                    ▶ เริ่มเกมเลย!
-                </button>
-            </div>
-
-            <div class="version-tag">v<span id="version-display"></span></div>
+        <div class="panel">
+            <p style="margin-bottom: 10px; font-weight: bold;">เลือกความยาก</p>
+            <button class="btn btn-diff" onclick="setDifficulty('easy')">
+                ง่าย
+                <span class="diff-info">ภาพตรงตัว สำนวนคุ้นหู</span>
+            </button>
+            <button class="btn btn-diff" onclick="setDifficulty('medium')">
+                ปานกลาง
+                <span class="diff-info">ต้องตีความลึกซึ้งขึ้น</span>
+            </button>
+            <button class="btn btn-diff" onclick="setDifficulty('hard')">
+                ยาก
+                <span class="diff-info">ตัวเลือกใกล้เคียงกันมาก</span>
+            </button>
         </div>
 
-        <!-- Tutorial Overlay -->
-        <div id="tutorial-overlay" class="overlay hidden">
-            <div class="panel">
-                <h2 class="text-3xl font-black text-center mb-2">คู่มือให้อาหาร 📖</h2>
-                
-                <!-- สัตว์กินพืช -->
-                <div class="tutorial-box herbivore">
-                    <h3 class="font-bold text-lg">🌿 สัตว์กินพืช (ปล่อยให้กิน)</h3>
-                    <div class="tutorial-emoji-group">🐘 🦒 🐇 🦍</div>
-                    <div class="text-sm font-bold mt-1 opacity-70">กินสิ่งเหล่านี้ ▼</div>
-                    <div id="tut-food-herb" class="tutorial-food-group mt-1">🌿 🍎 🥕 🥬 🌽 🍉 🍌</div>
-                </div>
+        <button class="btn btn-start" onclick="startGame()" id="start-btn" style="display:none;">เริ่มวาดภาพ!</button>
+    </div>
 
-                <!-- สัตว์กินเนื้อ -->
-                <div class="tutorial-box carnivore">
-                    <h3 class="font-bold text-lg">🥩 สัตว์กินเนื้อ (ปล่อยให้กิน)</h3>
-                    <div class="tutorial-emoji-group">🦁 🐯 🐊</div>
-                    <div class="text-sm font-bold mt-1 opacity-70">กินสิ่งเหล่านี้ ▼</div>
-                    <div id="tut-food-carn" class="tutorial-food-group mt-1">🥩 🍗 🥓 🐟 🍖 🦐</div>
-                </div>
-
-                <!-- ขยะกินไม่ได้ -->
-                <div class="tutorial-box trash">
-                    <h3 class="font-bold text-lg text-red-600">❌ ของกินไม่ได้! (แตะเพื่อทิ้ง)</h3>
-                    <div id="tut-food-trash" class="tutorial-food-group mt-2">👟 💣 🥫 🧱 🧤 📦</div>
-                    <div class="text-sm font-bold mt-2 text-red-500">แตะที่ของเหล่านี้เพื่อทิ้งมันไปซะ!</div>
-                </div>
-
-                <button class="btn-game btn-primary mt-2" onclick="confirmTutorial()">
-                    เข้าใจแล้ว ลุยเลย!
-                </button>
-            </div>
+    <!-- หน้าเล่นเกม -->
+    <div id="game-screen" class="screen">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+            <button class="btn btn-back" onclick="goHome()">⬅ ย้อนกลับ</button>
+            <div id="score-display" class="score-box">คะแนน: 0</div>
         </div>
 
-        <!-- Pause Overlay -->
-        <div id="pause-overlay" class="overlay hidden">
-            <div class="panel text-center">
-                <h2 class="text-4xl font-black mb-4">พักยก!</h2>
-                <div class="flex flex-col gap-4">
-                    <button class="btn-game btn-primary" onclick="togglePause()">
-                        ▶ เล่นต่อ
-                    </button>
-                    <button class="btn-game btn-secondary" onclick="quitToMenu()">
-                        🏠 กลับหน้าหลัก
-                    </button>
-                </div>
-            </div>
+        <div id="visual-panel" class="panel">
+            <!-- SVG content will be injected here -->
         </div>
 
-        <!-- Game Over Overlay -->
-        <div id="gameover-overlay" class="overlay hidden">
-            <div class="panel text-center animate-bounce-in">
-                <h1 class="text-4xl font-black text-red-400 mb-2">จบเกม!</h1>
-                
-                <div class="mb-4">
-                    <div class="text-sm font-bold opacity-70 mb-1">คะแนนรวม</div>
-                    <div id="final-score" class="text-6xl font-black text-yellow-500">0</div>
-                </div>
-
-                <div class="flex justify-center gap-4 bg-gray-50 p-3 rounded-2xl mb-4 font-bold text-sm">
-                    <div>⏱️ <span id="final-time">00:00</span></div>
-                    <div>🎮 <span id="final-mode">ง่าย</span></div>
-                </div>
-                
-                <div id="gameover-buttons" class="flex flex-col gap-3">
-                    <button class="btn-game btn-primary" onclick="startGame(currentDifficulty)">🔄 เล่นใหม่อีกครั้ง</button>
-                    <button class="btn-game btn-secondary" onclick="showStartScreen()">🏠 กลับหน้าหลัก</button>
-                </div>
-            </div>
+        <div id="options-container">
+            <!-- Buttons will be injected here -->
         </div>
     </div>
 
-    <script>
-        const gameContainer = document.getElementById('game-container');
-        const beltContainer = document.getElementById('belt-container');
-        const animalContainer = document.getElementById('animal-container');
-        const foodLayer = document.getElementById('food-layer');
-        const scoreEl = document.getElementById('score');
-        const levelEl = document.getElementById('level');
-        const livesEl = document.getElementById('lives');
-        const timerEl = document.getElementById('timer');
-        
-        const startOverlay = document.getElementById('start-overlay');
-        const tutorialOverlay = document.getElementById('tutorial-overlay');
-        const gameoverOverlay = document.getElementById('gameover-overlay');
-        const pauseOverlay = document.getElementById('pause-overlay');
-        const finalScoreEl = document.getElementById('final-score');
-        const finalTimeEl = document.getElementById('final-time');
-        const finalModeEl = document.getElementById('final-mode');
-        const versionDisplay = document.getElementById('version-display');
+    <!-- หน้าจบเกม -->
+    <div id="result-screen" class="screen">
+        <div class="panel" style="margin-top: 50px;">
+            <h1>จบเกม!</h1>
+            <p id="final-score-text" style="font-size: 32px; font-weight: bold;"></p>
+            <p id="evaluation-text"></p>
+        </div>
+        <button class="btn btn-start" onclick="goHome()">เล่นอีกครั้ง</button>
+    </div>
 
-        // Settings & Version
-        const GAME_VERSION = "0.2.0"; 
-        const POINTS_PER_LEVEL = 100;
-        const POINTS_PER_ANIMAL_CHANGE = 500;
-        
-        versionDisplay.innerText = GAME_VERSION;
+</div>
 
-        let score = 0;
-        let lives = 3;
-        let level = 1;
-        let beltCount = 1;
-        let selectedDifficulty = 'easy';
-        let currentDifficulty = 'easy';
-        
-        let gameActive = false;
-        let isPaused = false;
-        let foodItems = [];
-        let speed = 1.0;
-        let spawnRate = 2000;
-        let lastSpawnTime = 0;
-        let gameLoopReq;
-        
-        let currentAnimals = [];
-        let isSwitching = false;
-        
-        let startTime;
-        let timerInterval;
-        let pausedTime = 0;
-        let lastPauseStart = 0;
-        let elapsedTimeStr = "00:00";
-
-        // Audio System (Soft Web Audio Synth)
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        function playTone(freq, type, duration, vol=0.1) {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
-        }
-
-        function playCorrectSound() {
-            playTone(600, 'sine', 0.1, 0.05);
-            setTimeout(() => playTone(800, 'sine', 0.2, 0.05), 100);
-        }
-
-        function playWrongSound() {
-            playTone(250, 'triangle', 0.3, 0.1);
-        }
-
-        function playClickSound() {
-            playTone(400, 'sine', 0.1, 0.05);
-        }
-
-        // Handle viewport height
-        function setAppHeight() {
-            document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-        }
-        window.addEventListener('resize', setAppHeight);
-        setAppHeight();
-
-        const ANIMALS = [
-            { emoji: '🦁', type: 'carn', name: 'เนื้อ', icon: '🥩' },
-            { emoji: '🐯', type: 'carn', name: 'เนื้อ', icon: '🍗' },
-            { emoji: '🐊', type: 'carn', name: 'เนื้อ', icon: '🐟' },
-            { emoji: '🐘', type: 'herb', name: 'พืช', icon: '🌿' },
-            { emoji: '🦒', type: 'herb', name: 'พืช', icon: '🍃' },
-            { emoji: '🐇', type: 'herb', name: 'พืช', icon: '🥕' },
-            { emoji: '🦍', type: 'herb', name: 'พืช', icon: '🍌' }
-        ];
-
-        const FOOD_TYPES = {
-            HERB: ['🌿', '🍎', '🥕', '🥬', '🌽', '🍉', '🍌'],
-            CARN: ['🥩', '🍗', '🥓', '🐟', '🍖', '🦐'],
-            TRASH: ['👟', '💣', '🥫', '🧱', '🧤', '📦']
-        };
-
-        const BELT_POSITIONS = { 1: [50], 2: [30, 70], 3: [20, 50, 80] };
-
-        // UI Flow Functions
-        function selectDifficulty(diff) {
-            playClickSound();
-            selectedDifficulty = diff;
-            document.querySelectorAll('.level-card').forEach(el => el.classList.remove('selected'));
-            document.getElementById(`card-${diff}`).classList.add('selected');
-        }
-
-        function startGameClick() {
-            playClickSound();
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            showTutorial();
-        }
-
-        function showTutorial() {
-            let limit = 7;
-            if (selectedDifficulty === 'easy') limit = 2;
-            else if (selectedDifficulty === 'medium') limit = 4;
-
-            document.getElementById('tut-food-herb').innerText = FOOD_TYPES.HERB.slice(0, limit).join(' ');
-            document.getElementById('tut-food-carn').innerText = FOOD_TYPES.CARN.slice(0, limit).join(' ');
-            document.getElementById('tut-food-trash').innerText = FOOD_TYPES.TRASH.slice(0, limit).join(' ');
-
-            startOverlay.classList.add('hidden');
-            tutorialOverlay.classList.remove('hidden');
-        }
-
-        function confirmTutorial() {
-            playClickSound();
-            tutorialOverlay.classList.add('hidden');
-            startGame(selectedDifficulty);
-        }
-
-        function showStartScreen() {
-            playClickSound();
-            gameoverOverlay.classList.add('hidden');
-            pauseOverlay.classList.add('hidden');
-            tutorialOverlay.classList.add('hidden');
-            startOverlay.classList.remove('hidden');
-        }
-
-        function togglePause() {
-            if (!gameActive) return;
-            playClickSound();
-            isPaused = !isPaused;
-            if (isPaused) {
-                pauseOverlay.classList.remove('hidden');
-                lastPauseStart = Date.now();
-                cancelAnimationFrame(gameLoopReq);
-            } else {
-                pauseOverlay.classList.add('hidden');
-                pausedTime += Date.now() - lastPauseStart;
-                lastSpawnTime += (Date.now() - lastPauseStart); 
-                gameLoopReq = requestAnimationFrame(gameLoop);
+<script>
+    // ข้อมูลสำนวนและภาพ SVG (ปรับปรุงให้ภาพใหญ่ ชัดเจน และเข้าใจง่ายขึ้น)
+    const proverbs = {
+        easy: [
+            {
+                id: 1,
+                answer: "ขี่ช้างจับตั๊กแตน",
+                options: ["ขี่ช้างจับตั๊กแตน", "จับปลาสองมือ", "ขี่ม้าส่งเมือง"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- แยกคน ช้าง และตั๊กแตน ไม่ให้ทับซ้อนกัน -->
+                        <text x="60" y="150" font-size="70" text-anchor="middle">🐘</text>
+                        <text x="60" y="80" font-size="50" text-anchor="middle">🧑</text>
+                        <path d="M80,80 L140,120" fill="none" stroke="#6D5D50" stroke-width="4"/>
+                        <circle cx="150" cy="130" r="15" fill="none" stroke="#6D5D50" stroke-width="4"/>
+                        <text x="175" y="140" font-size="35" text-anchor="middle">🦗</text>
+                      </svg>`
+            },
+            {
+                id: 2,
+                answer: "กบในกะลาครอบ",
+                options: ["กบเลือกนาย", "กบในกะลาครอบ", "น้ำขึ้นให้รีบตัก"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- เปลี่ยนกะลาเป็นเส้นประโปร่งใส เพื่อให้เห็นกบด้านใน 100% -->
+                        <text x="100" y="140" font-size="70" text-anchor="middle">🐸</text>
+                        <path d="M30,140 A70,70 0 0,1 170,140" fill="none" stroke="#8B4513" stroke-width="8" stroke-dasharray="10,10"/>
+                        <line x1="20" y1="145" x2="180" y2="145" stroke="#8B4513" stroke-width="4" stroke-dasharray="10,10"/>
+                      </svg>`
+            },
+            {
+                id: 3,
+                answer: "หมูไปไก่มา",
+                options: ["ไก่ได้พลอย", "ยื่นหมูยื่นแมว", "หมูไปไก่มา"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- วางแยกบน-ล่างชัดเจน -->
+                        <text x="50" y="80" font-size="60" text-anchor="middle">🐷</text>
+                        <text x="130" y="70" font-size="40" text-anchor="middle">➡️</text>
+                        <text x="150" y="150" font-size="60" text-anchor="middle">🐔</text>
+                        <text x="70" y="140" font-size="40" text-anchor="middle">⬅️</text>
+                      </svg>`
+            },
+            {
+                id: 4,
+                answer: "จับปลาสองมือ",
+                options: ["จับปลาสองมือ", "ชี้บอกทางกระรอก", "ตีปลาหน้าไซ"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- วางมือและปลาแยกซ้าย-ขวาอย่างละชุด -->
+                        <text x="50" y="130" font-size="60" text-anchor="middle">🐟</text>
+                        <text x="50" y="90" font-size="50" text-anchor="middle">🖐️</text>
+                        <text x="150" y="130" font-size="60" text-anchor="middle">🐟</text>
+                        <text x="150" y="90" font-size="50" text-anchor="middle">🖐️</text>
+                      </svg>`
+            },
+            {
+                id: 5,
+                answer: "ชี้นกเป็นนก ชี้ไม้เป็นไม้",
+                options: ["ชี้โพรงให้กระรอก", "ชี้ไม้เป็นไม้", "ชี้นกเป็นนก ชี้ไม้เป็นไม้"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- แยกนกและไม้คนละบรรทัด พร้อมนิ้วชี้ชัดเจน -->
+                        <text x="50" y="80" font-size="50" text-anchor="middle">🐦</text>
+                        <text x="110" y="80" font-size="40" text-anchor="middle">👈</text>
+                        <text x="150" y="160" font-size="60" text-anchor="middle">🪵</text>
+                        <text x="90" y="150" font-size="40" text-anchor="middle">👉</text>
+                      </svg>`
             }
-        }
-
-        function quitToMenu() {
-            playClickSound();
-            gameActive = false;
-            isPaused = false;
-            cancelAnimationFrame(gameLoopReq);
-            clearInterval(timerInterval);
-            pauseOverlay.classList.add('hidden');
-            showStartScreen();
-        }
-
-        function updateTimer() {
-            if (!gameActive || isPaused) return;
-            const now = Date.now();
-            const diff = Math.floor((now - startTime - pausedTime) / 1000);
-            const minutes = Math.floor(diff / 60);
-            const seconds = diff % 60;
-            elapsedTimeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            timerEl.innerText = elapsedTimeStr;
-        }
-
-        // Game Logic
-        function startGame(difficulty) {
-            score = 0;
-            lives = 3;
-            level = 1;
-            currentDifficulty = difficulty;
-            pausedTime = 0;
-            isPaused = false;
-            
-            if (difficulty === 'easy') { beltCount = 1; speed = 1.2; spawnRate = 1800; }
-            else if (difficulty === 'medium') { beltCount = 2; speed = 1.0; spawnRate = 1300; }
-            else if (difficulty === 'hard') { beltCount = 3; speed = 0.9; spawnRate = 900; }
-            
-            clearFood();
-            startTime = Date.now();
-            elapsedTimeStr = "00:00";
-            timerEl.innerText = elapsedTimeStr;
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(updateTimer, 1000);
-
-            generateAnimals(beltCount);
-            updateScene();
-            updateUI();
-            
-            gameActive = true;
-            startOverlay.classList.add('hidden');
-            gameoverOverlay.classList.add('hidden');
-            tutorialOverlay.classList.add('hidden');
-            pauseOverlay.classList.add('hidden');
-            
-            lastSpawnTime = performance.now();
-            if (gameLoopReq) cancelAnimationFrame(gameLoopReq);
-            gameLoopReq = requestAnimationFrame(gameLoop);
-        }
-
-        function clearFood() {
-            foodItems.forEach(item => item.el.remove());
-            foodItems = [];
-        }
-
-        function getRandomAnimal() {
-            return ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
-        }
-
-        function generateAnimals(count) {
-            currentAnimals = [];
-            for (let i = 0; i < count; i++) {
-                currentAnimals.push(getRandomAnimal());
+        ],
+        medium: [
+            {
+                id: 6,
+                answer: "สีซอให้ควายฟัง",
+                options: ["วัวหายล้อมคอก", "สีซอให้ควายฟัง", "กระต่ายตื่นตูม"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- เรียง คน -> ซอ -> ตัวโน้ต -> ควาย -->
+                        <text x="40" y="130" font-size="60" text-anchor="middle">🧑</text>
+                        <text x="90" y="130" font-size="50" text-anchor="middle">🎻</text>
+                        <text x="160" y="140" font-size="70" text-anchor="middle">🐃</text>
+                        <text x="110" y="80" font-size="30" text-anchor="middle">🎶</text>
+                      </svg>`
+            },
+            {
+                id: 7,
+                answer: "เข็นครกขึ้นภูเขา",
+                options: ["ฝนทั่งให้เป็นเข็ม", "เข็นครกขึ้นภูเขา", "มือไม่พายเอาเท้าราน้ำ"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- แยกภูเขาไปด้านขวา คนและครกอยู่ด้านซ้าย ไม่ทับกัน -->
+                        <text x="150" y="150" font-size="100" text-anchor="middle">⛰️</text>
+                        <text x="50" y="160" font-size="60" text-anchor="middle">🧑</text>
+                        <path d="M80,110 L110,110 L100,160 L90,160 Z" fill="#888" stroke="#444" stroke-width="3"/>
+                        <text x="70" y="100" font-size="30" text-anchor="middle">💦</text>
+                      </svg>`
+            },
+            {
+                id: 8,
+                answer: "วัวหายล้อมคอก",
+                options: ["กระต่ายตื่นตูม", "วัวหายล้อมคอก", "ตำน้ำพริกละลายแม่น้ำ"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- วัวอยู่ด้านนอก คอกอยู่ด้านใน และคนกำลังซ่อม -->
+                        <rect x="20" y="100" width="70" height="70" fill="none" stroke="#8B4513" stroke-width="6"/>
+                        <text x="60" y="160" font-size="50" text-anchor="middle">🧑‍🔧</text>
+                        <text x="150" y="80" font-size="60" text-anchor="middle">🐄</text>
+                        <text x="100" y="80" font-size="30" text-anchor="middle">💨</text>
+                      </svg>`
+            },
+            {
+                id: 9,
+                answer: "หนีเสือปะจระเข้",
+                options: ["จับปลาสองมือ", "หนีเสือปะจระเข้", "หน้าไหว้หลังหลอก"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- เรียงเป็นเส้นตรง เสือ -> คนวิ่ง -> จระเข้ -->
+                        <text x="40" y="130" font-size="50" text-anchor="middle">🐅</text>
+                        <text x="100" y="130" font-size="50" text-anchor="middle">🏃</text>
+                        <text x="160" y="130" font-size="50" text-anchor="middle">🐊</text>
+                        <text x="70" y="100" font-size="30" text-anchor="middle">💦</text>
+                      </svg>`
+            },
+            {
+                id: 10,
+                answer: "ปิดทองหลังพระ",
+                options: ["ผ้าขี้ริ้วห่อทอง", "ปิดทองหลังพระ", "มือทำรวย"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- พระอยู่ซ้าย มือและแผ่นทองอยู่ขวาชี้ไปด้านหลังพระ -->
+                        <text x="80" y="160" font-size="80" text-anchor="middle">🧘</text>
+                        <text x="150" y="130" font-size="50" text-anchor="middle">🖐️</text>
+                        <rect x="110" y="100" width="25" height="25" fill="#FFD700" stroke="#DAA520" stroke-width="2"/>
+                      </svg>`
             }
-        }
-
-        function updateScene(updateBelts = true) {
-            if (updateBelts) {
-                beltContainer.innerHTML = '';
-                const positions = BELT_POSITIONS[beltCount];
-                const beltWidth = beltCount === 3 ? '24%' : (beltCount === 2 ? '34%' : '45%');
-
-                positions.forEach(pos => {
-                    const belt = document.createElement('div');
-                    belt.className = 'belt';
-                    belt.style.left = `calc(${pos}% - (${beltWidth} / 2))`;
-                    belt.style.width = beltWidth;
-                    for(let i=10; i<100; i+=25) {
-                        const mark = document.createElement('div');
-                        mark.className = 'belt-marking';
-                        mark.style.top = i + '%';
-                        belt.appendChild(mark);
-                    }
-                    beltContainer.appendChild(belt);
-                });
+        ],
+        hard: [
+            {
+                id: 11,
+                answer: "เห็นกงจักรเป็นดอกบัว",
+                options: ["เห็นผิดเป็นชอบ", "เห็นกงจักรเป็นดอกบัว", "รำไม่ดีโทษปี่โทษกลอง"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- วางกงจักร และดอกบัวแยกกัน มีดวงตาคิดอยู่ตรงกลาง -->
+                        <text x="50" y="120" font-size="60" text-anchor="middle">⚙️</text>
+                        <text x="100" y="110" font-size="40" text-anchor="middle">👁️💭</text>
+                        <text x="150" y="120" font-size="60" text-anchor="middle">🪷</text>
+                      </svg>`
+            },
+            {
+                id: 12,
+                answer: "ไก่เห็นตีนงู งูเห็นนมไก่",
+                options: ["งูกินหาง", "ไก่เห็นตีนงู งูเห็นนมไก่", "คางคกขึ้นวอ"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- ไก่กับงูสลับกันมองชัดเจน -->
+                        <text x="50" y="80" font-size="60" text-anchor="middle">🐔</text>
+                        <text x="150" y="160" font-size="60" text-anchor="middle">🐍</text>
+                        <text x="120" y="70" font-size="40" text-anchor="middle">👀</text>
+                        <path d="M80,70 Q100,50 140,120" fill="none" stroke="#6D5D50" stroke-width="2" stroke-dasharray="4,4"/>
+                        <text x="80" y="170" font-size="40" text-anchor="middle">👀</text>
+                        <path d="M120,160 Q100,180 60,110" fill="none" stroke="#6D5D50" stroke-width="2" stroke-dasharray="4,4"/>
+                      </svg>`
+            },
+            {
+                id: 13,
+                answer: "กินบนเรือนขี้บนหลังคา",
+                options: ["สาวไส้ให้กากิน", "ช้างตายทั้งตัวเอาใบบัวมาปิด", "กินบนเรือนขี้บนหลังคา"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- วาดโครงบ้านโปร่งใส ชามข้าวอยู่ล่าง อึอยู่บนสุด -->
+                        <path d="M20,100 L100,40 L180,100" fill="none" stroke="#8B4513" stroke-width="6"/>
+                        <rect x="40" y="100" width="120" height="80" fill="none" stroke="#8B4513" stroke-width="6"/>
+                        <text x="100" y="160" font-size="60" text-anchor="middle">🍚</text>
+                        <text x="100" y="35" font-size="50" text-anchor="middle">💩</text>
+                      </svg>`
+            },
+            {
+                id: 14,
+                answer: "รำไม่ดีโทษปี่โทษกลอง",
+                options: ["ช้างเท้าหลัง", "รำไม่ดีโทษปี่โทษกลอง", "ว่าแต่เขาอิเหนาเป็นเอง"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- คนรำอยู่ซ้าย เครื่องดนตรีอยู่ขวา -->
+                        <text x="60" y="130" font-size="70" text-anchor="middle">💃</text>
+                        <text x="80" y="70" font-size="40" text-anchor="middle">😠</text>
+                        <text x="150" y="100" font-size="50" text-anchor="middle">🥁</text>
+                        <text x="150" y="160" font-size="50" text-anchor="middle">🪈</text>
+                        <path d="M90,100 L120,90 M90,120 L120,140" fill="none" stroke="red" stroke-width="3" stroke-dasharray="5,5"/>
+                      </svg>`
+            },
+            {
+                id: 15,
+                answer: "น้ำลดตอผุด",
+                options: ["น้ำขุ่นไว้ใน น้ำใสไว้นอก", "น้ำลดตอผุด", "น้ำเชี่ยวอย่าขวางเรือ"],
+                svg: `<svg viewBox="0 0 200 200">
+                        <!-- น้ำใสๆ อยู่ด้านล่าง ตอไม้โผล่ขึ้นมาชัดๆ -->
+                        <path d="M60,180 L70,80 L90,180 Z" fill="#8B4513" stroke="#5C2E0B" stroke-width="4"/>
+                        <path d="M120,180 L130,100 L150,180 Z" fill="#8B4513" stroke="#5C2E0B" stroke-width="4"/>
+                        <rect x="20" y="140" width="160" height="40" fill="#A2D2FF" opacity="0.7"/>
+                        <text x="100" y="130" font-size="40" text-anchor="middle">⬇️</text>
+                        <text x="40" y="170" font-size="30" text-anchor="middle">🌊</text>
+                      </svg>`
             }
-            renderAnimalsOnly();
+        ]
+    };
+
+    let currentDifficulty = 'easy';
+    let score = 0;
+    let currentQuestionIndex = 0;
+    let gameQuestions = [];
+
+    // Synthesize Soft Chime
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playChime(freq, type = 'sine') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+    }
+
+    function setDifficulty(diff) {
+        currentDifficulty = diff;
+        document.querySelectorAll('.btn-diff').forEach(btn => {
+            btn.style.backgroundColor = 'var(--yellow)';
+            btn.style.borderWidth = '3px';
+        });
+        event.currentTarget.style.backgroundColor = 'var(--mint)';
+        document.getElementById('start-btn').style.display = 'block';
+        playChime(440);
+    }
+
+    function startGame() {
+        score = 0;
+        currentQuestionIndex = 0;
+        gameQuestions = [...proverbs[currentDifficulty]];
+        // Shuffle questions
+        gameQuestions.sort(() => Math.random() - 0.5);
+        
+        updateScore();
+        showScreen('game-screen');
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if (currentQuestionIndex >= gameQuestions.length) {
+            endGame();
+            return;
         }
 
-        function renderAnimalsOnly() {
-            animalContainer.innerHTML = '';
-            const positions = BELT_POSITIONS[beltCount];
-            currentAnimals.forEach((animal, index) => {
-                const pos = positions[index];
-                const slot = document.createElement('div');
-                slot.className = 'animal-slot';
-                slot.style.left = `${pos}%`;
-                slot.id = `animal-slot-${index}`;
+        const q = gameQuestions[currentQuestionIndex];
+        const visualPanel = document.getElementById('visual-panel');
+        visualPanel.innerHTML = q.svg;
+        visualPanel.classList.remove('color-up');
 
-                const diet = document.createElement('div');
-                diet.className = 'animal-diet-bubble';
-                diet.innerHTML = `<span>${animal.icon}</span>`;
-                slot.appendChild(diet);
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
 
-                const emoji = document.createElement('div');
-                emoji.className = 'animal-emoji';
-                emoji.innerText = animal.emoji;
-                slot.appendChild(emoji);
+        // Shuffle options
+        const shuffledOptions = [...q.options].sort(() => Math.random() - 0.5);
 
-                animalContainer.appendChild(slot);
+        shuffledOptions.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-option';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt, q.answer, btn);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, correct, btn) {
+        if (selected === correct) {
+            score += 15;
+            updateScore();
+            playChime(880);
+            
+            // Visual feedback: Confetti
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#FFB085', '#B5EAD7', '#A2D2FF', '#FFDAC1']
             });
-        }
 
-        function addScore(points) {
-            const oldLevel = level;
-            const oldAnimalStage = Math.floor(score / POINTS_PER_ANIMAL_CHANGE);
-            score += points;
-            
-            const newLevel = Math.floor(score / POINTS_PER_LEVEL) + 1;
-            const newAnimalStage = Math.floor(score / POINTS_PER_ANIMAL_CHANGE);
-
-            if (newLevel > oldLevel) {
-                level = newLevel;
-                speed += 0.15;
-                spawnRate = Math.max(450, spawnRate - 100);
-                showLevelUpText();
-            }
-
-            if (newAnimalStage > oldAnimalStage) {
-                clearFood(); 
-                if (beltCount === 1) {
-                    generateAnimals(beltCount);
-                    const alert = document.createElement('div');
-                    alert.className = 'switch-alert';
-                    alert.innerHTML = "เปลี่ยนสัตว์!<br><span class='text-base font-normal opacity-70'>เคลียร์สายพาน...</span>";
-                    gameContainer.appendChild(alert);
-                    setTimeout(() => alert.remove(), 1500);
-                } else {
-                    const laneIndex = Math.floor(Math.random() * beltCount);
-                    const oldAnimal = currentAnimals[laneIndex];
-                    let newAnimal;
-                    do {
-                        newAnimal = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
-                    } while (newAnimal.emoji === oldAnimal.emoji);
-                    
-                    currentAnimals[laneIndex] = newAnimal;
-                    
-                    const alert = document.createElement('div');
-                    alert.className = 'switch-alert';
-                    alert.innerHTML = "ระวัง!<br><span class='text-base font-normal opacity-70'>เปลี่ยนสัตว์ 1 ตัว</span>";
-                    gameContainer.appendChild(alert);
-                    setTimeout(() => alert.remove(), 1500);
-                }
-                renderAnimalsOnly();
-            }
-            updateUI();
-        }
-
-        function showLevelUpText() {
-            const txt = document.createElement('div');
-            txt.className = 'levelup-text';
-            txt.innerText = `LEVEL UP!`;
-            gameContainer.appendChild(txt);
-            setTimeout(() => txt.remove(), 1500);
-        }
-
-        function spawnFood() {
-            const lanes = BELT_POSITIONS[beltCount];
-            const laneIndex = Math.floor(Math.random() * lanes.length);
-            const targetAnimal = currentAnimals[laneIndex];
-            
-            const rand = Math.random();
-            let type, poolType;
-
-            if (rand < 0.25) { type = 'trash'; poolType = 'TRASH'; }
-            else if (rand < 0.6) { type = targetAnimal.type === 'herb' ? 'carn' : 'herb'; poolType = targetAnimal.type === 'herb' ? 'CARN' : 'HERB'; }
-            else { type = targetAnimal.type; poolType = targetAnimal.type === 'herb' ? 'HERB' : 'CARN'; }
-
-            let limit = FOOD_TYPES[poolType].length;
-            if (currentDifficulty === 'easy') limit = 2;
-            else if (currentDifficulty === 'medium') limit = 4;
-
-            const pool = FOOD_TYPES[poolType].slice(0, limit);
-            const emoji = pool[Math.floor(Math.random() * pool.length)];
-
-            const el = document.createElement('div');
-            el.className = `food-item ${type === 'trash' ? 'trash-item' : ''}`;
-            el.innerText = emoji;
-            
-            const lanePos = lanes[laneIndex];
-            el.style.left = `${lanePos}%`;
-            el.style.top = '-100px';
-            
-            const itemObj = {
-                el: el,
-                type: type,
-                laneIndex: laneIndex,
-                y: -100,
-                sorted: false,
-                id: Date.now() + Math.random()
-            };
-
-            el.onpointerdown = (e) => {
-                e.preventDefault(); 
-                e.stopPropagation();
-                handleItemClick(itemObj);
-            };
-
-            foodLayer.appendChild(el);
-            foodItems.push(itemObj);
-        }
-
-        function gameLoop(time) {
-            if (!gameActive || isPaused) return; 
-            if (!isSwitching && time - lastSpawnTime > spawnRate) {
-                spawnFood();
-                lastSpawnTime = time;
-            }
-            for (let i = foodItems.length - 1; i >= 0; i--) {
-                const item = foodItems[i];
-                if (!item.sorted) {
-                    item.y += speed;
-                    item.el.style.top = item.y + 'px';
-                    // animal zone is bottom 28%
-                    const animalZoneH = window.innerHeight * 0.28;
-                    if (item.y > gameContainer.offsetHeight - animalZoneH) handleReachAnimal(i);
-                }
-            }
-            gameLoopReq = requestAnimationFrame(gameLoop);
-        }
-
-        function spawnStars(x, lanePercent) {
-            const colors = ['#FFDF85', '#A0E8AF', '#BFE6FF', '#FFB07C'];
-            for(let i=0; i<5; i++) {
-                let star = document.createElement('div');
-                star.innerHTML = '✨';
-                star.className = 'particle';
-                star.style.left = `calc(${lanePercent}% - 15px)`;
-                star.style.bottom = '15%';
-                let tx = (Math.random() - 0.5) * 100 + 'px';
-                let ty = (Math.random() - 1) * 100 + 'px';
-                star.style.setProperty('--tx', tx);
-                star.style.setProperty('--ty', ty);
-                star.style.color = colors[Math.floor(Math.random() * colors.length)];
-                
-                gameContainer.appendChild(star);
-                setTimeout(() => star.remove(), 800);
-            }
-        }
-
-        function handleReachAnimal(index) {
-            const item = foodItems[index];
-            item.sorted = true;
-            
-            const currentAnimalInLane = currentAnimals[item.laneIndex];
-            const isCorrectFood = (item.type === currentAnimalInLane.type);
-
-            item.el.style.transition = 'all 0.2s ease-in';
-            item.el.style.transform = `translate(-50%, 50px) scale(0)`;
-            item.el.style.opacity = '0';
-
-            const animalSlot = document.getElementById(`animal-slot-${item.laneIndex}`);
-            const lanePos = BELT_POSITIONS[beltCount][item.laneIndex];
-
-            if (isCorrectFood) {
-                playCorrectSound();
-                if (animalSlot) {
-                    animalSlot.classList.add('animal-happy');
-                    setTimeout(() => animalSlot.classList.remove('animal-happy'), 500);
-                }
-                spawnStars(0, lanePos);
-                showFeedback('+20', item.laneIndex, 'var(--pastel-mint)');
-                addScore(20); 
-            } else {
-                playWrongSound();
-                lives--;
-                const msg = 'พลาด!';
-                
-                showFeedback(msg, item.laneIndex, 'var(--pastel-peach)');
-                if (animalSlot) {
-                    animalSlot.classList.add('animal-angry');
-                    setTimeout(() => animalSlot.classList.remove('animal-angry'), 500);
-                }
-                updateUI();
-            }
+            // Make visual colorful and move
+            const svg = document.querySelector('#visual-panel svg');
+            svg.classList.add('color-up');
+            btn.style.backgroundColor = 'var(--mint)';
 
             setTimeout(() => {
-                if(item.el && item.el.parentNode) item.el.remove();
-                foodItems = foodItems.filter(f => f !== item);
-            }, 200);
-
-            if (lives <= 0) gameOver();
-        }
-
-        function handleItemClick(item) {
-            if (!gameActive || isSwitching || item.sorted || isPaused) return; 
-            item.sorted = true;
-
-            const currentAnimalInLane = currentAnimals[item.laneIndex];
-            const isCorrectFood = (item.type === currentAnimalInLane.type);
-
-            const direction = Math.random() > 0.5 ? 'right' : 'left';
-            const targetX = direction === 'left' ? -200 : 200;
-
-            item.el.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-            item.el.style.transform = `translate(calc(-50% + ${targetX}px), -50px) rotate(${direction==='left'?'-45deg':'45deg'}) scale(0.5)`;
-            item.el.style.opacity = '0';
-
-            if (!isCorrectFood) {
-                playCorrectSound();
-                showFeedback('+10', item.laneIndex, 'white');
-                addScore(10);
-            } else {
-                playWrongSound();
-                lives--;
-                showFeedback('อุ๊ยทิ้งทำไม!', item.laneIndex, 'var(--pastel-peach)');
-                updateUI();
-            }
-
+                currentQuestionIndex++;
+                loadQuestion();
+            }, 1500);
+        } else {
+            score = Math.max(0, score - 5);
+            updateScore();
+            playChime(220, 'square');
+            
+            // Wiggle effect
+            const visualPanel = document.getElementById('visual-panel');
+            visualPanel.classList.add('wiggle');
+            btn.style.backgroundColor = '#ffcccc';
+            
             setTimeout(() => {
-                if(item.el && item.el.parentNode) item.el.remove();
-                foodItems = foodItems.filter(f => f !== item);
-            }, 300);
-
-            if (lives <= 0) gameOver();
+                visualPanel.classList.remove('wiggle');
+            }, 400);
         }
+    }
 
-        function showFeedback(text, laneIndex, color) {
-            const fb = document.createElement('div');
-            fb.className = 'feedback-text';
-            fb.innerText = text;
-            fb.style.color = color;
-            
-            const positions = BELT_POSITIONS[beltCount];
-            if (positions && positions[laneIndex]) fb.style.left = `${positions[laneIndex]}%`;
-            else fb.style.left = '50%';
-            
-            fb.style.top = '60%';
-            gameContainer.appendChild(fb);
-            setTimeout(() => fb.remove(), 1000);
-        }
+    function updateScore() {
+        document.getElementById('score-display').innerText = `คะแนน: ${score}`;
+    }
 
-        function updateUI() {
-            scoreEl.innerText = score;
-            levelEl.innerText = level;
-            
-            let hearts = '';
-            for(let i=0; i<3; i++){
-                hearts += i < lives ? '❤️' : '🤍';
-            }
-            livesEl.innerText = hearts;
-        }
+    function endGame() {
+        showScreen('result-screen');
+        document.getElementById('final-score-text').innerText = `${score} คะแนน`;
+        
+        let eval = "เก่งมาก! คุณคือจิตรกรเอกด้านสำนวน";
+        if (score < 15) eval = "พยายามอีกนิดนะ ลองใหม่ได้เสมอ!";
+        else if (score < 30) eval = "ทำได้ดีแล้ว! อีกนิดจะเทพแล้ว";
+        
+        document.getElementById('evaluation-text').innerText = eval;
+    }
 
-        function gameOver() {
-            gameActive = false;
-            clearInterval(timerInterval);
-            cancelAnimationFrame(gameLoopReq);
-            
-            finalScoreEl.innerText = score;
-            finalTimeEl.innerText = elapsedTimeStr;
-            
-            let modeLabel = 'ง่าย';
-            if(currentDifficulty === 'medium') modeLabel = 'ปานกลาง';
-            if(currentDifficulty === 'hard') modeLabel = 'ยาก';
-            finalModeEl.innerText = modeLabel;
-            
-            gameoverOverlay.classList.remove('hidden');
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function goHome() {
+        showScreen('home-screen');
+    }
+
+    // Initialize with first user interaction to enable AudioContext
+    document.addEventListener('click', () => {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
         }
-    </script>
+    }, { once: true });
+
+</script>
+
 </body>
 </html>

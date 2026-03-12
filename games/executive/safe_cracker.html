@@ -163,7 +163,7 @@
 
         <!-- ================= MAIN MENU ================= -->
         <div id="screen-menu" class="absolute inset-0 flex flex-col p-6 z-10 bg-cream transition-opacity duration-300">
-            
+            <div class="absolute bottom-4 right-4 text-xs font-bold text-gray-400">v0.2.0</div>
             <div class="flex-1 flex flex-col justify-center items-center space-y-8">
                 <!-- Title Panel -->
                 <div class="paper-panel p-6 w-full text-center">
@@ -190,7 +190,7 @@
                 <div class="w-full space-y-4">
                     <button onclick="startGame('easy')" class="paper-btn w-full p-4 flex flex-col items-center">
                         <span class="text-2xl font-bold text-success mb-1">ง่าย (Easy)</span>
-                        <span class="text-sm text-gray-500">3 ช่อง | 3 สี | ไม่ซ้ำกัน | ทายได้ 5 ครั้ง</span>
+                        <span class="text-sm text-gray-500">3 ช่อง | 4 สี | ไม่ซ้ำกัน | ทายได้ 5 ครั้ง</span>
                     </button>
                     <button onclick="startGame('medium')" class="paper-btn w-full p-4 flex flex-col items-center">
                         <span class="text-2xl font-bold text-warning mb-1">ปานกลาง (Medium)</span>
@@ -265,14 +265,14 @@
 
         <!-- ================= TUTORIAL OVERLAY ================= -->
         <div id="tutorial-overlay" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 pointer-events-none z-50 transition-opacity duration-300">
-            <div id="tutorial-panel" class="paper-panel p-6 m-4 w-full max-w-[90%] transform scale-95 transition-transform duration-300">
+            <div id="tutorial-panel" class="paper-panel p-6 m-4 w-full max-w-[90%] transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto no-scrollbar">
                 <h2 class="text-2xl font-bold text-c0 mb-4 text-center">วิธีเล่นเบื้องต้น</h2>
                 
                 <div class="space-y-4 mb-6 text-gray-600">
                     <p class="text-[1.05rem] text-center leading-relaxed">เป้าหมายของคุณคือการ <b class="text-c0">ทายรหัสสี</b> ให้ถูกต้องทั้งหมด ภายในจำนวนครั้งที่กำหนด</p>
                     
                     <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
-                        <p class="font-bold mb-3 text-sm text-gray-500 text-center">ความหมายของคำใบ้ที่จะได้รับ:</p>
+                        <p class="font-bold mb-3 text-sm text-gray-500 text-center">ความหมายของคำใบ้ (เรียงตามตำแหน่งที่คุณทาย):</p>
                         
                         <div class="flex items-center space-x-3 mb-3">
                             <svg class="w-7 h-7 text-success flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
@@ -289,6 +289,38 @@
                             <span class="text-[0.95rem]"><b>ผิดสี (ไม่มีสีนี้ในรหัส)</b> <br><span class="text-xs text-gray-400">ตัดสีนี้ทิ้งในการทายครั้งต่อไปได้เลย</span></span>
                         </div>
                     </div>
+
+                    <!-- ส่วนที่เพิ่มใหม่: ยกตัวอย่างการทาย -->
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-[0.9rem]">
+                        <p class="font-bold mb-3 text-gray-700">ตัวอย่าง (สมมติคำตอบคือ <span class="text-c0">แดง</span>-<span class="text-c2">น้ำเงิน</span>-<span class="text-warning">เหลือง</span>)</p>
+                        <ul class="space-y-3">
+                            <li class="flex items-center justify-between border-b border-gray-200 pb-2">
+                                <span>ทาย: แดง-เหลือง-น้ำเงิน</span>
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-5 h-5 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <svg class="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"></circle></svg>
+                                    <svg class="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"></circle></svg>
+                                </span>
+                            </li>
+                            <li class="flex items-center justify-between border-b border-gray-200 pb-2">
+                                <span>ทาย: เหลือง-แดง-น้ำเงิน</span>
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"></circle></svg>
+                                    <svg class="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"></circle></svg>
+                                    <svg class="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"></circle></svg>
+                                </span>
+                            </li>
+                            <li class="flex items-center justify-between">
+                                <span>ทาย: แดง-น้ำเงิน-เหลือง</span>
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-5 h-5 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <svg class="w-5 h-5 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <svg class="w-5 h-5 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+
                 </div>
 
                 <button onclick="closeTutorial()" class="paper-btn px-6 py-3 text-lg font-bold text-white bg-c1 border-c1 w-full shadow-md">
@@ -343,7 +375,7 @@
         ];
         
         const difficulties = {
-            easy: { slots: 3, colorCount: 3, maxTurns: 5, allowDupes: false },
+            easy: { slots: 3, colorCount: 4, maxTurns: 5, allowDupes: false },
             medium: { slots: 3, colorCount: 5, maxTurns: 6, allowDupes: false },
             hard: { slots: 4, colorCount: 6, maxTurns: 6, allowDupes: true }
         };
@@ -493,15 +525,15 @@
         }
 
         function evaluateGuess() {
-            let exact = 0;
-            let partial = 0;
+            // สร้าง Array เปล่าๆ เพื่อเก็บผลลัพธ์แบบตรงตำแหน่งช่อง (Positional Feedback)
+            let result = new Array(currentConfig.slots).fill('none');
             let guessCopy = [...currentGuess];
             let secretCopy = [...secretCode];
 
             // 1. Check Exact Matches (Green)
             for (let i = 0; i < currentConfig.slots; i++) {
                 if (guessCopy[i] === secretCopy[i]) {
-                    exact++;
+                    result[i] = 'exact';
                     guessCopy[i] = null;
                     secretCopy[i] = null;
                 }
@@ -512,12 +544,12 @@
                 if (guessCopy[i] !== null) {
                     let index = secretCopy.indexOf(guessCopy[i]);
                     if (index !== -1) {
-                        partial++;
+                        result[i] = 'partial';
                         secretCopy[index] = null; // Prevent double counting
                     }
                 }
             }
-            return { exact, partial };
+            return result;
         }
 
         function submitGuess() {
@@ -532,7 +564,10 @@
             const result = evaluateGuess();
             addHistory(currentGuess, result);
 
-            if (result.exact === currentConfig.slots) {
+            // ตรวจสอบว่าชนะหรือไม่ (ทุกช่องต้องเป็น exact)
+            const isWin = result.every(r => r === 'exact');
+
+            if (isWin) {
                 // Win
                 sfx.win();
                 score += 30;
@@ -567,18 +602,16 @@
             });
             colorsHTML += '</div>';
 
-            // Feedback pegs
+            // Feedback pegs (Render ตามลำดับตำแหน่งแบบ 1:1)
             let feedbackHTML = '<div class="flex space-x-1">';
-            for (let i = 0; i < result.exact; i++) {
-                feedbackHTML += `<svg class="w-6 h-6 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>`;
-            }
-            for (let i = 0; i < result.partial; i++) {
-                feedbackHTML += `<svg class="w-6 h-6 text-warning" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"></circle></svg>`;
-            }
-            // Fill empty pegs
-            const emptyPegs = currentConfig.slots - result.exact - result.partial;
-            for(let i=0; i<emptyPegs; i++) {
-                feedbackHTML += `<div class="w-6 h-6 rounded-full border-2 border-gray-200"></div>`;
+            for (let i = 0; i < currentConfig.slots; i++) {
+                if (result[i] === 'exact') {
+                    feedbackHTML += `<svg class="w-6 h-6 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>`;
+                } else if (result[i] === 'partial') {
+                    feedbackHTML += `<svg class="w-6 h-6 text-warning" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"></circle></svg>`;
+                } else {
+                    feedbackHTML += `<div class="w-6 h-6 rounded-full border-2 border-gray-200"></div>`;
+                }
             }
             feedbackHTML += '</div>';
 
